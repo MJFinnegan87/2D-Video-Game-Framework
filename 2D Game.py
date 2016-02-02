@@ -195,6 +195,15 @@ def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileT
         personXDelta = 0
 
     #FIX DIAGONAL SPEED INCREASE
+    #  
+    #  |\
+    #  | \
+    # 5|  \ >5
+    #  |_  \
+    #  |_|__\
+    #    5
+    #
+    #USER SHOULD NOT TRAVEL FASTER JUST BECAUSE OF TRAVELING IN 2 DIRECTIONS SIMULTANEOUSLY. THE CODE BELOW ADJUSTS FOR THIS:
     if personXDelta != 0 and personYDelta !=0:
         temppersonXDelta = (personXDelta/abs(personXDelta)) * (math.cos(math.atan(abs(personYDelta/personXDelta))) * personAccel)
         personYDelta = (personYDelta/abs(personYDelta)) * (math.sin(math.atan(abs(personYDelta/personXDelta))) * personAccel)
@@ -360,7 +369,7 @@ def gameLoop():
     myHealth = 100
     myParticles = [] #[NAME, X1, Y1, WIDTH, HEIGHT, R, G, B, SPEED, 0]
     myEnemies = [] #[species, weapon, health, aggression, speed, img, x, y, dx, dy, width, height]
-    gravityAppliesToWorld = True
+    gravityAppliesToWorld = False
     personAccel = 8 #FOR BEST PERFORMANCE, MAKE THIS A FACTOR OF SPRITE WIDTH & HEIGHT
     personXDelta = 0
     personXDeltaButScreenOffset = 0

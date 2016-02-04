@@ -196,12 +196,12 @@ def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileT
 
     #FIX DIAGONAL SPEED INCREASE
     #  
-    #  |\
-    #  | \
-    # 5|  \ >5
-    #  |_  \
-    #  |_|__\
-    #    5
+    #  |\                               |\
+    #  | \                              | \
+    # 5|  \ >5  -> solve for X and Y:  Y|  \ 5
+    #  |_  \                            |_  \
+    #  |_|__\                           |_|__\
+    #    5                                 X
     #
     #USER SHOULD NOT TRAVEL FASTER JUST BECAUSE OF TRAVELING IN 2 DIRECTIONS SIMULTANEOUSLY. THE CODE BELOW ADJUSTS FOR THIS:
     if personXDelta != 0 and personYDelta !=0:
@@ -289,7 +289,7 @@ def screenSynchWithCharacterMovement(yok, xok, personYDelta, personXDelta, displ
     if yok == 1:
         y = y + personYDelta + personYDeltaButScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
         playerYBlock = 1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + (y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
-    return yok, xok, personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x
+    return personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x
 
 def generateparticles(shotsFiredFromMe, myParticles, personYFacing, personXFacing, playerYBlock, playerXBlock, tileHeight, tileWidth):
     if shotsFiredFromMe == True and not(personYFacing == 0 and personXFacing == 0):
@@ -498,7 +498,7 @@ def gameLoop():
         #TODO: badGuysMoveOrAttack()
         
         #SYNCH SCREEN WITH CHARACTER MOVEMENT
-        yok, xok, personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x = screenSynchWithCharacterMovement(yok, xok, personYDelta, personXDelta, displayHeight, displayWidth, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x)
+        personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x = screenSynchWithCharacterMovement(yok, xok, personYDelta, personXDelta, displayHeight, displayWidth, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x)
         if gravityAppliesToWorld == True:
             gravityYDelta = applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight)
         #MOVE PARTICLES

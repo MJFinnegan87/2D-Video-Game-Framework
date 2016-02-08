@@ -6,3 +6,5 @@ The purpose of this program is to serve as a template from which most other 2d v
 So far, main character movement, character collision detection, bullet firing, and world drawing are all implemented. Future features will include gravity for side-scrolling type games, support for enemy movement and attack, a level editor, a database for level data to be stored, and joystick support.
 
 This project is still being worked, and it is a rewarding experience learning about and implementing screen drawing, image/sprite manipulation, nested for loops over arrays, and keypress handling.
+
+No instructions followed or other peoples' code were used, this work is completely my own.

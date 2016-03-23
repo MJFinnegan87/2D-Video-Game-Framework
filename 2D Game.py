@@ -38,7 +38,6 @@ class SpriteSheet(object):
         #nothing = raw_input("")
         #return myTileDictionary[tileRequested]
 
-
 def textObjects(text, font, color):
     textSurface = font.render(text, True, color)
     return textSurface, textSurface.get_rect()
@@ -62,9 +61,14 @@ def drawWorld(myImage, myCoords, myGameDisplay):
      myGameDisplay.blit(myImage, (myCoords[0], myCoords[1]))
     
 def drawObject(myFile, x, y, myGameDisplay):
-    myCharacter = pygame.image.load(myFile)
-    myGameDisplay.blit(myCharacter,(x,y))
-
+    if myFile == "person.png":
+        myGameDisplay.blit(PLAYER,(x,y))
+    if myFile == "bullet1.png":
+        myGameDisplay.blit(BULLET1,(x,y))
+    if myFile == "bullet2.png":
+        myGameDisplay.blit(BULLET2,(x,y))
+    if myFile == "bullet3.png":
+        myGameDisplay.blit(BULLET3,(x,y))
 
 def drawTiles(tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, mySpriteSheet, gameDisplay, tileXPadding, tileYPadding, spriteSheetRows, spriteSheetColumns):
     for i in xrange((displayWidth/tileWidth)+2):
@@ -79,7 +83,7 @@ def keyPressAndGameEventHandler(exiting, lost, ammo, personXDelta, personYDelta,
     #HANDLE KEY PRESS/RELEASE/USER ACTIONS
     keys = pygame.key.get_pressed()
     for event in pygame.event.get():                #ASK WHAT EVENTS OCCURRED
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             exiting = True
             lost = False
         #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY UP:
@@ -119,9 +123,8 @@ def keyPressAndGameEventHandler(exiting, lost, ammo, personXDelta, personYDelta,
 
     return exiting, lost, ammo, personXDelta, personYDelta, personAccel, shotsFiredFromMe, personXFacing, personYFacing
 
-def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personAccel, y, x, timeSpentFalling, gravityYDelta):
-    #personYDelta = personYDelta + gravityYDelta + (min(gravityYDelta + (timeSpentFalling + 1) * .05, tileHeight/float(2)))
-    fallIfGravityOn = False
+def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personAccel, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld):
+    personYDelta = personYDelta + gravityYDelta
 #CHARACTER<->WALL COLLISION DETECTION:
 #COLLISION DETECTION ACTUALLY HAS TO CHECK 2 DIRECTIONS FOR EACH OF THE 4 CORNERS FOR 2D MOVEMENT:
 #EACH OF THESE 2x4 CHECKS ARE LABLED BELOW AND CODE IS MARKED INDICATING WHICH
@@ -161,10 +164,14 @@ def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileT
     #COLLISION CHECK @ A or @ B or @ F or @ E 
     #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
     #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
-    if (personYDelta < 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])) or (personYDelta > 0 and (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])):
+    if (personYDelta < 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])) or (personYDelta > 0 and (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personAccel + getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personAccel + getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])):
         yok = 0
         personYDeltaButScreenOffset = 0
         personYDelta = 0
+        if gravityAppliesToWorld == True and personYDelta + getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight) > 0: #IF IT'S F OR E (WE'RE ABOUT TO HIT THE BOTTOM/GROUND)
+            gravityYDelta = 0
+            timeSpentFalling = 0
+        
         
     #if (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personAccel) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]):
     #    fallIfGravityOn = False
@@ -209,7 +216,7 @@ def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileT
         personYDelta = (personYDelta/abs(personYDelta)) * (math.sin(math.atan(abs(personYDelta/personXDelta))) * personAccel)
         personXDelta = temppersonXDelta
 
-    return yok, xok, tileLevelYLoc, tileLevelXLoc, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, fallIfGravityOn, timeSpentFalling, gravityYDelta
+    return yok, xok, tileLevelYLoc, tileLevelXLoc, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, timeSpentFalling, gravityYDelta
 
 def screenSynchWithCharacterMovement(yok, xok, personYDelta, personXDelta, displayHeight, displayWidth, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x):
 
@@ -247,12 +254,12 @@ def screenSynchWithCharacterMovement(yok, xok, personYDelta, personXDelta, displ
 
     #TEST FOR PLAYER ATTEMPTING TO TRAVEL BEYOND MIDDLE 9TH OF SCREEN
     #TODO: IF WE'RE NOT CLOSE TO THE EDGE OF THE WORLD:
-    if xok == 1 and ((x + personXDelta > (2*displayWidth)/3) or (x + personXDelta < (1*displayWidth)/3)):
+    if xok == 1 and ((x + personXDelta > (2*displayWidth)/3.0) or (x + personXDelta < (1*displayWidth)/3.0)):
         tileToScreenXOffset = tileToScreenXOffset - personXDelta
         personXDeltaButScreenOffset = -personXDelta
     else:
         personXDeltaButScreenOffset = 0
-    if yok == 1 and ((y + personYDelta > (2*displayHeight)/3) or (y + personYDelta < (1*displayHeight)/3)):
+    if yok == 1 and ((y + personYDelta > (2*displayHeight)/3.0) or (y + personYDelta < (1*displayHeight)/3.0)):
         tileToScreenYOffset = tileToScreenYOffset - personYDelta
         personYDeltaButScreenOffset = -personYDelta
     else:
@@ -334,8 +341,13 @@ def drawObjectsAndParticles(myParticles, gameDisplay, tileLevelYLoc, tileLevelXL
                 drawObject("bullet" + str(myParticles[i][1]) + ".png", (1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight, gameDisplay)
 
 def applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight):
-    pass
-    #return (min(gravityYDelta + timeSpentFalling * .05, tileHeight/float(2)))
+    #pass
+    #print (min(gravityYDelta + (.005 * (timeSpentFalling**2)), tileHeight / 3.0)), timeSpentFalling + 1
+    return (min(gravityYDelta + (.005 * (timeSpentFalling**2)), tileHeight / 3.0)), timeSpentFalling + 1
+
+def getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight):
+    a, b = applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight)
+    return a
 
 def gameLoop():
     # INITIALIZATION
@@ -354,7 +366,7 @@ def gameLoop():
     displayWidth = 1024 #960
     displayHeight = 768 #540
     myCharacter = ""
-    gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))
+    gameDisplay = pygame.display.set_mode((displayWidth, displayHeight), pygame.FULLSCREEN)
     pygame.display.set_caption("Generic 2D Game Template")
     mySpriteSheet = SpriteSheet("spritesheet.png")
     exiting = False
@@ -363,13 +375,12 @@ def gameLoop():
     personHeight = 32 #IN PIXELS
     ammo = 50000
     enemiesAlive = 0
-    fallIfGravityOn = True
     currentLevel = 0
     currentGun = "Long Gun"
     myHealth = 100
     myParticles = [] #[NAME, X1, Y1, WIDTH, HEIGHT, R, G, B, SPEED, 0]
     myEnemies = [] #[species, weapon, health, aggression, speed, img, x, y, dx, dy, width, height]
-    gravityAppliesToWorld = False
+    gravityAppliesToWorld = False #CHOOSE TRUE FOR SLIDE-SCROLLER TYPE GAME, OR FALSE FOR RPG TYPE GAME!
     personAccel = 8 #FOR BEST PERFORMANCE, MAKE THIS A FACTOR OF SPRITE WIDTH & HEIGHT
     personXDelta = 0
     personXDeltaButScreenOffset = 0
@@ -436,7 +447,7 @@ def gameLoop():
         #MAKE CHARACTER FACE THE DIRECTION THE USER INDICATED W/ KEYPRESS 
         
         #CHECK FOR CHARACTER-WALL COLLISIONS & MOVE CHARACTER
-        yok, xok, tileLevelYLoc, tileLevelXLoc, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, fallIfGravityOn, timeSpentFalling, gravityYDelta = characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personAccel, y, x, timeSpentFalling, gravityYDelta)
+        yok, xok, tileLevelYLoc, tileLevelXLoc, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, timeSpentFalling, gravityYDelta = characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personAccel, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld)
 
         #TODO: generateBadGuys()
         #TODO: badGuysMoveOrAttack()
@@ -444,7 +455,7 @@ def gameLoop():
         #SYNCH SCREEN WITH CHARACTER MOVEMENT
         personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x = screenSynchWithCharacterMovement(yok, xok, personYDelta, personXDelta, displayHeight, displayWidth, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x)
         if gravityAppliesToWorld == True:
-            gravityYDelta = applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight)
+            gravityYDelta, timeSpentFalling = applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight)
         #MOVE PARTICLES
         myParticles = moveParticlesAndHandleparticleCollision(myParticles, thisLevelMap)
         #GENERATE PARTICLES
@@ -465,7 +476,7 @@ def gameLoop():
         #smallMessageDisplay("View X: " + str(tileLevelXLoc), 7, gameDisplay, white, displayWidth)
         #smallMessageDisplay("View Y: " + str(tileLevelYLoc), 8, gameDisplay, white, displayWidth)
         pygame.display.update()
-        clock.tick(240)
+        clock.tick(60)
         if myHealth <= 0:
             lost = True
             exiting = True
@@ -481,4 +492,10 @@ def gameLoop():
     quit()
 
 pygame.init()
+PLAYER = pygame.image.load("person.png")
+BULLET1 = pygame.image.load("bullet1.png")
+BULLET2 = pygame.image.load("bullet2.png")
+BULLET3 = pygame.image.load("bullet3.png")
+#myCharacter = pygame.image.load(myFile)
 gameLoop()
+

@@ -7,16 +7,20 @@ import math
 #Python 2.7
 
 class SpriteSheet(object):
-    def __init__(self, file_name):
+    def __init__(self, file_name, rows, columns, width, height, tileXPadding, tileYPadding):
         self.sprite_sheet = pygame.image.load(file_name).convert()
+        self.imageTileDictionary = {}
+        for i in xrange(rows):
+            for j in xrange(columns):
+                self.imageTileDictionary[(i*j) + i] = self.getImage(self.getCoords((i*j) + i, width, height, tileXPadding, tileYPadding, rows, columns))
 
-    def get_image(self, Coords, tileWidth, tileHeight):
-        image = pygame.Surface([tileWidth, tileHeight]).convert()
+    def getImage(self, Coords):
+        image = pygame.Surface([Coords[2], Coords[3]]).convert()
         image.blit(self.sprite_sheet, (0,0), Coords)
-        image.set_colorkey((255,0,0))
+        #image.set_colorkey((255,0,0))
         return image
 
-    def send_coords(self, tileRequested, tileWidth, tileHeight, tileXPadding, tileYPadding, spriteSheetRows, spriteSheetColumns):
+    def getCoords(self, tileRequested, tileWidth, tileHeight, tileXPadding, tileYPadding, spriteSheetRows, spriteSheetColumns):
         #print int((tileRequested%spriteSheetColumns)*tileWidth)+(int(tileRequested%spriteSheetColumns))*tileXPadding
         #a = raw_input("")
         return (int((tileRequested%spriteSheetColumns)*tileWidth)+(int(tileRequested%spriteSheetColumns))*tileXPadding,
@@ -70,14 +74,15 @@ def drawObject(myFile, x, y, myGameDisplay):
     if myFile == "bullet3.png":
         myGameDisplay.blit(BULLET3,(x,y))
 
-def drawTiles(tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, mySpriteSheet, gameDisplay, tileXPadding, tileYPadding, spriteSheetRows, spriteSheetColumns):
+def drawTiles(tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, mySpriteSheet, gameDisplay):
     for i in xrange((displayWidth/tileWidth)+2):
         for j in xrange((displayHeight/tileHeight)+2):
-            drawWorld(mySpriteSheet.get_image(mySpriteSheet.send_coords(thisLevelMap[j+tileLevelYLoc][i+tileLevelXLoc], tileWidth, tileHeight,tileXPadding, tileYPadding, spriteSheetRows, spriteSheetColumns), tileWidth, tileHeight),
+          drawWorld(mySpriteSheet.imageTileDictionary[thisLevelMap[j+tileLevelYLoc][i+tileLevelXLoc]],
                       (((i-1)*tileWidth)+tileToScreenXOffset,
                       ((j-1)*tileHeight)+tileToScreenYOffset,
                       (((i-1)*tileWidth)+tileToScreenXOffset)+ tileWidth,
                       (((j-1)*tileHeight)+tileToScreenYOffset) + tileHeight), gameDisplay)
+
 
 def keyPressAndGameEventHandler(exiting, lost, ammo, personXDelta, personYDelta, personAccel, shotsFiredFromMe, personXFacing, personYFacing):
     #HANDLE KEY PRESS/RELEASE/USER ACTIONS
@@ -133,7 +138,8 @@ def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileT
 #BUT ONLY ONE DIRECTION (FOR EX: LEFT) COLLIDES, THEN WE WANT TO KEEP THE USER MOVING
 #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
 #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
-#OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION.
+#OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S CHARACTER IS SMALLER
+#THAN THE BLOCKS THE WORLD IS MADE OF.
 
 #        A     B
 #        ^     ^
@@ -152,7 +158,7 @@ def characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileT
     xok = 1
     needToRevert = 0
     #COLLISION CHECK @ C or @ D or @ H or @ G
-    if ((personXDelta)> 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])) or ((personXDelta)< 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])):
+    if (personXDelta > 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])) or ((personXDelta)< 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])):
         tempxok = xok #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
         temppersonXDeltaButScreenOffset = personXDeltaButScreenOffset #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
         temppersonXDelta = personXDelta #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
@@ -349,15 +355,19 @@ def getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight
     a, b = applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight)
     return a
 
+def manageTimeAndFrameRate(t, clock):
+    timeElapsedSinceLastFrame = clock.get_time() - t
+    t = clock.tick()
+    return timeElapsedSinceLastFrame
+
+def alterAllSpeedsBasedOnTimeElapsedSinceLastFrame(timeElapsedSinceLastFrame, accel):
+    if timeElapsedSinceLastFrame < 2000:
+        return int(max(1, accel * timeElapsedSinceLastFrame))
+    return accel
+
 def gameLoop():
     # INITIALIZATION
     gravityYDelta = 0
-    tileWidth = 64
-    tileHeight = 64
-    tileXPadding = 0
-    tileYPadding = 0
-    spriteSheetRows = 10
-    spriteSheetColumns = 1
     grayConst = (128,128,128)
     black = (0,0,0)
     white = (255,255,255)
@@ -368,7 +378,13 @@ def gameLoop():
     myCharacter = ""
     gameDisplay = pygame.display.set_mode((displayWidth, displayHeight), pygame.FULLSCREEN)
     pygame.display.set_caption("Generic 2D Game Template")
-    mySpriteSheet = SpriteSheet("spritesheet.png")
+    spriteSheetRows = 10
+    spriteSheetColumns = 1
+    tileWidth = 64
+    tileHeight = 64
+    tileXPadding = 0
+    tileYPadding = 0
+    mySpriteSheet = SpriteSheet("spritesheet.png", spriteSheetRows, spriteSheetColumns, tileWidth, tileHeight, tileXPadding, tileYPadding)
     exiting = False
     lost = False
     personWidth = 32 #IN PIXELS
@@ -381,7 +397,8 @@ def gameLoop():
     myParticles = [] #[NAME, X1, Y1, WIDTH, HEIGHT, R, G, B, SPEED, 0]
     myEnemies = [] #[species, weapon, health, aggression, speed, img, x, y, dx, dy, width, height]
     gravityAppliesToWorld = False #CHOOSE TRUE FOR SLIDE-SCROLLER TYPE GAME, OR FALSE FOR RPG TYPE GAME!
-    personAccel = 8 #FOR BEST PERFORMANCE, MAKE THIS A FACTOR OF SPRITE WIDTH & HEIGHT
+    DEFAULTPERSONACCEL = .5 #PLAYER ACCELERATION IN PIXELS/MILLISECOND
+    personAccel = 0 #ACTUAL PLAYER MOVEMENT BASED ON COMPUTER'S FRAME RATE
     personXDelta = 0
     personXDeltaButScreenOffset = 0
     personYDelta = 0
@@ -439,13 +456,16 @@ def gameLoop():
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
-
+    t = 0
+    timeElapsedSinceLastFrame = 0
+    clock = pygame.time.Clock()
     # GAME LOOP
     while not exiting:
+        timeElapsedSinceLastFrame = manageTimeAndFrameRate(t, clock)
+        personAccel = alterAllSpeedsBasedOnTimeElapsedSinceLastFrame(timeElapsedSinceLastFrame, DEFAULTPERSONACCEL)
         #HANDLE KEY PRESSES AND PYGAME EVENTS
         exiting, lost, ammo, personXDelta, personYDelta, personAccel, shotsFiredFromMe, personXFacing, personYFacing = keyPressAndGameEventHandler(exiting, lost, ammo, personXDelta, personYDelta, personAccel, shotsFiredFromMe, personXFacing, personYFacing)
         #MAKE CHARACTER FACE THE DIRECTION THE USER INDICATED W/ KEYPRESS 
-        
         #CHECK FOR CHARACTER-WALL COLLISIONS & MOVE CHARACTER
         yok, xok, tileLevelYLoc, tileLevelXLoc, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, timeSpentFalling, gravityYDelta = characterWallCollisionTest(thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personAccel, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld)
 
@@ -461,10 +481,10 @@ def gameLoop():
         #GENERATE PARTICLES
         myParticles, shotsFiredFromMe = generateparticles(shotsFiredFromMe, myParticles, personYFacing, personXFacing, playerYBlock, playerXBlock, tileHeight, tileWidth)# (bullets, rain drops, snowflakes, etc...)
         #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-        drawTiles(tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, mySpriteSheet, gameDisplay, tileXPadding, tileYPadding, spriteSheetRows, spriteSheetColumns)
+        drawTiles(tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, mySpriteSheet, gameDisplay)
         #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
         drawObjectsAndParticles(myParticles, gameDisplay, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, tileHeight, tileWidth, displayWidth, displayHeight, y, x)
-        #drawWorld(myMainChar.get_image((0, 0, personWidth, personHeight)), (x, y, personWidth, personHeight))
+        #drawWorld(myMainChar.getImage((0, 0, personWidth, personHeight)), (x, y, personWidth, personHeight))
         smallMessageDisplay("Health: " + str(myHealth), 0, gameDisplay, white, displayWidth)
         smallMessageDisplay("Ammo: " + str(ammo), 1, gameDisplay, white, displayWidth)
         smallMessageDisplay("Level: " + str(currentLevel), 2, gameDisplay, white, displayWidth)
@@ -475,8 +495,8 @@ def gameLoop():
         #smallMessageDisplay("  " + str(thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]) , 8, gameDisplay, white, displayWidth)
         #smallMessageDisplay("View X: " + str(tileLevelXLoc), 7, gameDisplay, white, displayWidth)
         #smallMessageDisplay("View Y: " + str(tileLevelYLoc), 8, gameDisplay, white, displayWidth)
+        #smallMessageDisplay("FPS: " + str(1000/max(1, timeElapsedSinceLastFrame)), 9, gameDisplay, white, displayWidth)
         pygame.display.update()
-        clock.tick(60)
         if myHealth <= 0:
             lost = True
             exiting = True

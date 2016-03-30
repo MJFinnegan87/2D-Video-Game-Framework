@@ -15,21 +15,24 @@ class gfxHandler(object):
         pass
 
     def loadGfxDictionary(self, file_name, imageIndicator, rows, columns, width, height, pictureXPadding, pictureYPadding):
-        self.spriteSheet = pygame.image.load(file_name).convert()
-
+        self.spriteSheet = pygame.image.load(file_name)
+        imgTransparency = True
+        
         if imageIndicator == "World Tiles":
             self.gfxDictionary = {}
+            imgTransparency = False
         self.gfxDictionary.update({imageIndicator:{}}) #NESTED HASHTABLE
 
         for j in xrange(rows):
             for k in xrange(columns):
                 #self.gfxDictionary[(j*k) + j] = self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
-                self.gfxDictionary[imageIndicator].update({(j*k) + j:self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))})
+                self.gfxDictionary[imageIndicator].update({(j*k) + j:self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
 
-    def getImage(self, Coords):
-        image = pygame.Surface([Coords[2], Coords[3]]).convert()
+    def getImage(self, Coords, requiresTransparency):
+        image = pygame.Surface([Coords[2], Coords[3]])
         image.blit(self.spriteSheet, (0,0), Coords)
-        #image.set_colorkey((255,0,0))
+        if requiresTransparency == True:
+            image.set_colorkey((0,0,0))
         return image
 
     def getCoords(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, gfxHandlerRows, gfxHandlerColumns):
@@ -66,33 +69,30 @@ class gfxHandler(object):
     def drawObject(self, myFile, x, y, myGameDisplay):
         if myFile == "person.png":
             myGameDisplay.blit(PLAYER,(x,y))
-        if myFile == "bullet1.png":
-            myGameDisplay.blit(BULLET1,(x,y))
-        if myFile == "bullet2.png":
-            myGameDisplay.blit(BULLET2,(x,y))
-        if myFile == "bullet3.png":
-            myGameDisplay.blit(BULLET3,(x,y))
             
-    def drawObjectsAndParticles(self, myParticles, gameDisplay, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, tileHeight, tileWidth, displayWidth, displayHeight, y, x):
-        self.drawObject("person.png", x, y, gameDisplay)
+    def drawObjectsAndParticles(self, myParticles, gameDisplay, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, tileHeight, tileWidth, displayWidth, displayHeight, y, x, gfx):
+        self.drawWorld(PLAYER, (x, y), gameDisplay)
         for i in xrange(len(myParticles)):
-            if myParticles[i][0] == "UB":
+            if myParticles[i][0] == "User Bullet":
                 #print "x: " + str((1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth)
                 #print "y: " + str((1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight)
                 if ((1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth) + myParticles[i][8] > 0 and (1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth < displayWidth:
-                    self.drawObject("bullet" + str(myParticles[i][1]) + ".png", (1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight, gameDisplay)
+                    #self.drawObject("bullet" + str(myParticles[i][1]) + ".png", (1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight, gameDisplay)
+                    #print math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5))
+                    #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][myParticles[i][1]], (180*math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5)))/3.14159265358972)
+                    self.drawWorld(myParticles[i][12], ((1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight), gameDisplay)
                     
-    def drawTiles(self, tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, gfxDictionary, gameDisplay):
+    def drawTiles(self, tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, gfx, gameDisplay):
         for i in xrange(int(displayWidth/float(tileWidth))+2):
             for j in xrange(int(displayHeight/float(tileHeight))+2):
-              self.drawWorld(gfxDictionary.gfxDictionary["World Tiles"][thisLevelMap[j+tileLevelYLoc][i+tileLevelXLoc]],
+              self.drawWorld(gfx.gfxDictionary["World Tiles"][thisLevelMap[j+tileLevelYLoc][i+tileLevelXLoc]],
                           (((i-1)*tileWidth)+tileToScreenXOffset,
                           ((j-1)*tileHeight)+tileToScreenYOffset,
                           (((i-1)*tileWidth)+tileToScreenXOffset)+ tileWidth,
                           (((j-1)*tileHeight)+tileToScreenYOffset) + tileHeight), gameDisplay)
 
 class gameLogicHandler(object):
-    def keyPressAndGameEventHandler(self, exiting, lost, ammo, personXDelta, personYDelta, personSpeed, shotsFiredFromMe, personXFacing, personYFacing):
+    def keyPressAndGameEventHandler(self, exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing):
         #HANDLE KEY PRESS/RELEASE/USER ACTIONS
         keys = pygame.key.get_pressed()
         for event in pygame.event.get():                #ASK WHAT EVENTS OCCURRED
@@ -105,9 +105,17 @@ class gameLogicHandler(object):
             #   ammo = ammo - 1
 
             #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY DOWN:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and ammo >0:
-                shotsFiredFromMe = True
-                ammo = ammo - 1
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and ammo >0:
+                    shotsFiredFromMe = True
+                    ammo = ammo - 1
+                if event.key == pygame.K_KP1 or event.key == pygame.K_1:
+                    currentGun = 0
+                if event.key == pygame.K_KP2 or event.key == pygame.K_2:
+                    currentGun = 1
+                if event.key == pygame.K_KP3 or event.key == pygame.K_3:
+                    currentGun = 2
+            
         i = 0
         personXDelta = 0
         personYDelta = 0                                #VS. ASK WHAT KEYS ARE DOWN AT THIS MOMENT.
@@ -134,7 +142,7 @@ class gameLogicHandler(object):
         #    shotsFiredFromMe = True
         #    ammo = ammo - 1
 
-        return exiting, lost, ammo, personXDelta, personYDelta, personSpeed, shotsFiredFromMe, personXFacing, personYFacing
+        return exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing
 
     def characterWallCollisionTest(self, thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personSpeed, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld):
         personYDelta = personYDelta + gravityYDelta
@@ -318,24 +326,28 @@ class gameLogicHandler(object):
             playerYBlock = 1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + (y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
         return personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x
 
-    def generateparticles(self, shotsFiredFromMe, myParticles, personYFacing, personXFacing, playerYBlock, playerXBlock, tileHeight, tileWidth, DEFAULTBULLETSPEED):
+    def generateparticles(self, shotsFiredFromMe, myParticles, personYFacing, personXFacing, playerYBlock, playerXBlock, tileHeight, tileWidth, DEFAULTBULLETSPEED, currentGun, gfx):
         if shotsFiredFromMe == True and not(personYFacing == 0 and personXFacing == 0):
             speed = DEFAULTBULLETSPEED #units are world blocks, not pixels!
             if personXFacing == 0:
                 tempDX = 0 #THIS AVOIDS THE DIVIDE BY 0 ERROR
                 if personYFacing == 0:
                     tempDY = 0
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
                 else:
                     tempDY = (personYFacing/float(abs(personYFacing))) * speed
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
             else:
                 if personYFacing == 0:
                     tempDX = (personXFacing/float(abs(personXFacing))) * speed
                     tempDY = 0
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
                 else:
                     tempDX = (personXFacing/float(abs(personXFacing))) * (math.cos(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
-                    tempDY = (personYFacing/float(abs(personYFacing))) * (math.sin(math.atan(abs(personYFacing/float(personXFacing)))) * speed)        
+                    tempDY = (personYFacing/float(abs(personYFacing))) * (math.sin(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
                            #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, speed
-            myParticles.append(["UB", 2, playerXBlock, playerYBlock, tempDX, tempDY, 10, 1, 16, 16, speed, DEFAULTBULLETSPEED])
+            myParticles.append(["User Bullet", currentGun, playerXBlock, playerYBlock, tempDX, tempDY, 10, 1, 16, 16, speed, DEFAULTBULLETSPEED, img]) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
             shotsFiredFromMe = False
         return myParticles, shotsFiredFromMe
 
@@ -384,6 +396,18 @@ class gameLogicHandler(object):
         personXDelta, personYDelta = self.diagSpeedFix(personXDelta, personYDelta, personSpeedThisFrameRate)
         return personSpeedThisFrameRate, particleList, personXDelta, personYDelta
 
+class gameplayObject(object):
+    pass
+
+class characterObject(gameplayObject):
+    pass
+
+
+class particleObject(gameplayObject):
+    pass
+
+class worldObject(gameplayObject):
+    pass
 
 class game(object):
     def __init__(self, displayWidth, displayHeight):
@@ -391,7 +415,7 @@ class game(object):
         self.clock = pygame.time.Clock()
         self.displayWidth = displayWidth #1280 #960
         self.displayHeight = displayHeight #720 #540
-        self.gameDisplay = pygame.display.set_mode((displayWidth, displayHeight), pygame.FULLSCREEN)
+        self.gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))#, pygame.FULLSCREEN)
         pygame.display.set_caption("Generic 2D Game Template")
         self.tileSheetRows = 10
         self.tileSheetColumns = 1
@@ -399,8 +423,9 @@ class game(object):
         self.tileHeight = 64
         self.tileXPadding = 0
         self.tileYPadding = 0
-        self.gfxDictionary = gfxHandler()
-        self.gfxDictionary.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx = gfxHandler()
+        self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.loadGfxDictionary("bullets.png", "Particles", 3, 1, 16, 16, 0, 0)
         self.exiting = False
         self.lost = False
         self.personWidth = 32 #IN PIXELS
@@ -408,7 +433,7 @@ class game(object):
         self.ammo = 50000
         self.enemiesAlive = 0
         self.currentLevel = 0
-        self.currentGun = "Long Gun"
+        self.currentGun = 1
         self.myHealth = 100
         self.myParticles = [] #[NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0]
         self.myEnemies = [] #[species, weapon, health, aggression, speed, img, x, y, dx, dy, width, height]
@@ -517,7 +542,7 @@ class game(object):
             self.timeElapsedSinceLastFrame = self.myGameLogicHandler.manageTimeAndFrameRate(self.lastTick, self.clock)
             
             #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.shotsFiredFromMe, self.personXFacing, self.personYFacing = self.myGameLogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
+            self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing = self.myGameLogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
 
             #MAKE CHARACTER FACE THE DIRECTION THE USER INDICATED W/ KEYPRESS
             #[NOT IMPLEMENTED YET]
@@ -540,15 +565,15 @@ class game(object):
             #MOVE PARTICLES
             self.myParticles = self.myGameLogicHandler.moveParticlesAndHandleParticleCollision(self.myParticles, self.thisLevelMap)
             #GENERATE PARTICLES
-            self.myParticles, self.shotsFiredFromMe = self.myGameLogicHandler.generateparticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.playerYBlock, self.playerXBlock, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED)# (self.bullets, rain drops, snowflakes, etc...)
+            self.myParticles, self.shotsFiredFromMe = self.myGameLogicHandler.generateparticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.playerYBlock, self.playerXBlock, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED, self.currentGun, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-            self.myGFXHandler.drawTiles(self.tileToScreenXOffset, self.tileToScreenYOffset, self.tileLevelYLoc, self.tileLevelXLoc, self.tileWidth, self.tileHeight, self.displayWidth, self.displayHeight, self.thisLevelMap, self.gfxDictionary, self.gameDisplay)
+            self.myGFXHandler.drawTiles(self.tileToScreenXOffset, self.tileToScreenYOffset, self.tileLevelYLoc, self.tileLevelXLoc, self.tileWidth, self.tileHeight, self.displayWidth, self.displayHeight, self.thisLevelMap, self.gfx, self.gameDisplay)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            self.myGFXHandler.drawObjectsAndParticles(self.myParticles, self.gameDisplay, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.tileHeight, self.tileWidth, self.displayWidth, self.displayHeight, self.y, self.x)
+            self.myGFXHandler.drawObjectsAndParticles(self.myParticles, self.gameDisplay, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.tileHeight, self.tileWidth, self.displayWidth, self.displayHeight, self.y, self.x, self.gfx)
 
             #DRAW GAME STATS
             #self.myGFXHandler.smallMessageDisplay("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)
-            self.myGFXHandler.smallMessageDisplay("Ammo: " + str(self.ammo), 1, self.gameDisplay, white, self.displayWidth)
+            #self.myGFXHandler.smallMessageDisplay("Ammo: " + str(self.ammo), 1, self.gameDisplay, white, self.displayWidth)
             #self.myGFXHandler.smallMessageDisplay("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.displayWidth)
             #self.myGFXHandler.smallMessageDisplay("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
             #self.myGFXHandler.smallMessageDisplay("Player X: " + str(self.playerXBlock), 4, self.gameDisplay, white, self.displayWidth)
@@ -575,9 +600,6 @@ class game(object):
 
 pygame.init()
 PLAYER = pygame.image.load("person.png")
-BULLET1 = pygame.image.load("bullet1.png")
-BULLET2 = pygame.image.load("bullet2.png")
-BULLET3 = pygame.image.load("bullet3.png")
 #myCharacter = pygame.image.load(myFile)
 myGame = game(1280, 720)
 myGame.play()

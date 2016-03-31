@@ -115,28 +115,30 @@ class gameLogicHandler(object):
                     currentGun = 1
                 if event.key == pygame.K_KP3 or event.key == pygame.K_3:
                     currentGun = 2
+                if event.key == pygame.K_KP4 or event.key == pygame.K_4:
+                    currentGun = 3
             
         i = 0
         personXDelta = 0
         personYDelta = 0                                #VS. ASK WHAT KEYS ARE DOWN AT THIS MOMENT.
         if keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]:
             personXDelta = personSpeed
-            personXFacing = 1
-            personYFacing = 0
         if keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
             personXDelta = -personSpeed
-            personXFacing = -1
-            personYFacing = 0
         if keys[pygame.K_UP] and not keys[pygame.K_DOWN]:
             personYDelta = -personSpeed
-            personYFacing = -1
-            if personXDelta == 0:
-                personXFacing = 0
         if keys[pygame.K_DOWN] and not keys[pygame.K_UP]:
             personYDelta = personSpeed
-            personYFacing = 1
-            if personXDelta == 0:
-                personXFacing = 0
+
+        if personXDelta != 0 or personYDelta != 0:
+            personXFacing = 0
+            personYFacing = 0
+            if personXDelta != 0:
+                personXFacing = personXDelta/abs(personXDelta)
+            if personYDelta != 0:
+                personYFacing = personYDelta/abs(personYDelta)
+
+            
         #IF PLAYER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
         #if keys[pygame.K_SPACE] and ammo >0:
         #    shotsFiredFromMe = True
@@ -146,6 +148,16 @@ class gameLogicHandler(object):
 
     def characterWallCollisionTest(self, thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personSpeed, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld):
         personYDelta = personYDelta + gravityYDelta
+
+        #This acts as a buffer to allow user to not get up against floor/ceiling
+        #because the distance the user will travel over the next frame cannot
+        #be known with absolute certainty because it is a function of the speed
+        #at which the next frame is drawn. This prevents clipping by making
+        #a judgement call that the next frame won't likely be drawn twice as slow as,
+        #or longer, than this frame was drawn.
+        personSpeed = personSpeed*2
+
+        
     #CHARACTER<->WALL COLLISION DETECTION:
     #COLLISION DETECTION ACTUALLY HAS TO CHECK 2 DIRECTIONS FOR EACH OF THE 4 CORNERS FOR 2D MOVEMENT:
     #EACH OF THESE 2x4 CHECKS ARE LABLED BELOW AND CODE IS MARKED INDICATING WHICH
@@ -186,6 +198,10 @@ class gameLogicHandler(object):
         #COLLISION CHECK @ A or @ B or @ F or @ E 
         #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
         #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
+        
+        #print "A: Player Y:" + str(playerYBlock) + " YDelta: " + str(personYDelta) + " tileLevelYLoc: " + str(tileLevelYLoc) + " Test: " + str((thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]))
+        #print "B: Player Y:" + str(playerYBlock) + " YDelta: " + str(personYDelta) + " tileLevelYLoc: " + str(tileLevelYLoc) + " Test: " + str((thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]))
+        
         if (personYDelta < 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])) or (personYDelta > 0 and (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed + self.getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed + self.getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])):
             yok = 0
             personYDeltaButScreenOffset = 0
@@ -232,7 +248,7 @@ class gameLogicHandler(object):
         #  
         #  |\                                                                 |\
         #  | \                                                                | \
-        # 5|  \ >5  -> solve for X and Y, while keeping x:y the same ratio:  Y|  \ 5
+        # 5|  \ >5  -> solve for X and Y, while keeping x:y the same ratio: Y |  \ 5
         #  |_  \                                                              |_  \
         #  |_|__\                                                             |_|__\
         #    5                                                                  X 
@@ -346,12 +362,13 @@ class gameLogicHandler(object):
                     tempDX = (personXFacing/float(abs(personXFacing))) * (math.cos(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
                     tempDY = (personYFacing/float(abs(personYFacing))) * (math.sin(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
                     img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
-                           #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, speed
+                           #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
             myParticles.append(["User Bullet", currentGun, playerXBlock, playerYBlock, tempDX, tempDY, 10, 1, 16, 16, speed, DEFAULTBULLETSPEED, img]) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
             shotsFiredFromMe = False
         return myParticles, shotsFiredFromMe
 
     def moveParticlesAndHandleParticleCollision(self, myParticles, thisLevelMap):
+        #MOVE PARTICLES, OR DELETE THEM IF THEY REACH WORLD END
         myDeletedParticles = []
         for i in xrange(len(myParticles)):
             if myParticles[i][2] + myParticles[i][4] + 1 > len(thisLevelMap[0]) or myParticles[i][3] + myParticles[i][5] + 1 > len(thisLevelMap) or myParticles[i][2] + myParticles[i][4] < 0 or myParticles[i][3] + myParticles[i][5] < 0:
@@ -361,6 +378,9 @@ class gameLogicHandler(object):
                 myParticles[i][3] = myParticles[i][3] + myParticles[i][5]
         for i in xrange(len(myDeletedParticles)):
             del myParticles[myDeletedParticles[i]-i]
+
+        #COLLISION DETECT IF WALL HIT, AND BOUNCE/PERFORM ACTION IF NECESSARY
+            
         return myParticles
 
     def applyGravityToWorld(self, gravityYDelta, timeSpentFalling, tileHeight):
@@ -372,7 +392,7 @@ class gameLogicHandler(object):
 
     def manageTimeAndFrameRate(self, lastTick, clock):
         timeElapsedSinceLastFrame = clock.get_time() - lastTick
-        lastTick = clock.tick()
+        lastTick = clock.tick(120)
         return timeElapsedSinceLastFrame
 
     def alterAllSpeeds(self, timeElapsedSinceLastFrame, particleList, defaultPersonSpeed, personXDelta, personYDelta):
@@ -404,6 +424,7 @@ class characterObject(gameplayObject):
 
 
 class particleObject(gameplayObject):
+    #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
     pass
 
 class worldObject(gameplayObject):
@@ -425,7 +446,7 @@ class game(object):
         self.tileYPadding = 0
         self.gfx = gfxHandler()
         self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
-        self.gfx.loadGfxDictionary("bullets.png", "Particles", 3, 1, 16, 16, 0, 0)
+        self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.exiting = False
         self.lost = False
         self.personWidth = 32 #IN PIXELS
@@ -549,7 +570,6 @@ class game(object):
 
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
             self.personSpeed, self.myParticles, self.personXDelta, self.personYDelta = self.myGameLogicHandler.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.myParticles, self.DEFAULTPERSONSPEED, self.personXDelta, self.personYDelta)
-
             #CHECK FOR CHARACTER-WALL COLLISIONS & MOVE CHARACTER
             self.yok, self.xok, self.tileLevelYLoc, self.tileLevelXLoc, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.timeSpentFalling, self.gravityYDelta = self.myGameLogicHandler.characterWallCollisionTest(self.thisLevelMap, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personHeight, self.personWidth, self.personSpeed, self.y, self.x, self.timeSpentFalling, self.gravityYDelta, self.gravityAppliesToWorld)
 

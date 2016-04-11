@@ -3,6 +3,7 @@ import time
 import random
 import sys,os
 import math
+import sqlite3
 
 #Python 2.7
 black = (0,0,0)
@@ -70,7 +71,7 @@ class gfxHandler(object):
         if myFile == "person.png":
             myGameDisplay.blit(PLAYER,(x,y))
             
-    def drawObjectsAndParticles(self, myParticles, gameDisplay, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, tileHeight, tileWidth, displayWidth, displayHeight, y, x, gfx):
+    def drawObjectsAndParticles(self, myParticles, gameDisplay, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, tileHeight, tileWidth, displayWidth, displayHeight, y, x):
         self.drawWorld(PLAYER, (x, y), gameDisplay)
         for i in xrange(len(myParticles)):
             if myParticles[i][0] == "User Bullet":
@@ -94,6 +95,7 @@ class gfxHandler(object):
 class gameLogicHandler(object):
     def keyPressAndGameEventHandler(self, exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing):
         #HANDLE KEY PRESS/RELEASE/USER ACTIONS
+        enterPressed = False
         keys = pygame.key.get_pressed()
         for event in pygame.event.get():                #ASK WHAT EVENTS OCCURRED
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -109,6 +111,7 @@ class gameLogicHandler(object):
                 if event.key == pygame.K_SPACE and ammo >0:
                     shotsFiredFromMe = True
                     ammo = ammo - 1
+
                 if event.key == pygame.K_KP1 or event.key == pygame.K_1:
                     currentGun = 0
                 if event.key == pygame.K_KP2 or event.key == pygame.K_2:
@@ -117,8 +120,10 @@ class gameLogicHandler(object):
                     currentGun = 2
                 if event.key == pygame.K_KP4 or event.key == pygame.K_4:
                     currentGun = 3
+
+                if event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN:
+                    enterPressed = True
             
-        i = 0
         personXDelta = 0
         personYDelta = 0                                #VS. ASK WHAT KEYS ARE DOWN AT THIS MOMENT.
         if keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]:
@@ -144,7 +149,7 @@ class gameLogicHandler(object):
         #    shotsFiredFromMe = True
         #    ammo = ammo - 1
 
-        return exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing
+        return exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing, enterPressed
 
     def characterWallCollisionTest(self, thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personSpeed, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld):
         personYDelta = personYDelta + gravityYDelta
@@ -158,28 +163,28 @@ class gameLogicHandler(object):
         personSpeed = personSpeed*2
 
         
-    #CHARACTER<->WALL COLLISION DETECTION:
-    #COLLISION DETECTION ACTUALLY HAS TO CHECK 2 DIRECTIONS FOR EACH OF THE 4 CORNERS FOR 2D MOVEMENT:
-    #EACH OF THESE 2x4 CHECKS ARE LABLED BELOW AND CODE IS MARKED INDICATING WHICH
-    #CORNER CHECK IS OCCURRING. THIS WOULD BE GOOD ENOUGH IF WE JUST STOPPED THE CHARACTER
-    #ON COLLISION. FOR A BETTER USER EXPERIENCE, IF USER IS MOVING IN 2 DIRECTIONS (FOR EX LEFT + DOWN),
-    #BUT ONLY ONE DIRECTION (FOR EX: LEFT) COLLIDES, THEN WE WANT TO KEEP THE USER MOVING
-    #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
-    #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
-    #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S CHARACTER IS SMALLER
-    #THAN THE BLOCKS THE WORLD IS MADE OF.
+        #CHARACTER<->WALL COLLISION DETECTION:
+        #COLLISION DETECTION ACTUALLY HAS TO CHECK 2 DIRECTIONS FOR EACH OF THE 4 CORNERS FOR 2D MOVEMENT:
+        #EACH OF THESE 2x4 CHECKS ARE LABLED BELOW AND CODE IS MARKED INDICATING WHICH
+        #CORNER CHECK IS OCCURRING. THIS WOULD BE GOOD ENOUGH IF WE JUST STOPPED THE CHARACTER
+        #ON COLLISION. FOR A BETTER USER EXPERIENCE, IF USER IS MOVING IN 2 DIRECTIONS (FOR EX LEFT + DOWN),
+        #BUT ONLY ONE DIRECTION (FOR EX: LEFT) COLLIDES, THEN WE WANT TO KEEP THE USER MOVING
+        #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
+        #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
+        #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S CHARACTER IS SMALLER
+        #THAN THE BLOCKS THE WORLD IS MADE OF.
 
-    #        A     B
-    #        ^     ^
-    #        |     |
-    #    H <-+-----+-> C
-    #        | _O_ |
-    #        |  |  |
-    #        | / \ |
-    #    G <-+-----+-> D
-    #        |     |
-    #        V     V
-    #        F     E
+        #        A     B
+        #        ^     ^
+        #        |     |
+        #    H <-+-----+-> C
+        #        | _O_ |
+        #        |  |  |
+        #        | / \ |
+        #    G <-+-----+-> D
+        #        |     |
+        #        V     V
+        #        F     E
 
 
         yok = 1
@@ -262,39 +267,39 @@ class gameLogicHandler(object):
 
     def screenSynchWithCharacterMovement(self, yok, xok, personYDelta, personXDelta, displayHeight, displayWidth, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x, thisLevelMapWidth, thisLevelMapHeight):
 
-    #        -COMPUTER SCREEN-
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #----------+----------+--------------
-    #          |    IF    |
-    #          | PLAYER   |
-    #          | TRIES TO |
-    #          |   LEAVE  |
-    #          | THIS AREA|
-    #          |   THEN   |
-    #          | PREVENT  |
-    #          | AND START|
-    #          |  SCREEN  |
-    #          |SCROLLING*|
-    #------------------------------------
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
-    #          |          |
+        #        -COMPUTER SCREEN-
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #----------+----------+--------------
+        #          |    IF    |
+        #          | PLAYER   |
+        #          | TRIES TO |
+        #          |   LEAVE  |
+        #          | THIS AREA|
+        #          |   THEN   |
+        #          | PREVENT  |
+        #          | AND START|
+        #          |  SCREEN  |
+        #          |SCROLLING*|
+        #------------------------------------
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
+        #          |          |
 
-    #*UNLESS SCREEN SCROLLING PUTS CAMERA VIEW OUTSIDE OF THE WORLD
+        #*UNLESS SCREEN SCROLLING PUTS CAMERA VIEW OUTSIDE OF THE WORLD
 
         #(IS PLAYER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PLAYER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
         if xok == 1 and ((tileLevelXLoc > 0 and personXDelta < 0 and x + personXDelta < (1*displayWidth)/3.0 and personXDelta < 0) or (int(tileLevelXLoc - ((tileToScreenXOffset-personXDelta)/float(tileWidth)) + 2 + displayWidth/float(tileWidth)) < thisLevelMapWidth and personXDelta >0 and x + personXDelta > (2*displayWidth)/3.0)):
@@ -392,7 +397,7 @@ class gameLogicHandler(object):
 
     def manageTimeAndFrameRate(self, lastTick, clock):
         timeElapsedSinceLastFrame = clock.get_time() - lastTick
-        lastTick = clock.tick(120)
+        lastTick = clock.tick()
         return timeElapsedSinceLastFrame
 
     def alterAllSpeeds(self, timeElapsedSinceLastFrame, particleList, defaultPersonSpeed, personXDelta, personYDelta):
@@ -416,6 +421,489 @@ class gameLogicHandler(object):
         personXDelta, personYDelta = self.diagSpeedFix(personXDelta, personYDelta, personSpeedThisFrameRate)
         return personSpeedThisFrameRate, particleList, personXDelta, personYDelta
 
+    def determineCharPicBasedOnDirectionFacing(self, myEnemies, personXFacing, personYFacing, personImgDirectionIndex):
+        if personXFacing == 0 and personYFacing > 0:
+            #down
+            personImgDirectionIndex = 0
+        if personXFacing == 0 and personYFacing < 0:
+            #up
+            personImgDirectionIndex = 1
+        if personXFacing > 0 and personYFacing == 0:
+            #right
+            personImgDirectionIndex = 2
+        if personXFacing < 0 and personYFacing == 0:
+            #left
+            personImgDirectionIndex = 3
+        if personXFacing > 0 and personYFacing > 0:
+            #down right
+            personImgDirectionIndex = 4
+        if personXFacing < 0 and personYFacing < 0:
+            #up left
+            personImgDirectionIndex = 5
+        if personXFacing > 0 and personYFacing < 0:
+            #up right
+            personImgDirectionIndex = 6
+        if personXFacing < 0 and personYFacing > 0:
+            #down left
+            personImgDirectionIndex = 7
+
+        #for each enemy in myEnemies:
+            #Determine this enemy's directionImgIndex
+        
+        return myEnemies, personImgDirectionIndex
+
+    def determineCharPicBasedOnWalkOrMovement(self, myEnemies, millisecondsOnEachLeg, millisecondsOnThisLeg, millisecondsSinceLastFrame, numberOfFramesAnimPerWalk, personImgLegIndex, personXDelta, personYDelta):
+        if personXDelta == 0 and personYDelta == 0:
+            personImgLegIndex = 0
+            millisecondsOnThisLeg = 0
+        else:
+            if (millisecondsOnThisLeg >= millisecondsOnEachLeg):
+                personImgLegIndex = (personImgLegIndex + 1) % numberOfFramesAnimPerWalk
+                millisecondsOnThisLeg = 0
+            else:
+                millisecondsOnThisLeg = millisecondsOnThisLeg + millisecondsSinceLastFrame
+
+            #for each enemy in myEnemies:
+                #Determine this enemy's legImgIndex
+        
+        return myEnemies, millisecondsOnThisLeg, personImgLegIndex
+
+class menuScreen(object):
+    def __init__(self, menuType, screenResSelection, difficultySelection, displayType, gameDisplay):
+        self.gameDisplay = gameDisplay
+        self.menuType = menuType
+        self.screenResSelection = screenResSelection
+        self.difficultySelection = difficultySelection
+        self.displayType = displayType
+        self.menuDirectory = "Main"
+        self.menuJustOpened = True
+        self.difficultyChoices = ["Easy", "Medium", "Hard", "Expert"]
+        self.score = 0
+        self.highScoreDifficulty = 0
+        self.myHealth = 100
+        self.currentLevel = 0
+        self.menuSelectionIndex = 6
+        self.ammo = 0
+        self.displayWidth = screenResChoices[screenResSelection][0]
+        self.displayHeight = screenResChoices[screenResSelection][1]
+        if self.displayType == "Full Screen":
+            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+        else:
+            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+        self.colorIntensity = 255
+        self.colorIntensityDirection = 5
+        self.startPlay = False
+        self.gfx = gfxHandler()
+        self.myGameLogicHandler = gameLogicHandler()
+        self.exiting = False
+        self.lost = False
+        self.ammo = 0
+        self.personXDelta = 0
+        self.personYDelta = 0
+        self.personSpeed = 1
+        self.currentGun = ""
+        self.shotsFiredFromMe = False
+        self.personXFacing = 0
+        self.personYFacing = 0
+        self.screenMoveCounter = 0
+        self.menuFPSLimit = 120
+        self.clock = pygame.time.Clock()
+        self.clock.tick()
+        self.enterPressed = False
+        self.personXDeltaWas = 0
+        self.personYDeltaWas = 0
+        self.myHighScoreDatabase = highScoresDatabase()
+        self.myHighScores = self.myHighScoreDatabase.loadHighScores()
+
+    def updateScreenAndLimitFPS(self, FPSLimit):
+        self.limit = FPSLimit
+        pygame.display.update()
+        self.clock.tick(FPSLimit)
+        
+    def displayMenuScreenAndHandleUserInput(self):
+        while self.exiting == False and self.startPlay == False:
+            self.displayTitle()
+            self.selectionColorPulsate()
+            self.handleMenuBackground()
+            self.getKeyPress()
+            if self.menuDirectory == "Main":
+                self.displayMainMenu()
+                if self.menuJustOpened == False:
+                    self.handleUserInputMainMenu()
+                self.menuJustOpened = False
+            elif self.menuDirectory == "Settings":
+                self.displaySettingsMenu()
+                self.handleUserInputSettingsMenu()
+            elif self.menuDirectory == "Credits":
+                self.displayCreditsMenu()
+                self.handleUserInputCreditsMenu()
+            elif self.menuDirectory == "How To Play":
+                self.displayHowToMenu()
+                self.handleUserInputHowToMenu()
+            elif self.menuDirectory == "High Scores":
+                self.displayHighScoresMenu()
+                self.handleUserInputHighScoresMenu()
+                
+            self.personYDeltaWas = self.personYDelta
+            self.personXDeltaWas = self.personXDelta
+            self.updateScreenAndLimitFPS(self.menuFPSLimit)
+            self.gameDisplay.fill(black)
+        del self.clock
+        return self.difficultySelection, self.screenResSelection, self.displayType, self.exiting
+    
+    def displayTitle(self):
+        gameTitle = "2d Game Template"
+        self.smallText = pygame.font.Font("freesansbold.ttf", 24)
+        self.largeText = pygame.font.Font("freesansbold.ttf", 48)
+        self.textSurf, self.textRect = self.gfx.textObjects(gameTitle, self.largeText, white)
+        self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 25))
+        self.gameDisplay.blit(self.textSurf, self.textRect)
+        if self.menuType == "Paused":
+            self.textSurf, self.textRect = self.gfx.textObjects("-Paused-", self.smallText, white)
+            self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 60))
+            self.gameDisplay.blit(self.textSurf, self.textRect)
+
+    def selectionColorPulsate(self):
+        if self.colorIntensity + self.colorIntensityDirection > 255:
+            self.colorIntensityDirection = -5
+        elif self.colorIntensity + self.colorIntensityDirection < 65:
+            self.colorIntensityDirection = 5
+        self.colorIntensity = self.colorIntensity + self.colorIntensityDirection
+
+    def handleMenuBackground(self):
+        pass
+        #self.currentLevel, self.currentGun, self.enemiesAlive, self.myEnemies, self.myProjectiles = self.menuGameEventHandler.addGameObjects(
+            #self.enemiesAlive, self.currentLevel, self.currentGun, self.myEnemies, self.starProbabilitySpace, self.starDensity, self.starMoveSpeed, self.myProjectiles, self.displayWidth)
+        #self.starMoveSpeed = self.menuGameEventHandler.adjustStarMoveSpeed(self.maximumStarMoveSpeed, self.numberOfStarSpeeds)
+        #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.y, self.ammo = self.menuGameEventHandler.moveAndDrawProjectilesAndEnemies(
+            #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.x, self.y, self.rocketWidth, self.rocketHeight, self.difficultySelection, self.displayWidth, self.displayHeight, self.ammo, self.starMoveSpeed)
+        #self.menuGameEventHandler.drawObject(myCharacter, self.x, self.y)
+
+    def getKeyPress(self):
+        self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.myGameLogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
+
+    def displayMainMenu(self):
+        self.mainMenuItemMargin = 25
+        for self.i in xrange(7):
+            self.rgb = (255, 255, 255)
+            if self.i == self.menuSelectionIndex:
+                self.rgb = (self.colorIntensity, 0, 0)
+            if self.i == 6:
+                if self.menuType == "Paused":
+                    self.text = "Resume"
+                else:
+                    self.text = "Play"
+            if self.i == 5:
+                self.text = "Difficulty: " + self.difficultyChoices[self.difficultySelection]
+                if self.menuType == "Paused":
+                    self.tempRGB = (self.rgb[0]*.25, self.rgb[1]*.25, self.rgb[2]*.25)
+                    self.rgb = self.tempRGB
+            if self.i == 4:
+                self.text = "High Scores"
+            if self.i == 3:
+                self.text = "How To Play"
+            if self.i == 2:
+                self.text = "Settings"
+            if self.i == 1:
+                self.text = "Credits"
+            if self.i == 0:
+                self.text = "Quit"
+            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+            self.textRect.center = ((self.displayWidth/2.0), (self.displayHeight/2.0 - self.i*(self.mainMenuItemMargin) + self.screenMoveCounter))
+            self.gameDisplay.blit(self.textSurf, self.textRect)
+
+    def displaySettingsMenu(self):
+        self.fullScreenWindowChanged = False
+        for self.i in xrange(5):
+            self.rgb = (255, 255, 255)
+            if self.i == 4:
+                self.text = "Screen Size: " + str(screenResChoices[self.screenResSelection][0]) + "x" + str(screenResChoices[self.screenResSelection][1])
+            if self.i == 3:
+                self.text = "Screen: " + self.displayType
+            if self.i == 2:
+                self.text = "Music Volume: 100"
+            if self.i == 1:
+                self.text = "SFX Volume: 100"
+            if self.i == 0:
+                self.text = "Go Back"
+            if self.i == self.menuSelectionIndex:
+                self.rgb = (self.colorIntensity, 0, 0)
+            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+            self.textRect.center = ((self.displayWidth/2.0), (self.displayHeight/2.0 - self.i*(self.mainMenuItemMargin)))
+            self.gameDisplay.blit(self.textSurf, self.textRect)
+
+    def displayCreditsMenu(self):
+        creditsMoveSpeed = 5
+        if self.screenMoveCounter < self.displayHeight:
+            self.screenMoveCounter = self.screenMoveCounter + creditsMoveSpeed
+            self.displayTitle()
+            self.displayMainMenu()
+    
+        for self.i in xrange(3):
+            self.rgb = (255, 255, 255)
+            if self.i == 2:
+                self.text = "Programming by Mike Finnegan"
+            if self.i == 1:
+                self.text = "Art by Mike Finnegan"
+            if self.i == 0:
+                self.text = "Music/SFX by Mike Finnegan"
+            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+            #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.personSpeed)))
+            self.textRect.center = ((self.displayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.displayHeight/2.0))
+            self.gameDisplay.blit(self.textSurf, self.textRect)
+
+    def displayHowToMenu(self):
+        howToSpeed = 5
+        if self.screenMoveCounter < self.displayHeight:
+            self.screenMoveCounter = self.screenMoveCounter + howToSpeed
+            self.displayTitle()
+            self.displayMainMenu()
+        for self.i in xrange(3):
+            self.rgb = (255, 255, 255)
+            if self.i == 2:
+                self.text = "Escape key: pause game"
+            if self.i == 1:
+                self.text = "Space bar: shoot aliens"
+            if self.i == 0:
+                self.text = "Arrow keys Up, Down, Left, Right: fly spacecraft"
+            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+            #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.personSpeed)))
+            self.textRect.center = ((self.displayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.displayHeight/2.0))
+            self.gameDisplay.blit(self.textSurf, self.textRect)
+
+    def displayHighScoresMenu(self):
+        if self.menuSelectionIndex == 0:
+            self.rgb = (self.colorIntensity, 0, 0)
+        else:
+            self.rgb = (255, 255, 255)
+        if self.highScoreDifficulty == 0:
+            self.textSurf, self.textRect = self.gfx.textObjects("<<  Easy High Scores  >>", self.smallText, self.rgb)
+        if self.highScoreDifficulty == 1:
+            self.textSurf, self.textRect = self.gfx.textObjects("<<  Medium High Scores  >>", self.smallText, self.rgb)
+        if self.highScoreDifficulty == 2:
+            self.textSurf, self.textRect = self.gfx.textObjects("<<  Hard High Scores  >>", self.smallText, self.rgb)
+        if self.highScoreDifficulty == 3:
+            self.textSurf, self.textRect = self.gfx.textObjects("<<  Expert High Scores  >>", self.smallText, self.rgb)
+        self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 90))
+        self.gameDisplay.blit(self.textSurf, self.textRect)
+        for self.i in xrange(-1, 11):
+            for self.j in xrange(5):
+                if self.i == -1:
+                    self.rgb = (255, 255, 255)
+                    if self.j == 0:
+                        self.text = "Rank"
+                    elif self.j == 1:
+                        self.text = "Name"
+                    elif self.j == 2:
+                        self.text = "Score"
+                    elif self.j == 3:
+                        self.text = "State"
+                    elif self.j == 4:
+                        self.text = "Country"
+                    self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+                    #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.personSpeed)))
+                    self.textRect.center = ((self.displayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.displayHeight/2.0))
+                elif self.i == self.myHighScoreDatabase.numberOfRecordsPerDifficulty:
+                    if self.menuSelectionIndex == 1:
+                        self.rgb = (self.colorIntensity, 0, 0)
+                    else:
+                        self.rgb = (255, 255, 255)
+                    self.text = "Go Back"
+                    self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+                    self.textRect.center = ((self.displayWidth*.8), (self.displayHeight * .95))
+                else:
+                    self.rgb = (255, 255, 255)
+                    self.text = str(self.myHighScores[self.highScoreDifficulty][self.i][self.j])
+                    self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
+                    #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.personSpeed)))
+                    self.textRect.center = ((self.displayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.displayHeight/2.0))
+                self.gameDisplay.blit(self.textSurf, self.textRect)
+
+    def handleUserInputMainMenu(self):
+        if self.personYDelta == self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
+            self.menuSelectionIndex = self.menuSelectionIndex - 1
+            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
+                self.menuSelectionIndex = self.menuSelectionIndex - 1
+        if self.personYDelta == -self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 6:
+            self.menuSelectionIndex = self.menuSelectionIndex + 1
+            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
+                self.menuSelectionIndex = self.menuSelectionIndex + 1    
+        if ((self.personXDelta == self.personSpeed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 5:
+            self.difficultySelection = (self.difficultySelection + 1) %len(self.difficultyChoices)
+        if (self.personXDelta == -self.personSpeed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 5:
+            self.difficultySelection = (self.difficultySelection - 1) %len(self.difficultyChoices)
+        if self.enterPressed == True and self.menuSelectionIndex == 1:
+            self.menuDirectory = "Credits"
+        if self.enterPressed == True and self.menuSelectionIndex == 3:
+            self.menuDirectory = "How To Play"
+        if self.enterPressed == True and self.menuSelectionIndex == 6:
+            self.startPlay = True
+            del self.myHighScoreDatabase
+        if self.enterPressed == True and self.menuSelectionIndex == 0:
+            self.exiting = True
+        if self.enterPressed == True and self.menuSelectionIndex == 4:
+            self.menuDirectory = "High Scores"
+            self.menuSelectionIndex = 0
+        if self.enterPressed == True and self.menuSelectionIndex == 2:
+            self.menuDirectory = "Settings"
+            self.menuSelectionIndex = 4
+
+    def handleUserInputSettingsMenu(self):
+        if self.personYDelta == self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
+            self.menuSelectionIndex = self.menuSelectionIndex - 1
+        if self.personYDelta == -self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 4:
+            self.menuSelectionIndex = self.menuSelectionIndex + 1
+        if ((self.personXDelta == self.personSpeed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 4:
+            self.screenResSelection = (self.screenResSelection + 1) %len(screenResChoices)
+        if (self.personXDelta == -self.personSpeed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 4:
+            self.screenResSelection = (self.screenResSelection - 1) %len(screenResChoices)
+        if (self.enterPressed == True or (abs(self.personXDelta) == self.personSpeed and self.personXDeltaWas == 0))and self.menuSelectionIndex == 3:
+            if self.displayType == "Window":
+                self.displayType = "Full Screen"
+            else:
+                self.displayType = "Window"
+            self.fullScreenWindowChanged = True
+        if ((((self.personXDelta == self.personSpeed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 4) or ((self.personXDelta == -self.personSpeed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 4)) or self.fullScreenWindowChanged == True:
+            self.displayWidth = screenResChoices[self.screenResSelection][0]
+            self.displayHeight = screenResChoices[self.screenResSelection][1]
+            if self.displayType == "Window":
+                gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+            else:
+                gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+            self.myProjectiles = []
+            #self.x = (self.displayWidth/2.0)-(self.rocketWidth/2.0)
+            #self.y = (self.displayHeight-self.rocketHeight)
+            self.fullScreenWindowChanged = False
+        if self.enterPressed == True and self.menuSelectionIndex == 0:
+            self.menuDirectory = "Main"
+            self.menuSelectionIndex = 2
+
+    def handleUserInputCreditsMenu(self):
+        if self.enterPressed == True:
+            self.screenMoveCounter = 0
+            self.menuDirectory = "Main"
+
+    def handleUserInputHowToMenu(self):
+        if self.enterPressed == True:
+            self.screenMoveCounter = 0
+            self.menuDirectory = "Main"
+
+    def handleUserInputHighScoresMenu(self):
+        if (self.personYDelta == self.personSpeed and self.personYDeltaWas == 0):
+            self.menuSelectionIndex = (self.menuSelectionIndex + 1) % 2
+        if (self.personYDelta == -self.personSpeed and self.personYDeltaWas == 0):
+            self.menuSelectionIndex = (self.menuSelectionIndex - 1) % 2
+        if (self.menuSelectionIndex == 0 and self.personXDelta == self.personSpeed and self.personXDeltaWas == 0):
+            self.highScoreDifficulty = (self.highScoreDifficulty + 1) % len(self.difficultyChoices)
+        if (self.menuSelectionIndex == 0 and self.personXDelta == -self.personSpeed and self.personXDeltaWas == 0):
+            self.highScoreDifficulty = (self.highScoreDifficulty - 1) % len(self.difficultyChoices)
+        if self.menuSelectionIndex == 1 and self.enterPressed == True:
+            self.screenMoveCounter = 0
+            self.menuDirectory = "Main"
+            self.menuSelectionIndex = 4
+
+class highScoresDatabase(object):
+    def __init__(self):
+        self.numberOfRecordsPerDifficulty = 10
+        
+    def fillInBlankHighScores(self, highScoresArray):
+        self.workingArray = highScoresArray
+        self.iNeedThisManyMoreBlankSlots = self.numberOfRecordsPerDifficulty - len(self.workingArray)
+        self.n = 0
+        self.b = [[],]
+        for self.row in xrange(self.iNeedThisManyMoreBlankSlots):
+            self.n = self.n + 1
+            self.b.append([self.n, "-", 0, "-", "-"])
+        self.b.remove([])
+        #self.workingArray.append(self.b)
+        #return self.workingArray
+        return self.b
+
+    def loadHighScores(self):
+        try:
+            self.highScoresArray = [[],]
+            self.connection = sqlite3.connect("High_Scores.db")
+            self.c = self.connection.cursor()
+            self.row = ([])
+            for self.loadCounter in xrange(5):
+                self.a = [[],]
+                if self.loadCounter == 0:
+                    self.c.execute("""SELECT * FROM easyHighScoreTable ORDER BY scoreRecordPK""")
+                elif self.loadCounter == 1:
+                    self.c.execute("""SELECT * FROM mediumHighScoreTable ORDER BY scoreRecordPK""")
+                elif self.loadCounter == 2:
+                    self.c.execute("""SELECT * FROM hardHighScoreTable ORDER BY scoreRecordPK""")
+                elif self.loadCounter == 3:
+                    self.c.execute("""SELECT * FROM expertHighScoreTable ORDER BY scoreRecordPK""")
+                for self.row in self.c.fetchall():
+                    self.a.append([self.row[0], str(self.row[1]), self.row[2], str(self.row[3]), str(self.row[4])])
+                #self.highScoresArray.append([row(0), row(1), row(2), row(3), row(4)])
+                self.a.remove([])
+                #self.a = self.a.append(self.fillInBlankHighScores(self.a))
+                #self.a.remove([])
+                #print self.a
+                self.highScoresArray.insert(self.loadCounter, self.a)
+        except:
+            self.initializeDatabase()
+        
+        self.connection.close()
+        return self.highScoresArray
+
+    def initializeDatabase(self):
+        self.connection = sqlite3.connect("High_Scores.db")
+        self.c = self.connection.cursor()
+        self.c.execute("DROP TABLE IF EXISTS easyHighScoreTable")
+        self.c.execute("CREATE TABLE easyHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+        self.c.execute("DROP TABLE IF EXISTS mediumHighScoreTable")
+        self.c.execute("CREATE TABLE mediumHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+        self.c.execute("DROP TABLE IF EXISTS hardHighScoreTable")
+        self.c.execute("CREATE TABLE hardHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+        self.c.execute("DROP TABLE IF EXISTS expertHighScoreTable")
+        self.c.execute("CREATE TABLE expertHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+        for self.loadCounter in xrange(5):
+            #self.highScoresArray.append([])
+            self.highScoresArray.insert(self.loadCounter, self.fillInBlankHighScores(self.highScoresArray[self.loadCounter]))
+            #self.highScoresArray = self.fillInBlankHighScores(self.highScoresArray[self.loadCounter])
+        self.highScoresArray.remove([])
+        for self.loadCounter in xrange(5):
+            self.updateHighScoresForThisDifficulty(self.highScoresArray[self.loadCounter], self.loadCounter)
+        self.connection.close()
+        return self.highScoresArray
+                
+    def updateHighScoresForThisDifficulty(self, workingArray, difficulty):
+        try:
+            self.workingArray = workingArray
+            self.difficulty = difficulty
+            self.connection = sqlite3.connect("High_Scores.db")
+            self.c = self.connection.cursor()
+            self.updateCounter = -1
+            for self.row in self.workingArray:
+                self.updateCounter = self.updateCounter + 1
+                if self.difficulty == 0:
+                    if self.updateCounter == 0:
+                        self.c.execute("DROP TABLE IF EXISTS easyHighScoreTable")
+                        self.c.execute("CREATE TABLE easyHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+                    self.c.execute("INSERT INTO easyHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
+                if self.difficulty == 1:
+                    if self.updateCounter == 0:
+                        self.c.execute("DROP TABLE IF EXISTS mediumHighScoreTable")
+                        self.c.execute("CREATE TABLE mediumHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+                    self.c.execute("INSERT INTO mediumHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
+                if self.difficulty == 2:
+                    if self.updateCounter == 0:
+                        self.c.execute("DROP TABLE IF EXISTS hardHighScoreTable")
+                        self.c.execute("CREATE TABLE hardHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+                    self.c.execute("INSERT INTO hardHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
+                if self.difficulty == 3:
+                    if self.updateCounter == 0:
+                        self.c.execute("DROP TABLE IF EXISTS expertHighScoreTable")
+                        self.c.execute("CREATE TABLE expertHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+                    self.c.execute("INSERT INTO expertHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))                
+                self.connection.commit()
+        except:
+            self.initializeDatabase()
+        self.connection.close()
+        
 class gameplayObject(object):
     pass
 
@@ -431,13 +919,16 @@ class worldObject(gameplayObject):
     pass
 
 class game(object):
-    def __init__(self, displayWidth, displayHeight):
+    def __init__(self, screenResSelection, fullScreen):
+        self.screenResSelection = screenResSelection
+        self.displayType = fullScreen
         self.gravityYDelta = 0
         self.clock = pygame.time.Clock()
-        self.displayWidth = displayWidth #1280 #960
-        self.displayHeight = displayHeight #720 #540
-        self.gameDisplay = pygame.display.set_mode((displayWidth, displayHeight))#, pygame.FULLSCREEN)
+        self.updateScreenSettings()
         pygame.display.set_caption("Generic 2D Game Template")
+        self.personWidth = 32 #IN PIXELS
+        self.personHeight = 32 #IN PIXELS
+        self.numberOfFramesAnimPerWalk = 3
         self.tileSheetRows = 10
         self.tileSheetColumns = 1
         self.tileWidth = 64
@@ -446,11 +937,12 @@ class game(object):
         self.tileYPadding = 0
         self.gfx = gfxHandler()
         self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.personWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.exiting = False
+        self.paused = False
         self.lost = False
-        self.personWidth = 32 #IN PIXELS
-        self.personHeight = 32 #IN PIXELS
+        self.difficultySelection = 0
         self.ammo = 50000
         self.enemiesAlive = 0
         self.currentLevel = 0
@@ -463,6 +955,10 @@ class game(object):
         self.personSpeed = 0 #ACTUAL PLAYER MOVEMENT BASED ON COMPUTER'S FRAME RATE
         self.personXDelta = 0
         self.DEFAULTBULLETSPEED = .01 #BULLET SPEED IN WORLD BLOCKS/MILLISECOND
+        self.personImgDirectionIndex = 0
+        self.personImgLegIndex = 0
+        self.millisecondsOnEachLeg = 250
+        self.millisecondsOnThisLeg = 0
         self.personXDeltaButScreenOffset = 0
         self.personYDelta = 0
         self.personYDeltaButScreenOffset = 0
@@ -552,27 +1048,46 @@ class game(object):
         self.thisLevelMapHeight = len(self.thisLevelMap)
         self.thisLevelMapWidth = len(self.thisLevelMap[0])
         self.timeElapsedSinceLastFrame = 0
-        self.clock = pygame.time.Clock()
         self.myGameLogicHandler = gameLogicHandler()
-        self.myGFXHandler = gfxHandler()
+        self.enterPressed = False
+        
+    def updateScreenSettings(self):
+        self.displayWidth = screenResChoices[self.screenResSelection][0]
+        self.displayHeight = screenResChoices[self.screenResSelection][1]
+        #self.displayWidth = displayWidth #1280 #960
+        #self.displayHeight = displayHeight #720 #54
+        if self.displayType == "Full Screen":
+            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+        else:
+            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+        #TODO: Resolution/screen size change can put character outside of camera view
+        #TODO: Resolution/screen size change can put camera view outside of world
+
+    def showMenu(self, displayMenu):
+        myMenuSystem = menuScreen(displayMenu, self.screenResSelection , self.difficultySelection, self.displayType, self.gameDisplay)
+        self.difficultySelection, self.screenResSelection, self.displayType, self.exiting = myMenuSystem.displayMenuScreenAndHandleUserInput()
+        self.paused = False
+        del myMenuSystem
+        self.updateScreenSettings()
 
     def play(self):
         # GAME LOOP
-        while not self.exiting:
+        while not self.paused:
             #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
             self.timeElapsedSinceLastFrame = self.myGameLogicHandler.manageTimeAndFrameRate(self.lastTick, self.clock)
             
             #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing = self.myGameLogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
-
-            #MAKE CHARACTER FACE THE DIRECTION THE USER INDICATED W/ KEYPRESS
-            #[NOT IMPLEMENTED YET]
+            self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = False = self.myGameLogicHandler.keyPressAndGameEventHandler(self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
 
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
             self.personSpeed, self.myParticles, self.personXDelta, self.personYDelta = self.myGameLogicHandler.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.myParticles, self.DEFAULTPERSONSPEED, self.personXDelta, self.personYDelta)
-            #CHECK FOR CHARACTER-WALL COLLISIONS & MOVE CHARACTER
+            #Select the correct image for all characters based on direction facing
+            self.myEnemies, self.personImgDirectionIndex = self.myGameLogicHandler.determineCharPicBasedOnDirectionFacing(self.myEnemies, self.personXFacing, self.personYFacing, self.personImgDirectionIndex)
+            #Select the correct image for all characters based on what leg they are standing on
+            self.myEnemies, self.millisecondsOnThisLeg, self.personImgLegIndex = self.myGameLogicHandler.determineCharPicBasedOnWalkOrMovement(self.myEnemies, self.millisecondsOnEachLeg, self.millisecondsOnThisLeg, self.timeElapsedSinceLastFrame, self.numberOfFramesAnimPerWalk, self.personImgLegIndex, self.personXDelta, self.personYDelta)
+            
+            #MOVE CHARACTERS & CHECK FOR CHARACTER-WALL COLLISIONS
             self.yok, self.xok, self.tileLevelYLoc, self.tileLevelXLoc, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.timeSpentFalling, self.gravityYDelta = self.myGameLogicHandler.characterWallCollisionTest(self.thisLevelMap, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personHeight, self.personWidth, self.personSpeed, self.y, self.x, self.timeSpentFalling, self.gravityYDelta, self.gravityAppliesToWorld)
-
             #self.personXDelta, self.personYDelta = self.myGameLogicHandler.diagSpeedFix(self.personXDelta, self.personYDelta, self.personSpeed)
 
             #TODO: generateBadGuys()
@@ -587,27 +1102,27 @@ class game(object):
             #GENERATE PARTICLES
             self.myParticles, self.shotsFiredFromMe = self.myGameLogicHandler.generateparticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.playerYBlock, self.playerXBlock, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED, self.currentGun, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-            self.myGFXHandler.drawTiles(self.tileToScreenXOffset, self.tileToScreenYOffset, self.tileLevelYLoc, self.tileLevelXLoc, self.tileWidth, self.tileHeight, self.displayWidth, self.displayHeight, self.thisLevelMap, self.gfx, self.gameDisplay)
+            self.gfx.drawTiles(self.tileToScreenXOffset, self.tileToScreenYOffset, self.tileLevelYLoc, self.tileLevelXLoc, self.tileWidth, self.tileHeight, self.displayWidth, self.displayHeight, self.thisLevelMap, self.gfx, self.gameDisplay)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            self.myGFXHandler.drawObjectsAndParticles(self.myParticles, self.gameDisplay, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.tileHeight, self.tileWidth, self.displayWidth, self.displayHeight, self.y, self.x, self.gfx)
-
+            self.gfx.drawObjectsAndParticles(self.myParticles, self.gameDisplay, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.tileHeight, self.tileWidth, self.displayWidth, self.displayHeight, self.y, self.x)
+            
             #DRAW GAME STATS
-            #self.myGFXHandler.smallMessageDisplay("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("Ammo: " + str(self.ammo), 1, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("Player X: " + str(self.playerXBlock), 4, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("Player Y: " + str(self.playerYBlock), 5, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("View X: " + str(self.tileLevelXLoc), 7, self.gameDisplay, white, self.displayWidth)
-            #self.myGFXHandler.smallMessageDisplay("View Y: " + str(self.tileLevelYLoc), 8, self.gameDisplay, white, self.displayWidth)
-            self.myGFXHandler.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 9, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Ammo: " + str(self.ammo), 1, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Player X: " + str(self.playerXBlock), 4, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Player Y: " + str(self.playerYBlock), 5, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("View X: " + str(self.tileLevelXLoc), 7, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("View Y: " + str(self.tileLevelYLoc), 8, self.gameDisplay, white, self.displayWidth)
+            self.gfx.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 9, self.gameDisplay, white, self.displayWidth)
             pygame.display.update()
             if self.myHealth <= 0:
                 self.lost = True
-                self.exiting = True
-                self.myGFXHandler.largeMessageDisplay("YOU LOSE", self.gameDisplay, white)
+                #self.exiting = True
+                self.gfx.largeMessageDisplay("YOU LOSE", self.gameDisplay, white)
                 self.gameDisplay.fill(black)
-                self.myGFXHandler.largeMessageDisplay(str(self.score) + " pts", self.gameDisplay, white)
+                self.gfx.largeMessageDisplay(str(self.score) + " pts", self.gameDisplay, white)
 
             
         #OUT OF THE GAME LOOP
@@ -615,12 +1130,27 @@ class game(object):
             #LOST GAME ACTION HERE
             pass
         else:
-            pygame.quit()
-            quit()
+            pass
+            #del self.clock
+
 
 pygame.init()
+allResolutionsAvail = pygame.display.list_modes()
+#ADD IN GAME-SPECIFIC LOGIC IF CERTAIN RESOLUTIONS ARE TO BE EXCLUDED FROM USER SELECTION
+screenResChoices = allResolutionsAvail
+del allResolutionsAvail
+screenResChoices.sort()
 PLAYER = pygame.image.load("person.png")
 #myCharacter = pygame.image.load(myFile)
-myGame = game(1280, 720)
-myGame.play()
-
+exiting = False
+while exiting == False:
+    myGame = game(int(len(screenResChoices)/2), "Window")
+    exiting = myGame.showMenu("Main Menu")
+    while myGame.exiting == False and myGame.lost == False:
+        myGame.play()
+        myGame.showMenu("Paused")
+        #myMenuSystem = menuScreen("Main Menu", screenResSelection, difficultySelection, displayType)
+        #del myMenuSystem
+    del myGame
+pygame.quit()
+quit()

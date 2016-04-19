@@ -13,14 +13,13 @@ red = (255,0,0)
 
 class gfxHandler(object):
     def __init__(self):
-        pass
+        self.gfxDictionary = {}
 
     def loadGfxDictionary(self, file_name, imageIndicator, rows, columns, width, height, pictureXPadding, pictureYPadding):
         self.spriteSheet = pygame.image.load(file_name)
         imgTransparency = True
         
         if imageIndicator == "World Tiles":
-            self.gfxDictionary = {}
             imgTransparency = False
         self.gfxDictionary.update({imageIndicator:{}}) #NESTED HASHTABLE
 
@@ -44,7 +43,6 @@ class gfxHandler(object):
                 tileWidth,
                 tileHeight)
 
-
     def textObjects(self, text, font, color):
         textSurface = font.render(text, True, color)
         return textSurface, textSurface.get_rect()
@@ -63,36 +61,37 @@ class gfxHandler(object):
         textRect.center = ((displayWidth-60), 15 + (15*lineNumber))
         myGameDisplay.blit(textSurf, textRect)
 
-    def drawWorld(self, myImage, myCoords, myGameDisplay):
+    def drawImg(self, myImage, myCoords, myGameDisplay):
         #pygame.draw.rect(myImage, grayConst, myCoords)
          myGameDisplay.blit(myImage, (myCoords[0], myCoords[1]))
+
+    def drawDialogs(self, conversationArray, (backR, backG, backB, backA), (foreR, foreG, foreB, foreA), (borderR, borderG, borderB, borderA), borderSize = 5):
         
-    def drawObject(self, myFile, x, y, myGameDisplay):
-        if myFile == "person.png":
-            myGameDisplay.blit(PLAYER,(x,y))
-            
-    def drawObjectsAndParticles(self, myParticles, gameDisplay, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, tileHeight, tileWidth, displayWidth, displayHeight, y, x):
-        self.drawWorld(PLAYER, (x, y), gameDisplay)
+        conversationSelections = []
+        return conversationSelections
+    
+    def drawObjectsAndParticles(self, myParticles, gameDisplay, camera, tileHeight, tileWidth, y, x):
+        self.drawImg(PLAYER, (x, y), gameDisplay)
         for i in xrange(len(myParticles)):
             if myParticles[i][0] == "User Bullet":
-                #print "x: " + str((1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth)
-                #print "y: " + str((1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight)
-                if ((1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth) + myParticles[i][8] > 0 and (1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth < displayWidth:
-                    #self.drawObject("bullet" + str(myParticles[i][1]) + ".png", (1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight, gameDisplay)
+                #print "x: " + str((1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth)
+                #print "y: " + str((1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - myParticles[i][3]) * -tileHeight)
+                if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth) + myParticles[i][8] > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth < camera.displayWidth:
+                    #self.drawObject("bullet" + str(myParticles[i][1]) + ".png", (1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - myParticles[i][3]) * -tileHeight, gameDisplay)
                     #print math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5))
                     #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][myParticles[i][1]], (180*math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5)))/3.14159265358972)
-                    self.drawWorld(myParticles[i][12], ((1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) - myParticles[i][3]) * -tileHeight), gameDisplay)
+                    self.drawImg(myParticles[i][12], ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - myParticles[i][3]) * -tileHeight), gameDisplay)
                     
-    def drawTiles(self, tileToScreenXOffset, tileToScreenYOffset, tileLevelYLoc, tileLevelXLoc, tileWidth, tileHeight, displayWidth, displayHeight, thisLevelMap, gfx, gameDisplay):
-        for i in xrange(int(displayWidth/float(tileWidth))+2):
-            for j in xrange(int(displayHeight/float(tileHeight))+2):
-              self.drawWorld(gfx.gfxDictionary["World Tiles"][thisLevelMap[j+tileLevelYLoc][i+tileLevelXLoc]],
-                          (((i-1)*tileWidth)+tileToScreenXOffset,
-                          ((j-1)*tileHeight)+tileToScreenYOffset,
-                          (((i-1)*tileWidth)+tileToScreenXOffset)+ tileWidth,
-                          (((j-1)*tileHeight)+tileToScreenYOffset) + tileHeight), gameDisplay)
+    def drawWorldInCameraView(self, camera, tileWidth, tileHeight, thisLevelMap, gfx, gameDisplay):
+        for i in xrange(int(camera.displayWidth/float(tileWidth))+2):
+            for j in xrange(int(camera.displayHeight/float(tileHeight))+2):
+              self.drawImg(gfx.gfxDictionary["World Tiles"][thisLevelMap[j+camera.viewY][i+camera.viewX]],
+                          (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX,
+                          ((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY,
+                          (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX)+ tileWidth,
+                          (((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY) + tileHeight), gameDisplay)
 
-class gameLogicHandler(object):
+class logicHandler(object):
     def keyPressAndGameEventHandler(self, exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing):
         #HANDLE KEY PRESS/RELEASE/USER ACTIONS
         enterPressed = False
@@ -111,7 +110,6 @@ class gameLogicHandler(object):
                 if event.key == pygame.K_SPACE and ammo >0:
                     shotsFiredFromMe = True
                     ammo = ammo - 1
-
                 if event.key == pygame.K_KP1 or event.key == pygame.K_1:
                     currentGun = 0
                 if event.key == pygame.K_KP2 or event.key == pygame.K_2:
@@ -120,7 +118,6 @@ class gameLogicHandler(object):
                     currentGun = 2
                 if event.key == pygame.K_KP4 or event.key == pygame.K_4:
                     currentGun = 3
-
                 if event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN:
                     enterPressed = True
             
@@ -151,7 +148,7 @@ class gameLogicHandler(object):
 
         return exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing, enterPressed
 
-    def characterWallCollisionTest(self, thisLevelMap, tileLevelYLoc, tileLevelXLoc, tileToScreenYOffset, tileToScreenXOffset, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personSpeed, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld):
+    def characterWallCollisionTest(self, thisLevelMap, camera, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personHeight, personWidth, personSpeed, y, x, timeSpentFalling, gravityYDelta, gravityAppliesToWorld):
         personYDelta = personYDelta + gravityYDelta
 
         #This acts as a buffer to allow user to not get up against floor/ceiling
@@ -172,7 +169,7 @@ class gameLogicHandler(object):
         #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
         #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
         #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S CHARACTER IS SMALLER
-        #THAN THE BLOCKS THE WORLD IS MADE OF.
+        #THAN THE TILES THE WORLD IS MADE OF.
 
         #        A     B
         #        ^     ^
@@ -191,7 +188,7 @@ class gameLogicHandler(object):
         xok = 1
         needToRevert = 0
         #COLLISION CHECK @ C or @ D or @ H or @ G
-        if (personXDelta > 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])) or ((personXDelta)< 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])):
+        if (personXDelta > 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])) or ((personXDelta)< 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])):
             tempxok = xok #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
             temppersonXDeltaButScreenOffset = personXDeltaButScreenOffset #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
             temppersonXDelta = personXDelta #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
@@ -204,10 +201,10 @@ class gameLogicHandler(object):
         #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
         #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
         
-        #print "A: Player Y:" + str(playerYBlock) + " YDelta: " + str(personYDelta) + " tileLevelYLoc: " + str(tileLevelYLoc) + " Test: " + str((thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]))
-        #print "B: Player Y:" + str(playerYBlock) + " YDelta: " + str(personYDelta) + " tileLevelYLoc: " + str(tileLevelYLoc) + " Test: " + str((thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]))
+        #print "A: Player Y:" + str(personYTile) + " YDelta: " + str(personYDelta) + " cameraViewY: " + str(cameraViewY) + " Test: " + str((thisLevelMap[int(1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]))
+        #print "B: Player Y:" + str(personYTile) + " YDelta: " + str(personYDelta) + " cameraViewY: " + str(cameraViewY) + " Test: " + str((thisLevelMap[int(1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]))
         
-        if (personYDelta < 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])) or (personYDelta > 0 and (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed + self.getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed + self.getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])):
+        if (personYDelta < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])) or (personYDelta > 0 and (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed + self.getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed + self.getNextGravityApplicationToWorld(gravityYDelta, timeSpentFalling, tileHeight)) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))])):
             yok = 0
             personYDeltaButScreenOffset = 0
             personYDelta = 0
@@ -217,7 +214,7 @@ class gameLogicHandler(object):
                 personYDelta = -1
             
             
-        #if (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]):
+        #if (thisLevelMap[int(1 + (personHeight/float(tileHeight)) + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + personSpeed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+personXDelta + personXDeltaButScreenOffset)/float(tileWidth)))]):
         #    fallIfGravityOn = False
         #    timeSpentFalling = 0
         #    gravityYDelta = 0
@@ -240,12 +237,12 @@ class gameLogicHandler(object):
         #COLLISION CHECK @ C or @ D or @ H or @ G
         #NOW TEST FOR COLLISION @ C, D, H, OR G NOW KNOWING THAT WE HANDLED MAY HAVE HANDLED A COLLISION @ C, D, H, OR G
         #LIKEWISE, THIS FORMULA IS DEPENDENT ON VARS IN 2ND SECTION THAT CHANGED
-        if ((personXDelta)> 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])) or ((personXDelta)< 0 and (thisLevelMap[int(1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])):
+        if ((personXDelta)> 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (personWidth/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])) or ((personXDelta)< 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (personHeight/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((y + personYDelta + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((x+(-personXDeltaButScreenOffset + personXDelta)+ personXDeltaButScreenOffset)/float(tileWidth)))])):
             xok = 0
             personXDeltaButScreenOffset = 0
             personXDelta = 0
 
-        return yok, xok, tileLevelYLoc, tileLevelXLoc, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, timeSpentFalling, gravityYDelta
+        return yok, xok, personYDelta, personXDelta, personYDeltaButScreenOffset, personXDeltaButScreenOffset, timeSpentFalling, gravityYDelta
 
 
     def diagSpeedFix(self, XDelta, YDelta, speed):
@@ -265,7 +262,7 @@ class gameLogicHandler(object):
             XDelta = tempXDelta
         return XDelta, YDelta
 
-    def screenSynchWithCharacterMovement(self, yok, xok, personYDelta, personXDelta, displayHeight, displayWidth, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x, thisLevelMapWidth, thisLevelMapHeight):
+    def screenSynchWithCharacterMovement(self, yok, xok, personYDelta, personXDelta, camera, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileHeight, tileWidth, personYTile, personXTile, y, x, thisLevelMapWidth, thisLevelMapHeight):
 
         #        -COMPUTER SCREEN-
         #          |          |
@@ -302,54 +299,54 @@ class gameLogicHandler(object):
         #*UNLESS SCREEN SCROLLING PUTS CAMERA VIEW OUTSIDE OF THE WORLD
 
         #(IS PLAYER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PLAYER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
-        if xok == 1 and ((tileLevelXLoc > 0 and personXDelta < 0 and x + personXDelta < (1*displayWidth)/3.0 and personXDelta < 0) or (int(tileLevelXLoc - ((tileToScreenXOffset-personXDelta)/float(tileWidth)) + 2 + displayWidth/float(tileWidth)) < thisLevelMapWidth and personXDelta >0 and x + personXDelta > (2*displayWidth)/3.0)):
-            tileToScreenXOffset = tileToScreenXOffset - personXDelta #MOVE CAMERA ALONG X AXIS
+        if xok == 1 and ((camera.viewX > 0 and personXDelta < 0 and x + personXDelta < (1*camera.displayWidth)/3.0 and personXDelta < 0) or (int(camera.viewX - ((camera.viewToScreenPxlOffsetX-personXDelta)/float(tileWidth)) + 2 + camera.displayWidth/float(tileWidth)) < thisLevelMapWidth and personXDelta >0 and x + personXDelta > (2*camera.displayWidth)/3.0)):
+            camera.viewToScreenPxlOffsetX = camera.viewToScreenPxlOffsetX - personXDelta #MOVE CAMERA ALONG X AXIS
             personXDeltaButScreenOffset = -personXDelta #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
         else:
             personXDeltaButScreenOffset = 0
 
-        if yok == 1 and ((tileLevelYLoc > 0 and personYDelta < 0 and y + personYDelta < (1*displayHeight)/3.0 and personYDelta < 0) or (int(tileLevelYLoc - ((tileToScreenYOffset-personYDelta)/float(tileHeight)) + 2 + displayHeight/float(tileHeight)) < thisLevelMapHeight and personYDelta >0 and y + personYDelta > (2*displayHeight)/3.0)):
-            tileToScreenYOffset = tileToScreenYOffset - personYDelta #MOVE CAMERA ALONG X AXIS
+        if yok == 1 and ((camera.viewY > 0 and personYDelta < 0 and y + personYDelta < (1*camera.displayHeight)/3.0 and personYDelta < 0) or (int(camera.viewY - ((camera.viewToScreenPxlOffsetY-personYDelta)/float(tileHeight)) + 2 + camera.displayHeight/float(tileHeight)) < thisLevelMapHeight and personYDelta >0 and y + personYDelta > (2*camera.displayHeight)/3.0)):
+            camera.viewToScreenPxlOffsetY = camera.viewToScreenPxlOffsetY - personYDelta #MOVE CAMERA ALONG X AXIS
             personYDeltaButScreenOffset = -personYDelta #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
         else:
             personYDeltaButScreenOffset = 0
 
-        #SCREEN MOVES IN PIXELS, BUT THE WORLD IS BUILT IN BLOCKS.
+        #SCREEN MOVES IN PIXELS, BUT THE WORLD IS BUILT IN TILES.
         #WHEN SCREEN MOVES IN PIXELS WITH USER'S MOVEMENT, THIS
-        #IS STORED IN tileToScreen(X or Y)Offset. BUT IF USER'S
-        #MOVEMENT (AND THEREFORE, tileToScreenX/YOffset) GOES BEYOND
-        #THE SIZE OF A BLOCK, THEN TAKE AWAY THE BLOCK SIZE FROM THE 
-        #tileToScreenX/YOffset, AND CONSIDER THAT THE USER HAS MOVED
-        #1 BLOCK IN DISTANCE IN THE WORLD. THIS IS IMPORTANT IN
+        #IS STORED IN cameraViewToScreenPxlOffsetX/Y. BUT IF USER'S
+        #MOVEMENT (AND THEREFORE, cameraViewToScreenPxlOffsetX/Y) GOES BEYOND
+        #THE SIZE OF A TILE, THEN TAKE AWAY THE TILE SIZE FROM THE 
+        #cameraViewToScreenPxlOffsetX/Y, AND CONSIDER THAT THE USER HAS MOVED
+        #1 TILE IN DISTANCE IN THE WORLD. THIS IS IMPORTANT IN
         #ACCURATELY TRACKING THE USER'S LOCATION COORDINATES HELD
-        #IN playerX/YBlock
-        if tileToScreenXOffset >= tileWidth:
-            tileToScreenXOffset = tileToScreenXOffset - tileWidth
-            tileLevelXLoc = tileLevelXLoc - 1
+        #IN playerX/YTile
+        if camera.viewToScreenPxlOffsetX >= tileWidth:
+            camera.viewToScreenPxlOffsetX = camera.viewToScreenPxlOffsetX - tileWidth
+            camera.viewX = camera.viewX - 1
             
-        elif tileToScreenXOffset <0:
-            tileToScreenXOffset = tileToScreenXOffset + tileWidth
-            tileLevelXLoc = tileLevelXLoc + 1
+        elif camera.viewToScreenPxlOffsetX <0:
+            camera.viewToScreenPxlOffsetX = camera.viewToScreenPxlOffsetX + tileWidth
+            camera.viewX = camera.viewX + 1
 
-        if tileToScreenYOffset >= tileHeight:
-            tileToScreenYOffset = tileToScreenYOffset - tileHeight
-            tileLevelYLoc = tileLevelYLoc - 1
+        if camera.viewToScreenPxlOffsetY >= tileHeight:
+            camera.viewToScreenPxlOffsetY = camera.viewToScreenPxlOffsetY - tileHeight
+            camera.viewY = camera.viewY - 1
 
-        elif tileToScreenYOffset <0:
-            tileToScreenYOffset = tileToScreenYOffset + tileHeight
-            tileLevelYLoc = tileLevelYLoc + 1
+        elif camera.viewToScreenPxlOffsetY <0:
+            camera.viewToScreenPxlOffsetY = camera.viewToScreenPxlOffsetY + tileHeight
+            camera.viewY = camera.viewY + 1
             
         if xok == 1:
             x = x + personXDelta + personXDeltaButScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
-            playerXBlock = 1 + tileLevelXLoc + (-tileToScreenXOffset/float(tileWidth)) + (x/float(tileWidth)) #0 BASED, JUST LIKE THE ARRAY, THIS IS LEFT MOST POINT OF USER'S CHAR
+            personXTile = 1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + (x/float(tileWidth)) #0 BASED, JUST LIKE THE ARRAY, THIS IS LEFT MOST POINT OF USER'S CHAR
         if yok == 1:
             y = y + personYDelta + personYDeltaButScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
-            playerYBlock = 1 + tileLevelYLoc + (-tileToScreenYOffset/float(tileHeight)) + (y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
-        return personYDelta, personXDelta, tileToScreenYOffset, tileToScreenXOffset, personYDeltaButScreenOffset, personXDeltaButScreenOffset, tileLevelYLoc, tileLevelXLoc, playerYBlock, playerXBlock, y, x
+            personYTile = 1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + (y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
+        return personYDelta, personXDelta, camera, personYDeltaButScreenOffset, personXDeltaButScreenOffset, personYTile, personXTile, y, x
 
-    def generateparticles(self, shotsFiredFromMe, myParticles, personYFacing, personXFacing, playerYBlock, playerXBlock, tileHeight, tileWidth, DEFAULTBULLETSPEED, currentGun, gfx):
+    def generateparticles(self, shotsFiredFromMe, myParticles, personYFacing, personXFacing, personYTile, personXTile, tileHeight, tileWidth, DEFAULTBULLETSPEED, currentGun, gfx):
         if shotsFiredFromMe == True and not(personYFacing == 0 and personXFacing == 0):
-            speed = DEFAULTBULLETSPEED #units are world blocks, not pixels!
+            speed = DEFAULTBULLETSPEED #units are world tiles, not pixels!
             if personXFacing == 0:
                 tempDX = 0 #THIS AVOIDS THE DIVIDE BY 0 ERROR
                 if personYFacing == 0:
@@ -368,7 +365,7 @@ class gameLogicHandler(object):
                     tempDY = (personYFacing/float(abs(personYFacing))) * (math.sin(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
                     img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
                            #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
-            myParticles.append(["User Bullet", currentGun, playerXBlock, playerYBlock, tempDX, tempDY, 10, 1, 16, 16, speed, DEFAULTBULLETSPEED, img]) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
+            myParticles.append(["User Bullet", currentGun, personXTile, personYTile, tempDX, tempDY, 10, 1, 16, 16, speed, DEFAULTBULLETSPEED, img]) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
             shotsFiredFromMe = False
         return myParticles, shotsFiredFromMe
 
@@ -494,7 +491,7 @@ class menuScreen(object):
         self.colorIntensityDirection = 5
         self.startPlay = False
         self.gfx = gfxHandler()
-        self.myGameLogicHandler = gameLogicHandler()
+        self.mylogicHandler = logicHandler()
         self.exiting = False
         self.lost = False
         self.ammo = 0
@@ -580,7 +577,7 @@ class menuScreen(object):
         #self.menuGameEventHandler.drawObject(myCharacter, self.x, self.y)
 
     def getKeyPress(self):
-        self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.myGameLogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
+        self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.mylogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
 
     def displayMainMenu(self):
         self.mainMenuItemMargin = 25
@@ -912,69 +909,76 @@ class characterObject(gameplayObject):
 
 
 class particleObject(gameplayObject):
-    #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
+    #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, physics actions remaining, particle width px, particle height px, frame speed, default speed, image, particlePhysicsLevel
+    #if particlePhysicsLevel >= wallPhysicsLevel + 3 then particle pushes the wall
+    #if particlePhysicsLevel = wallPhysicsLevel + 2 then particle goes through wall
+    #if particlePhysicsLevel = wallPhysicsLevel + 1 then particle bounces off wall
+    #if particlePhysicsLevel <= wallPhysicsLevel then particle absorbs into wall
+
+    #physics actions represent the number of remaining times the particle can push/go through/bounce off walls
     pass
 
 class worldObject(gameplayObject):
     pass
 
-class game(object):
-    def __init__(self, screenResSelection, fullScreen):
+class camera(object):
+    def __init__(self, screenResSelection, displayType):
         self.screenResSelection = screenResSelection
-        self.displayType = fullScreen
-        self.gravityYDelta = 0
+        self.displayType = displayType
+        self.viewX = 14 #Camera view X-coord measured in tiles
+        self.viewY = 14 #Camera view Y-coord measured in tiles
+        self.viewToScreenPxlOffsetX = 0 #Offset the camera view X-coord to the screen based on player fractional tile movement, in pixels
+        self.viewToScreenPxlOffsetY = 0 #Offset the camera view Y-coord to the screen based on player fractional tile movement, in pixels
+        
+
+    def updateScreenSettings(self):
+        self.displayWidth = screenResChoices[self.screenResSelection][0]
+        self.displayHeight = screenResChoices[self.screenResSelection][1]
+        #self.displayWidth = displayWidth #1280 #960
+        #self.displayHeight = displayHeight #720 #54
+        if self.displayType == "Full Screen":
+            gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+        else:
+            gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+        return gameDisplay
+        #TODO: Resolution/screen size change can put character outside of camera view
+        #TODO: Resolution/screen size change can put camera view outside of world
+    
+
+class game(object):
+    def __init__(self, screenResSelection, fullScreen):        
         self.clock = pygame.time.Clock()
-        self.updateScreenSettings()
-        pygame.display.set_caption("Generic 2D Game Template")
-        self.personWidth = 32 #IN PIXELS
-        self.personHeight = 32 #IN PIXELS
-        self.numberOfFramesAnimPerWalk = 3
+        self.camera = camera(screenResSelection, fullScreen)
+        self.gameDisplay = self.camera.updateScreenSettings()
+        
+        self.mylogicHandler = logicHandler()
+        self.gfx = gfxHandler()
+        
+        
+        pygame.display.set_caption("2D Game Framework")
+        
+        self.lastTick = 0
+        self.timeElapsedSinceLastFrame = 0
+
+        self.exiting = False
+        self.paused = False
+        self.lost = False
+        self.difficultySelection = 0
+        self.enterPressed = False
+
+        self.DEFAULTBULLETSPEED = .01 #BULLET SPEED IN WORLD TILES/MILLISECOND
+
         self.tileSheetRows = 10
         self.tileSheetColumns = 1
         self.tileWidth = 64
         self.tileHeight = 64
         self.tileXPadding = 0
         self.tileYPadding = 0
-        self.gfx = gfxHandler()
-        self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
-        self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.personWidth, self.personHeight, 0, 0)
-        self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
-        self.exiting = False
-        self.paused = False
-        self.lost = False
-        self.difficultySelection = 0
-        self.ammo = 50000
         self.enemiesAlive = 0
         self.currentLevel = 0
-        self.currentGun = 1
-        self.myHealth = 100
         self.myParticles = [] #[NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0]
         self.myEnemies = [] #[species, weapon, health, aggression, speed, img, x, y, dx, dy, width, height]
         self.gravityAppliesToWorld = False #CHOOSE TRUE FOR SLIDE-SCROLLER TYPE GAME, OR FALSE FOR RPG TYPE GAME!
-        self.DEFAULTPERSONSPEED = .5 #PLAYER SPEED IN PIXELS/MILLISECOND
-        self.personSpeed = 0 #ACTUAL PLAYER MOVEMENT BASED ON COMPUTER'S FRAME RATE
-        self.personXDelta = 0
-        self.DEFAULTBULLETSPEED = .01 #BULLET SPEED IN WORLD BLOCKS/MILLISECOND
-        self.personImgDirectionIndex = 0
-        self.personImgLegIndex = 0
-        self.millisecondsOnEachLeg = 250
-        self.millisecondsOnThisLeg = 0
-        self.personXDeltaButScreenOffset = 0
-        self.personYDelta = 0
-        self.personYDeltaButScreenOffset = 0
-        self.personXFacing = 0
-        self.personYFacing = 0
-        self.score = 0
-        self.shotsFiredFromMe = False
-        self.x = (((self.displayWidth/float(self.tileWidth))/2)*self.tileWidth)
-        self.y = (((self.displayHeight/float(self.tileHeight))/2)*self.tileHeight)
-        self.playerXBlock = 0
-        self.playerYBlock = 0
-        self.tileToScreenXOffset = 0
-        self.tileToScreenYOffset = 0
-        self.tileLevelYLoc = 14
-        self.tileLevelXLoc = 14
-        self.timeSpentFalling = 0 #This is important to track because falling velocity due to gravity is non-linear -9.8m/s^2
         self.thisLevelMap = [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1],
                         [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
@@ -1043,79 +1047,95 @@ class game(object):
                         [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
                         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
-                        
-        self.lastTick = 0
         self.thisLevelMapHeight = len(self.thisLevelMap)
         self.thisLevelMapWidth = len(self.thisLevelMap[0])
-        self.timeElapsedSinceLastFrame = 0
-        self.myGameLogicHandler = gameLogicHandler()
-        self.enterPressed = False
-        
-    def updateScreenSettings(self):
-        self.displayWidth = screenResChoices[self.screenResSelection][0]
-        self.displayHeight = screenResChoices[self.screenResSelection][1]
-        #self.displayWidth = displayWidth #1280 #960
-        #self.displayHeight = displayHeight #720 #54
-        if self.displayType == "Full Screen":
-            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
-        else:
-            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
-        #TODO: Resolution/screen size change can put character outside of camera view
-        #TODO: Resolution/screen size change can put camera view outside of world
+               
+        self.personImgDirectionIndex = 0
+        self.personImgLegIndex = 0
+        self.millisecondsOnEachLeg = 250
+        self.millisecondsOnThisLeg = 0
+        self.timeSpentFalling = 0 #This is important to track because falling velocity due to gravity is non-linear
+        self.personXDelta = 0
+        self.personYDelta = 0
+        self.gravityYDelta = 0
+        self.personXFacing = 0
+        self.personYFacing = 0
+        self.personXTile = 0 #Player world X-coord in tiles
+        self.personYTile = 0 #Player world Y-coord in tiles
+        self.x = (((self.camera.displayWidth/float(self.tileWidth))/2)*self.tileWidth) #Player screen X-coord in pixels
+        self.y = (((self.camera.displayHeight/float(self.tileHeight))/2)*self.tileHeight) #Player screen Y-coord in pixels
+        self.personXDeltaButScreenOffset = 0 #Offsets character screen velocity when camera moves with character
+        self.personYDeltaButScreenOffset = 0 #Offsets character screen velocity when camera moves with character
+        self.personWidth = 32 #IN PIXELS
+        self.personHeight = 32 #IN PIXELS
+        self.DEFAULTPERSONSPEED = .5 #PLAYER SPEED IN PIXELS/MILLISECOND
+        self.personSpeed = 0 #ACTUAL PLAYER MOVEMENT BASED ON COMPUTER'S FRAME RATE
+        self.numberOfFramesAnimPerWalk = 3
+        self.ammo = 50000
+        self.currentGun = 1
+        self.myHealth = 100
+        self.score = 0
+        self.shotsFiredFromMe = False
 
-    def showMenu(self, displayMenu):
-        myMenuSystem = menuScreen(displayMenu, self.screenResSelection , self.difficultySelection, self.displayType, self.gameDisplay)
-        self.difficultySelection, self.screenResSelection, self.displayType, self.exiting = myMenuSystem.displayMenuScreenAndHandleUserInput()
+        self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.personWidth, self.personHeight, 0, 0)
+        self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
+        
+        
+    def showMenu(self, displayMenu, camera):
+        
+        myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
+        self.difficultySelection, self.camera.screenResSelection, self.camera.displayType, self.exiting = myMenuSystem.displayMenuScreenAndHandleUserInput()
         self.paused = False
         del myMenuSystem
-        self.updateScreenSettings()
+        self.camera.updateScreenSettings()
 
     def play(self):
         # GAME LOOP
         while not self.paused:
             #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
-            self.timeElapsedSinceLastFrame = self.myGameLogicHandler.manageTimeAndFrameRate(self.lastTick, self.clock)
+            self.timeElapsedSinceLastFrame = self.mylogicHandler.manageTimeAndFrameRate(self.lastTick, self.clock)
             
             #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = False = self.myGameLogicHandler.keyPressAndGameEventHandler(self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
+            self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.mylogicHandler.keyPressAndGameEventHandler(self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
 
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-            self.personSpeed, self.myParticles, self.personXDelta, self.personYDelta = self.myGameLogicHandler.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.myParticles, self.DEFAULTPERSONSPEED, self.personXDelta, self.personYDelta)
+            self.personSpeed, self.myParticles, self.personXDelta, self.personYDelta = self.mylogicHandler.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.myParticles, self.DEFAULTPERSONSPEED, self.personXDelta, self.personYDelta)
             #Select the correct image for all characters based on direction facing
-            self.myEnemies, self.personImgDirectionIndex = self.myGameLogicHandler.determineCharPicBasedOnDirectionFacing(self.myEnemies, self.personXFacing, self.personYFacing, self.personImgDirectionIndex)
+            self.myEnemies, self.personImgDirectionIndex = self.mylogicHandler.determineCharPicBasedOnDirectionFacing(self.myEnemies, self.personXFacing, self.personYFacing, self.personImgDirectionIndex)
             #Select the correct image for all characters based on what leg they are standing on
-            self.myEnemies, self.millisecondsOnThisLeg, self.personImgLegIndex = self.myGameLogicHandler.determineCharPicBasedOnWalkOrMovement(self.myEnemies, self.millisecondsOnEachLeg, self.millisecondsOnThisLeg, self.timeElapsedSinceLastFrame, self.numberOfFramesAnimPerWalk, self.personImgLegIndex, self.personXDelta, self.personYDelta)
+            self.myEnemies, self.millisecondsOnThisLeg, self.personImgLegIndex = self.mylogicHandler.determineCharPicBasedOnWalkOrMovement(self.myEnemies, self.millisecondsOnEachLeg, self.millisecondsOnThisLeg, self.timeElapsedSinceLastFrame, self.numberOfFramesAnimPerWalk, self.personImgLegIndex, self.personXDelta, self.personYDelta)
             
             #MOVE CHARACTERS & CHECK FOR CHARACTER-WALL COLLISIONS
-            self.yok, self.xok, self.tileLevelYLoc, self.tileLevelXLoc, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.timeSpentFalling, self.gravityYDelta = self.myGameLogicHandler.characterWallCollisionTest(self.thisLevelMap, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personHeight, self.personWidth, self.personSpeed, self.y, self.x, self.timeSpentFalling, self.gravityYDelta, self.gravityAppliesToWorld)
-            #self.personXDelta, self.personYDelta = self.myGameLogicHandler.diagSpeedFix(self.personXDelta, self.personYDelta, self.personSpeed)
+            self.yok, self.xok, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.timeSpentFalling, self.gravityYDelta = self.mylogicHandler.characterWallCollisionTest(self.thisLevelMap, self.camera, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personHeight, self.personWidth, self.personSpeed, self.y, self.x, self.timeSpentFalling, self.gravityYDelta, self.gravityAppliesToWorld)
+            #self.personXDelta, self.personYDelta = self.mylogicHandler.diagSpeedFix(self.personXDelta, self.personYDelta, self.personSpeed)
 
             #TODO: generateBadGuys()
             #TODO: badGuysMoveOrAttack()
             
             #SYNCH SCREEN WITH CHARACTER MOVEMENT
-            self.personYDelta, self.personXDelta, self.tileToScreenYOffset, self.tileToScreenXOffset, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileLevelYLoc, self.tileLevelXLoc, self.playerYBlock, self.playerXBlock, self.y, self.x = self.myGameLogicHandler.screenSynchWithCharacterMovement(self.yok, self.xok, self.personYDelta, self.personXDelta, self.displayHeight, self.displayWidth, self.tileToScreenYOffset, self.tileToScreenXOffset, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.tileLevelYLoc, self.tileLevelXLoc, self.playerYBlock, self.playerXBlock, self.y, self.x, self.thisLevelMapWidth, self.thisLevelMapHeight)
+            self.personYDelta, self.personXDelta, self.camera, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.personYTile, self.personXTile, self.y, self.x = self.mylogicHandler.screenSynchWithCharacterMovement(self.yok, self.xok, self.personYDelta, self.personXDelta, self.camera, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personYTile, self.personXTile, self.y, self.x, self.thisLevelMapWidth, self.thisLevelMapHeight)
             if self.gravityAppliesToWorld == True:
-                self.gravityYDelta, self.timeSpentFalling = self.myGameLogicHandler.applyGravityToWorld(self.gravityYDelta, self.timeSpentFalling, self.tileHeight)
+                self.gravityYDelta, self.timeSpentFalling = self.mylogicHandler.applyGravityToWorld(self.gravityYDelta, self.timeSpentFalling, self.tileHeight)
             #MOVE PARTICLES
-            self.myParticles = self.myGameLogicHandler.moveParticlesAndHandleParticleCollision(self.myParticles, self.thisLevelMap)
+            self.myParticles = self.mylogicHandler.moveParticlesAndHandleParticleCollision(self.myParticles, self.thisLevelMap)
             #GENERATE PARTICLES
-            self.myParticles, self.shotsFiredFromMe = self.myGameLogicHandler.generateparticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.playerYBlock, self.playerXBlock, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED, self.currentGun, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
+            self.myParticles, self.shotsFiredFromMe = self.mylogicHandler.generateparticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.personYTile, self.personXTile, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED, self.currentGun, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-            self.gfx.drawTiles(self.tileToScreenXOffset, self.tileToScreenYOffset, self.tileLevelYLoc, self.tileLevelXLoc, self.tileWidth, self.tileHeight, self.displayWidth, self.displayHeight, self.thisLevelMap, self.gfx, self.gameDisplay)
+            self.gfx.drawWorldInCameraView(self.camera, self.tileWidth, self.tileHeight, self.thisLevelMap, self.gfx, self.gameDisplay)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            self.gfx.drawObjectsAndParticles(self.myParticles, self.gameDisplay, self.tileLevelYLoc, self.tileLevelXLoc, self.tileToScreenYOffset, self.tileToScreenXOffset, self.tileHeight, self.tileWidth, self.displayWidth, self.displayHeight, self.y, self.x)
+            self.gfx.drawObjectsAndParticles(self.myParticles, self.gameDisplay, self.camera, self.tileHeight, self.tileWidth, self.y, self.x)
             
             #DRAW GAME STATS
             #self.gfx.smallMessageDisplay("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)
             #self.gfx.smallMessageDisplay("Ammo: " + str(self.ammo), 1, self.gameDisplay, white, self.displayWidth)
             #self.gfx.smallMessageDisplay("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.displayWidth)
             #self.gfx.smallMessageDisplay("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.smallMessageDisplay("Player X: " + str(self.playerXBlock), 4, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.smallMessageDisplay("Player Y: " + str(self.playerYBlock), 5, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.smallMessageDisplay("View X: " + str(self.tileLevelXLoc), 7, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.smallMessageDisplay("View Y: " + str(self.tileLevelYLoc), 8, self.gameDisplay, white, self.displayWidth)
-            self.gfx.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 9, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Player X: " + str(self.personXTile), 4, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("Player Y: " + str(self.personYTile), 5, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("View X: " + str(self.viewX), 7, self.gameDisplay, white, self.displayWidth)
+            #self.gfx.smallMessageDisplay("View Y: " + str(self.viewY), 8, self.gameDisplay, white, self.displayWidth)
+            self.gfx.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 9, self.gameDisplay, white, self.camera.displayWidth)
             pygame.display.update()
             if self.myHealth <= 0:
                 self.lost = True
@@ -1141,14 +1161,13 @@ screenResChoices = allResolutionsAvail
 del allResolutionsAvail
 screenResChoices.sort()
 PLAYER = pygame.image.load("person.png")
-#myCharacter = pygame.image.load(myFile)
 exiting = False
 while exiting == False:
     myGame = game(int(len(screenResChoices)/2), "Window")
-    exiting = myGame.showMenu("Main Menu")
+    exiting = myGame.showMenu("Main Menu", myGame.camera)
     while myGame.exiting == False and myGame.lost == False:
         myGame.play()
-        myGame.showMenu("Paused")
+        myGame.showMenu("Paused", myGame.camera)
         #myMenuSystem = menuScreen("Main Menu", screenResSelection, difficultySelection, displayType)
         #del myMenuSystem
     del myGame

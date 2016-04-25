@@ -421,9 +421,9 @@ class logicHandler(object):
         a, b = self.applyGravityToWorld(gravityYDelta, timeSpentFalling, tileHeight)
         return a
 
-    def manageTimeAndFrameRate(self, lastTick, clock):
+    def manageTimeAndFrameRate(self, lastTick, clock, FPSLimit):
         timeElapsedSinceLastFrame = clock.get_time() - lastTick
-        lastTick = clock.tick()
+        lastTick = clock.tick(FPSLimit)
         return timeElapsedSinceLastFrame
 
     def alterAllSpeeds(self, timeElapsedSinceLastFrame, particleList, defaultPersonSpeed, personXDelta, personYDelta):
@@ -520,7 +520,7 @@ class menuScreen(object):
         self.colorIntensityDirection = 5
         self.startPlay = False
         self.gfx = gfxHandler()
-        self.mylogicHandler = logicHandler()
+        self.logic = logicHandler()
         self.exiting = False
         self.lost = False
         self.ammo = 0
@@ -606,7 +606,7 @@ class menuScreen(object):
         #self.menuGameEventHandler.drawObject(myCharacter, self.x, self.y)
 
     def getKeyPress(self):
-        self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.mylogicHandler.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
+        self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.logic.keyPressAndGameEventHandler(self.exiting, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
 
     def displayMainMenu(self):
         self.mainMenuItemMargin = 25
@@ -972,7 +972,8 @@ class camera(object):
         return gameDisplay
         #TODO: Resolution/screen size change can put character outside of camera view
         #TODO: Resolution/screen size change can put camera view outside of world
-    
+        #TODO: Resolution/screen size can be larger than the world itself, 
+        #   thus the world must be centered for attractive appearance
 
 class game(object):
     def __init__(self, screenResSelection, fullScreen):        
@@ -980,7 +981,7 @@ class game(object):
         self.camera = camera(screenResSelection, fullScreen)
         self.gameDisplay = self.camera.updateScreenSettings()
         
-        self.mylogicHandler = logicHandler()
+        self.logic = logicHandler()
         self.gfx = gfxHandler()
         
         
@@ -1110,7 +1111,7 @@ class game(object):
         self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.personWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         
-        
+        self.FPSLimit = 120
     def showMenu(self, displayMenu, camera):
         
         myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
@@ -1123,34 +1124,34 @@ class game(object):
         # GAME LOOP
         while not self.paused:
             #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
-            self.timeElapsedSinceLastFrame = self.mylogicHandler.manageTimeAndFrameRate(self.lastTick, self.clock)
+            self.timeElapsedSinceLastFrame = self.logic.manageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit)
             
             #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.mylogicHandler.keyPressAndGameEventHandler(self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
+            self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing, self.enterPressed = self.logic.keyPressAndGameEventHandler(self.paused, self.lost, self.ammo, self.personXDelta, self.personYDelta, self.personSpeed, self.currentGun, self.shotsFiredFromMe, self.personXFacing, self.personYFacing)
 
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-            self.personSpeed, self.myParticles, self.personXDelta, self.personYDelta = self.mylogicHandler.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.myParticles, self.DEFAULTPERSONSPEED, self.personXDelta, self.personYDelta)
+            self.personSpeed, self.myParticles, self.personXDelta, self.personYDelta = self.logic.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.myParticles, self.DEFAULTPERSONSPEED, self.personXDelta, self.personYDelta)
             #Select the correct image for all characters based on direction facing
-            self.myEnemies, self.personImgDirectionIndex = self.mylogicHandler.determineCharPicBasedOnDirectionFacing(self.myEnemies, self.personXFacing, self.personYFacing, self.personImgDirectionIndex)
+            self.myEnemies, self.personImgDirectionIndex = self.logic.determineCharPicBasedOnDirectionFacing(self.myEnemies, self.personXFacing, self.personYFacing, self.personImgDirectionIndex)
             #Select the correct image for all characters based on what leg they are standing on
-            self.myEnemies, self.millisecondsOnThisLeg, self.personImgLegIndex = self.mylogicHandler.determineCharPicBasedOnWalkOrMovement(self.myEnemies, self.millisecondsOnEachLeg, self.millisecondsOnThisLeg, self.timeElapsedSinceLastFrame, self.numberOfFramesAnimPerWalk, self.personImgLegIndex, self.personXDelta, self.personYDelta)
+            self.myEnemies, self.millisecondsOnThisLeg, self.personImgLegIndex = self.logic.determineCharPicBasedOnWalkOrMovement(self.myEnemies, self.millisecondsOnEachLeg, self.millisecondsOnThisLeg, self.timeElapsedSinceLastFrame, self.numberOfFramesAnimPerWalk, self.personImgLegIndex, self.personXDelta, self.personYDelta)
             
-            self.camera, self.atWorldEdgeX, self.atWorldEdgeY = self.mylogicHandler.cameraWorldEdgeCollisionCheck(self.thisLevelMap, self.camera, self.personXDelta, self.personYDelta, self.tileWidth, self.tileHeight)
+            self.camera, self.atWorldEdgeX, self.atWorldEdgeY = self.logic.cameraWorldEdgeCollisionCheck(self.thisLevelMap, self.camera, self.personXDelta, self.personYDelta, self.tileWidth, self.tileHeight)
             #MOVE CHARACTERS & CHECK FOR CHARACTER-WALL COLLISIONS
-            self.yok, self.xok, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.timeSpentFalling, self.gravityYDelta = self.mylogicHandler.characterWallCollisionTest(self.thisLevelMap, self.camera, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personHeight, self.personWidth, self.personSpeed, self.y, self.x, self.timeSpentFalling, self.gravityYDelta, self.gravityAppliesToWorld)
-            self.personXDelta, self.personYDelta = self.mylogicHandler.diagSpeedFix(self.personXDelta, self.personYDelta, self.personSpeed)
+            self.yok, self.xok, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.timeSpentFalling, self.gravityYDelta = self.logic.characterWallCollisionTest(self.thisLevelMap, self.camera, self.personYDelta, self.personXDelta, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personHeight, self.personWidth, self.personSpeed, self.y, self.x, self.timeSpentFalling, self.gravityYDelta, self.gravityAppliesToWorld)
+            self.personXDelta, self.personYDelta = self.logic.diagSpeedFix(self.personXDelta, self.personYDelta, self.personSpeed)
 
             #TODO: generateBadGuys()
             #TODO: badGuysMoveOrAttack()
             
             #SYNCH SCREEN WITH CHARACTER MOVEMENT
-            self.personYDelta, self.personXDelta, self.camera, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.personYTile, self.personXTile, self.y, self.x = self.mylogicHandler.screenSynchWithCharacterMovement(self.yok, self.xok, self.personYDelta, self.personXDelta, self.camera, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personYTile, self.personXTile, self.y, self.x, self.thisLevelMapWidth, self.thisLevelMapHeight, self.atWorldEdgeX, self.atWorldEdgeY)
+            self.personYDelta, self.personXDelta, self.camera, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.personYTile, self.personXTile, self.y, self.x = self.logic.screenSynchWithCharacterMovement(self.yok, self.xok, self.personYDelta, self.personXDelta, self.camera, self.personYDeltaButScreenOffset, self.personXDeltaButScreenOffset, self.tileHeight, self.tileWidth, self.personYTile, self.personXTile, self.y, self.x, self.thisLevelMapWidth, self.thisLevelMapHeight, self.atWorldEdgeX, self.atWorldEdgeY)
             if self.gravityAppliesToWorld == True:
-                self.gravityYDelta, self.timeSpentFalling = self.mylogicHandler.applyGravityToWorld(self.gravityYDelta, self.timeSpentFalling, self.tileHeight)
+                self.gravityYDelta, self.timeSpentFalling = self.logic.applyGravityToWorld(self.gravityYDelta, self.timeSpentFalling, self.tileHeight)
             #MOVE PARTICLES
-            self.myParticles = self.mylogicHandler.moveParticlesAndHandleParticleCollision(self.myParticles, self.thisLevelMap)
+            self.myParticles = self.logic.moveParticlesAndHandleParticleCollision(self.myParticles, self.thisLevelMap)
             #GENERATE PARTICLES
-            self.myParticles, self.shotsFiredFromMe = self.mylogicHandler.generateParticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.personYTile, self.personXTile, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED, self.currentGun, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
+            self.myParticles, self.shotsFiredFromMe = self.logic.generateParticles(self.shotsFiredFromMe, self.myParticles, self.personYFacing, self.personXFacing, self.personYTile, self.personXTile, self.tileHeight, self.tileWidth, self.DEFAULTBULLETSPEED, self.currentGun, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
             self.gfx.drawWorldInCameraView(self.camera, self.tileWidth, self.tileHeight, self.thisLevelMap, self.gameDisplay)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES

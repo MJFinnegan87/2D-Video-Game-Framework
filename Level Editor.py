@@ -99,13 +99,16 @@ class gfxHandler(object):
         return int(coordinates[0]/float(tileWidth) - camera.viewToScreenPxlOffsetX/float(tileWidth) + float(camera.viewX) + 1), int(coordinates[1]/float(tileHeight) - camera.viewToScreenPxlOffsetY/float(tileHeight) + float(camera.viewY) + 1)
     
 class levelEditorFrame(object):
-    def __init__(self):
-        self.frameWidth = 4
-        self.frameHeight = 16
-        self.paletteY = 3
+    def __init__(self, gfx, camera, tileHeight, resChangeOnly=False):
+        self.frameWidth = 5
+        self.frameHeight = camera.displayHeight/float(tileHeight)
+        self.paletteY = 5
         self.paletteX = 1
-        self.paletteSelectL = 0
-        self.paletteSelectR = 0
+
+        if resChangeOnly == False:
+            self.paletteSelectL = 0
+            self.paletteSelectR = 0
+        self.numberOfWorldTiles = len(gfx.gfxDictionary["World Tiles"])
         
     def drawLevelEditorFrame(self, camera, tileWidth, tileHeight, thisLevelMap, gfx, gameDisplay):
         for i in xrange(int(camera.displayWidth/float(tileWidth))-self.frameWidth, int(camera.displayWidth/float(tileWidth))+(self.frameWidth-1)):
@@ -129,28 +132,40 @@ class levelEditorFrame(object):
                           (1)*tileHeight,
                           (int(camera.displayWidth/float(tileWidth))-self.frameWidth + eachPaletteSelector)*tileWidth,
                           (2) * tileHeight), gameDisplay)
-                                        
-        for i in xrange(len(gfx.gfxDictionary["World Tiles"])):
-                    gfx.drawImg(gfx.gfxDictionary["World Tiles"][i],
-                          ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + self.paletteX - 1)*tileWidth,
-                          (i+self.paletteY)*tileHeight,
-                          (int(camera.displayWidth/float(tileWidth))-self.frameWidth + self.paletteX - 1)*tileWidth,
-                          (i+self.paletteY) + tileHeight), gameDisplay)
 
-    def paletteItemSelect(self, userMouse, camera, tileWidth, tileHeight):
+        j = 1
+        for i in xrange(len(gfx.gfxDictionary["World Tiles"])):
+            if (i%(self.frameHeight - self.paletteY)) == 0:
+                j = j + 1
+            gfx.drawImg(gfx.gfxDictionary["World Tiles"][i],
+                          ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-2) + self.paletteX - 1)*tileWidth,
+                          ((i%(self.frameHeight - self.paletteY))+self.paletteY)*tileHeight,
+                          (int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-2) + self.paletteX - 1)*tileWidth,
+                          ((i%(self.frameHeight - self.paletteY))+self.paletteY) + tileHeight), gameDisplay)
+
+    def paletteItemSelect(self, userMouse, camera, tileWidth, tileHeight, gfx):
         if userMouse.btn[0] == 1:
-            self.paletteSelectL = int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
+            #self.paletteSelectL = int(((camera.displayWidth - userMouse.coords[0])/float(tileWidth) - int(int(camera.displayWidth/float(tileWidth)) - (self.frameWidth + self.paletteX - 1)*tileWidth))*(self.frameHeight - self.paletteY)) + int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
+            #self.paletteSelectL = int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
+            #self.paletteSelectL = int()
+            #print str(int((userMouse.coords[0] - (self.paletteX * tileWidth))/float(tileWidth)) - (int(camera.displayWidth/float(tileWidth)) - self.frameWidth) + 1)
+            if ((int((userMouse.coords[0] - (self.paletteX * tileWidth))/float(tileWidth)) - (int(camera.displayWidth/float(tileWidth)) - self.frameWidth) + 1) * int(self.frameHeight - self.paletteY)) + int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight)) < len(gfx.gfxDictionary["World Tiles"]):
+                self.paletteSelectL = ((int((userMouse.coords[0] - (self.paletteX * tileWidth))/float(tileWidth)) - (int(camera.displayWidth/float(tileWidth)) - self.frameWidth) + 1) * int(self.frameHeight - self.paletteY)) + int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
         if userMouse.btn[2] == 1:
-            self.paletteSelectR = int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
+            #self.paletteSelectR = int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
+            if ((int((userMouse.coords[0] - (self.paletteX * tileWidth))/float(tileWidth)) - (int(camera.displayWidth/float(tileWidth)) - self.frameWidth) + 1) * int(self.frameHeight - self.paletteY)) + int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight)) < len(gfx.gfxDictionary["World Tiles"]):
+                self.paletteSelectR = ((int((userMouse.coords[0] - (self.paletteX * tileWidth))/float(tileWidth)) - (int(camera.displayWidth/float(tileWidth)) - self.frameWidth) + 1) * int(self.frameHeight - self.paletteY)) + int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
         return self
             
 class logicHandler(object):
-    def mouseEventHandler(self, userMouse, camera, displayFrame, tileWidth, tileHeight, thisLevelMap):
+    def mouseEventHandler(self, userMouse, camera, displayFrame, tileWidth, tileHeight, thisLevelMap, gfx):
         self.displayFrame = displayFrame
         self.thisLevelMap = thisLevelMap
         if userMouse.btn[0] == 1 or userMouse.btn[2] == 1:
-            if (userMouse.coords[0] >= (int(camera.displayWidth/float(tileWidth)) - self.displayFrame.frameWidth + self.displayFrame.paletteX - 1)*tileWidth) and (userMouse.coords[0] <= (int(camera.displayWidth/float(tileWidth)) - self.displayFrame.frameWidth + self.displayFrame.paletteX - 1)*tileWidth + tileWidth) and userMouse.coords[1] >= self.displayFrame.paletteY * tileHeight + 1:
-                self.displayFrame = self.displayFrame.paletteItemSelect(userMouse, camera, tileWidth, tileHeight)
+            if (userMouse.coords[0] >= (int(camera.displayWidth/float(tileWidth)) - self.displayFrame.frameWidth + self.displayFrame.paletteX - 1)*tileWidth) and userMouse.coords[1] >= self.displayFrame.paletteY * tileHeight + 1:
+            #and (userMouse.coords[0] <= (int(camera.displayWidth/float(tileWidth)) - self.displayFrame.frameWidth + self.displayFrame.paletteX - 1)*tileWidth + tileWidth)
+            
+                self.displayFrame = self.displayFrame.paletteItemSelect(userMouse, camera, tileWidth, tileHeight, gfx)
             else:
                 self.editLevel(userMouse, displayFrame.paletteSelectL, displayFrame.paletteSelectR, thisLevelMap)
         return self.displayFrame, self.thisLevelMap
@@ -961,10 +976,10 @@ class game(object):
         self.clock = pygame.time.Clock()
         self.camera = camera(screenResSelection, fullScreen)
         self.gameDisplay = self.camera.updateScreenSettings()
-        self.displayFrame = levelEditorFrame()
+        self.gfx = gfxHandler()
         self.userMouse = mouse()
         self.logic = logicHandler()
-        self.gfx = gfxHandler()
+        
         
         
         pygame.display.set_caption("2D Game Framework - Level Editor")
@@ -980,7 +995,7 @@ class game(object):
 
         self.DEFAULTBULLETSPEED = .01 #BULLET SPEED IN WORLD TILES/MILLISECOND
 
-        self.tileSheetRows = 10
+        self.tileSheetRows = 9
         self.tileSheetColumns = 1
         self.tileWidth = 64 * self.camera.zoom
         self.tileHeight = 64 * self.camera.zoom
@@ -1099,8 +1114,10 @@ class game(object):
         self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.mouseWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
+
+        self.displayFrame = levelEditorFrame(self.gfx, self.camera, self.tileHeight)
         
-        self.FPSLimit = 30
+        self.FPSLimit = 60
     def showMenu(self, displayMenu, camera):
         
         myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
@@ -1152,7 +1169,7 @@ class game(object):
             #CONVERT MOUSE COORDS -> WORLD TILES
             self.userMouse.xTile, self.userMouse.yTile = self.gfx.convertScreenCoordsToTileCoords(self.userMouse.coords, self.camera, self.tileWidth, self.tileHeight)
 
-            self.displayFrame, self.thisLevelMap = self.logic.mouseEventHandler(self.userMouse, self.camera, self.displayFrame, self.tileWidth, self.tileHeight, self.thisLevelMap)
+            self.displayFrame, self.thisLevelMap = self.logic.mouseEventHandler(self.userMouse, self.camera, self.displayFrame, self.tileWidth, self.tileHeight, self.thisLevelMap, self.gfx)
             #DRAW GAME STATS
             #self.gfx.smallMessageDisplay("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)
             #self.gfx.smallMessageDisplay("Ammo: " + str(self.ammo), 1, self.gameDisplay, white, self.displayWidth)

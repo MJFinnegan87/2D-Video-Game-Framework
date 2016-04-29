@@ -27,7 +27,7 @@ class gfxHandler(object):
         for j in xrange(rows):
             for k in xrange(columns):
                 #self.gfxDictionary[(j*k) + j] = self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
-                self.gfxDictionary[imageIndicator].update({(j*k) + j:self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
+                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.getImage(self.getCoords((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
 
     def getImage(self, Coords, requiresTransparency):
         image = pygame.Surface([Coords[2], Coords[3]])
@@ -156,22 +156,22 @@ class logicHandler(object):
         atWorldEdgeX = False
         atWorldEdgeY = False
             #camera X  +      tiles on screen              +        frac. person next move         +   frac camera X                                         
-        if (camera.viewX + (camera.displayWidth/float(tileWidth)) + (personXDelta/float(tileWidth)) - (camera.viewToScreenPxlOffsetX/float(tileWidth)) + 1 >= len(thisLevelMap[0])) and personXDelta > 0:
+        if (1 + camera.viewX + (camera.displayWidth/float(tileWidth)) + (personXDelta/float(tileWidth)) - (camera.viewToScreenPxlOffsetX/float(tileWidth)) >= len(thisLevelMap[0])) and personXDelta > 0:
             camera.viewToScreenPxlOffsetX = (float(float(camera.displayWidth/float(tileWidth)) - int(camera.displayWidth/float(tileWidth))))*tileWidth
             camera.viewX = int(len(thisLevelMap[0]) - int(camera.displayWidth/float(tileWidth))) - 1
             atWorldEdgeX = True
         else:
-            if (camera.viewX + camera.viewToScreenPxlOffsetX/float(tileWidth) + (personXDelta/float(tileWidth)) <= -1 and personXDelta <0):
+            if (1 + camera.viewX - camera.viewToScreenPxlOffsetX/float(tileWidth) + (personXDelta/float(tileWidth)) <= 0 and personXDelta <0):
                 camera.viewX = -1
                 camera.viewToScreenPxlOffsetX = 0
                 atWorldEdgeX = True
         
-        if (camera.viewY + (camera.displayHeight/float(tileHeight)) + (personYDelta/float(tileHeight)) - (camera.viewToScreenPxlOffsetY/float(tileHeight)) + 1 >= len(thisLevelMap)) and personYDelta > 0:
+        if (1 + camera.viewY + (camera.displayHeight/float(tileHeight)) + (personYDelta/float(tileHeight)) - (camera.viewToScreenPxlOffsetY/float(tileHeight)) >= len(thisLevelMap)) and personYDelta > 0:
             camera.viewToScreenPxlOffsetY = (float(float(camera.displayHeight/float(tileHeight)) - int(camera.displayHeight/float(tileHeight))))*tileHeight
             camera.viewY = int(len(thisLevelMap) - int(camera.displayHeight/float(tileHeight))) - 1
             atWorldEdgeY = True
         else:
-            if (camera.viewY + camera.viewToScreenPxlOffsetY/float(tileHeight) + (personYDelta/float(tileHeight)) <= -1 and personYDelta < 0):
+            if (1 + camera.viewY - camera.viewToScreenPxlOffsetY/float(tileHeight) + (personYDelta/float(tileHeight)) <= 0 and personYDelta < 0):
                 camera.viewY = -1
                 camera.viewToScreenPxlOffsetY = 0
                 atWorldEdgeY = True
@@ -998,7 +998,7 @@ class game(object):
 
         self.DEFAULTBULLETSPEED = .01 #BULLET SPEED IN WORLD TILES/MILLISECOND
 
-        self.tileSheetRows = 10
+        self.tileSheetRows = 9
         self.tileSheetColumns = 1
         self.tileWidth = 64
         self.tileHeight = 64
@@ -1164,10 +1164,10 @@ class game(object):
             #self.gfx.smallMessageDisplay("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
             #self.gfx.smallMessageDisplay("Player X: " + str(self.personXTile), 4, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.smallMessageDisplay("Player Y: " + str(self.personYTile), 5, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.smallMessageDisplay("Player X: " + str(self.personXTile), 6, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.smallMessageDisplay("Player Y: " + str(self.personYTile), 7, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.smallMessageDisplay("View X: " + str(self.camera.viewX), 8, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.smallMessageDisplay("View Y: " + str(self.camera.viewY), 9, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.smallMessageDisplay("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 6, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.smallMessageDisplay("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.smallMessageDisplay("View X: " + str(1 + self.camera.viewX - (self.camera.viewToScreenPxlOffsetX/float(self.tileWidth))), 8, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.smallMessageDisplay("View Y: " + str(1 + self.camera.viewY - (self.camera.viewToScreenPxlOffsetY/float(self.tileHeight))), 9, self.gameDisplay, white, self.camera.displayWidth)
             self.gfx.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 11, self.gameDisplay, white, self.camera.displayWidth)
             pygame.display.update()
             if self.myHealth <= 0:

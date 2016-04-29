@@ -26,8 +26,8 @@ class gfxHandler(object):
         for j in xrange(rows):
             for k in xrange(columns):
                 #self.gfxDictionary[(j*k) + j] = self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
-                self.gfxDictionary[imageIndicator].update({(j*k) + j:self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
-
+                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.getImage(self.getCoords((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
+                
     def getImage(self, Coords, requiresTransparency):
         image = pygame.Surface([Coords[2], Coords[3]])
         image.blit(self.spriteSheet, (0,0), Coords)
@@ -101,8 +101,8 @@ class gfxHandler(object):
 class levelEditorFrame(object):
     def __init__(self, gfx, camera, tileHeight, resChangeOnly=False):
         self.frameWidth = 5
-        self.frameHeight = camera.displayHeight/float(tileHeight)
-        self.paletteY = 5
+        self.frameHeight = int(camera.displayHeight/float(tileHeight))
+        self.paletteY = 3
         self.paletteX = 1
 
         if resChangeOnly == False:
@@ -134,6 +134,7 @@ class levelEditorFrame(object):
                           (2) * tileHeight), gameDisplay)
 
         j = 1
+        
         for i in xrange(len(gfx.gfxDictionary["World Tiles"])):
             if (i%(self.frameHeight - self.paletteY)) == 0:
                 j = j + 1
@@ -245,7 +246,7 @@ class logicHandler(object):
             camera.viewX = int(len(thisLevelMap[0]) + LEFrame.frameWidth - int(camera.displayWidth/float(tileWidth)))
             atWorldEdgeX = True
         else:
-            if (camera.viewX + camera.viewToScreenPxlOffsetX/float(tileWidth) + (personXDelta/float(tileWidth)) <= -1 and personXDelta <0):
+            if (camera.viewX - camera.viewToScreenPxlOffsetX/float(tileWidth) + (personXDelta/float(tileWidth)) <= -1 and personXDelta <0):
                 camera.viewX = -1
                 camera.viewToScreenPxlOffsetX = 0
                 atWorldEdgeX = True
@@ -255,7 +256,7 @@ class logicHandler(object):
             camera.viewY = int(len(thisLevelMap) - int(camera.displayHeight/float(tileHeight))) - 1
             atWorldEdgeY = True
         else:
-            if (camera.viewY + camera.viewToScreenPxlOffsetY/float(tileHeight) + (personYDelta/float(tileHeight)) <= -1 and personYDelta < 0):
+            if (camera.viewY - camera.viewToScreenPxlOffsetY/float(tileHeight) + (personYDelta/float(tileHeight)) <= -1 and personYDelta < 0):
                 camera.viewY = -1
                 camera.viewToScreenPxlOffsetY = 0
                 atWorldEdgeY = True

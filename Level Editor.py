@@ -94,16 +94,14 @@ class gfxHandler(object):
                     pass
 
     def convertScreenCoordsToTileCoords(self, coordinates, camera, tileWidth, tileHeight):
-##        for event in pygame.event.get():
-##            print str(event)
         return int(coordinates[0]/float(tileWidth) - camera.viewToScreenPxlOffsetX/float(tileWidth) + float(camera.viewX) + 1), int(coordinates[1]/float(tileHeight) - camera.viewToScreenPxlOffsetY/float(tileHeight) + float(camera.viewY) + 1)
     
 class levelEditorFrame(object):
-    def __init__(self, gfx, camera, tileHeight, resChangeOnly=False):
-        self.frameWidth = 5
-        self.frameHeight = int(camera.displayHeight/float(tileHeight))
+    def __init__(self, gfx, camera, tileHeight, tileWidth, resChangeOnly=False):
         self.paletteY = 3
-        self.paletteX = 1
+        self.paletteX = 1        
+        self.frameHeight = int(camera.displayHeight/float(tileHeight))
+        self.frameWidth = int(2 + math.ceil(len(gfx.gfxDictionary["World Tiles"])/float(self.frameHeight-self.paletteY)))
 
         if resChangeOnly == False:
             self.paletteSelectL = 0
@@ -136,12 +134,12 @@ class levelEditorFrame(object):
         j = 1
         
         for i in xrange(len(gfx.gfxDictionary["World Tiles"])):
-            if (i%(self.frameHeight - self.paletteY)) == 0:
+            if (int(i/float(j))+self.paletteY) >= self.frameHeight:
                 j = j + 1
             gfx.drawImg(gfx.gfxDictionary["World Tiles"][i],
-                          ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-2) + self.paletteX - 1)*tileWidth,
+                          ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-1) + self.paletteX - 1)*tileWidth,
                           ((i%(self.frameHeight - self.paletteY))+self.paletteY)*tileHeight,
-                          (int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-2) + self.paletteX - 1)*tileWidth,
+                          (int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-1) + self.paletteX - 1)*tileWidth,
                           ((i%(self.frameHeight - self.paletteY))+self.paletteY) + tileHeight), gameDisplay)
 
     def paletteItemSelect(self, userMouse, camera, tileWidth, tileHeight, gfx):
@@ -1116,16 +1114,20 @@ class game(object):
         self.gfx.loadGfxDictionary("level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
 
-        self.displayFrame = levelEditorFrame(self.gfx, self.camera, self.tileHeight)
+        self.displayFrame = levelEditorFrame(self.gfx, self.camera, self.tileHeight, self.tileWidth)
         
         self.FPSLimit = 60
-    def showMenu(self, displayMenu, camera):
+    def showMenu(self, displayMenu):
         
         myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
+        resBefore = self.camera.screenResSelection
         self.difficultySelection, self.camera.screenResSelection, self.camera.displayType, self.exiting = myMenuSystem.displayMenuScreenAndHandleUserInput()
         self.paused = False
         del myMenuSystem
         self.camera.updateScreenSettings()
+        if resBefore != self.camera.screenResSelection:
+            self.displayFrame.__init__(self.gfx, self.camera, self.tileHeight, True)
+        
 
     def play(self):
         # GAME LOOP
@@ -1200,19 +1202,17 @@ class game(object):
 
 
 pygame.init()
-allResolutionsAvail = pygame.display.list_modes()
+screenResChoices = pygame.display.list_modes()
 #ADD IN GAME-SPECIFIC LOGIC IF CERTAIN RESOLUTIONS ARE TO BE EXCLUDED FROM USER SELECTION
-screenResChoices = allResolutionsAvail
-del allResolutionsAvail
 screenResChoices.sort()
 #PLAYER = pygame.image.load("person.png")
 exiting = False
 while exiting == False:
     myGame = game(int(len(screenResChoices)/2), "Window")
-    exiting = myGame.showMenu("Main Menu", myGame.camera)
+    exiting = myGame.showMenu("Main Menu")
     while myGame.exiting == False and myGame.lost == False:
         myGame.play()
-        myGame.showMenu("Paused", myGame.camera)
+        myGame.showMenu("Paused")
         #myMenuSystem = menuScreen("Main Menu", screenResSelection, difficultySelection, displayType)
         #del myMenuSystem
     del myGame

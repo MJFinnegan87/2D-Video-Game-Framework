@@ -1000,8 +1000,8 @@ class game(object):
 
         self.tileSheetRows = 9
         self.tileSheetColumns = 1
-        self.tileWidth = 64
-        self.tileHeight = 64
+        self.tileWidth = 64 * self.camera.zoom
+        self.tileHeight = 64 * self.camera.zoom
         self.tileXPadding = 0
         self.tileYPadding = 0
         self.enemiesAlive = 0
@@ -1111,7 +1111,7 @@ class game(object):
         self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.personWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         
-        self.FPSLimit = 120
+        self.FPSLimit = 60
     def showMenu(self, displayMenu, camera):
         
         myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
@@ -1168,7 +1168,7 @@ class game(object):
             #self.gfx.smallMessageDisplay("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.smallMessageDisplay("View X: " + str(1 + self.camera.viewX - (self.camera.viewToScreenPxlOffsetX/float(self.tileWidth))), 8, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.smallMessageDisplay("View Y: " + str(1 + self.camera.viewY - (self.camera.viewToScreenPxlOffsetY/float(self.tileHeight))), 9, self.gameDisplay, white, self.camera.displayWidth)
-            self.gfx.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 11, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.smallMessageDisplay("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 11, self.gameDisplay, white, self.camera.displayWidth)
             pygame.display.update()
             if self.myHealth <= 0:
                 self.lost = True

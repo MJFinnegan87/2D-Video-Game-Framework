@@ -9,7 +9,7 @@ import sqlite3
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
-
+PI = math.pi
 
 class gfxHandler(object):
     def __init__(self):
@@ -78,7 +78,7 @@ class gfxHandler(object):
                 if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth) + myParticles[i][8] > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth < camera.displayWidth:
                     #self.drawObject("bullet" + str(myParticles[i][1]) + ".png", (1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - myParticles[i][3]) * -tileHeight, gameDisplay)
                     #print math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5))
-                    #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][myParticles[i][1]], (180*math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5)))/3.14159265358972)
+                    #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][myParticles[i][1]], (180*math.acos(myParticles[i][4]/float((myParticles[i][4]**2 + myParticles[i][5]**2)**.5)))/PI)
                     self.drawImg(myParticles[i][12], ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - myParticles[i][2]) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - myParticles[i][3]) * -tileHeight), gameDisplay)
 
     def drawWorldInCameraView(self, camera, tileWidth, tileHeight, thisLevelMap, gameDisplay, LEFrame):
@@ -130,9 +130,7 @@ class levelEditorFrame(object):
                           (1)*tileHeight,
                           (int(camera.displayWidth/float(tileWidth))-self.frameWidth + eachPaletteSelector)*tileWidth,
                           (2) * tileHeight), gameDisplay)
-
         j = 1
-        
         for i in xrange(len(gfx.gfxDictionary["World Tiles"])):
             if (int(i/float(j))+self.paletteY) >= self.frameHeight:
                 j = j + 1
@@ -163,7 +161,6 @@ class logicHandler(object):
         if userMouse.btn[0] == 1 or userMouse.btn[2] == 1:
             if (userMouse.coords[0] >= (int(camera.displayWidth/float(tileWidth)) - self.displayFrame.frameWidth + self.displayFrame.paletteX - 1)*tileWidth) and userMouse.coords[1] >= self.displayFrame.paletteY * tileHeight + 1:
             #and (userMouse.coords[0] <= (int(camera.displayWidth/float(tileWidth)) - self.displayFrame.frameWidth + self.displayFrame.paletteX - 1)*tileWidth + tileWidth)
-            
                 self.displayFrame = self.displayFrame.paletteItemSelect(userMouse, camera, tileWidth, tileHeight, gfx)
             else:
                 self.editLevel(userMouse, displayFrame.paletteSelectL, displayFrame.paletteSelectR, thisLevelMap)
@@ -367,19 +364,19 @@ class logicHandler(object):
                 tempDX = 0 #THIS AVOIDS THE DIVIDE BY 0 ERROR
                 if personYFacing == 0:
                     tempDY = 0
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
                 else:
                     tempDY = (personYFacing/float(abs(personYFacing))) * speed
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
             else:
                 if personYFacing == 0:
                     tempDX = (personXFacing/float(abs(personXFacing))) * speed
                     tempDY = 0
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
                 else:
                     tempDX = (personXFacing/float(abs(personXFacing))) * (math.cos(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
                     tempDY = (personYFacing/float(abs(personYFacing))) * (math.sin(math.atan(abs(personYFacing/float(personXFacing)))) * speed)
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/3.14159265358972)
+                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][currentGun], ((-personYFacing/float(abs(personYFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
                            #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
             myParticles.append(["User Bullet", currentGun, mouseXTile, mouseYTile, tempDX, tempDY, 10, 1, 16, 16, speed, DEFAULTBULLETSPEED, img]) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
             shotsFiredFromMe = False
@@ -495,7 +492,7 @@ class menuScreen(object):
         self.highScoreDifficulty = 0
         self.myHealth = 100
         self.currentLevel = 0
-        self.menuSelectionIndex = 6
+        self.menuSelectionIndex = 5
         self.ammo = 0
         self.displayWidth = screenResChoices[screenResSelection][0]
         self.displayHeight = screenResChoices[screenResSelection][1]
@@ -598,20 +595,20 @@ class menuScreen(object):
 
     def displayMainMenu(self):
         self.mainMenuItemMargin = 25
-        for self.i in xrange(7):
+        for self.i in xrange(6):
             self.rgb = (255, 255, 255)
             if self.i == self.menuSelectionIndex:
                 self.rgb = (self.colorIntensity, 0, 0)
-            if self.i == 6:
+            if self.i == 5:
                 if self.menuType == "Paused":
                     self.text = "Resume"
                 else:
                     self.text = "Start Level Editor"
-            if self.i == 5:
-                self.text = "Difficulty: " + self.difficultyChoices[self.difficultySelection]
-                if self.menuType == "Paused":
-                    self.tempRGB = (self.rgb[0]*.25, self.rgb[1]*.25, self.rgb[2]*.25)
-                    self.rgb = self.tempRGB
+##            if self.i == 5:
+##                self.text = "Difficulty: " + self.difficultyChoices[self.difficultySelection]
+##                if self.menuType == "Paused":
+##                    self.tempRGB = (self.rgb[0]*.25, self.rgb[1]*.25, self.rgb[2]*.25)
+##                    self.rgb = self.tempRGB
             if self.i == 4:
                 self.text = "High Scores"
             if self.i == 3:
@@ -675,11 +672,11 @@ class menuScreen(object):
         for self.i in xrange(3):
             self.rgb = (255, 255, 255)
             if self.i == 2:
-                self.text = "Escape key: pause game"
+                self.text = "[Instructions]"
             if self.i == 1:
-                self.text = "Space bar: shoot aliens"
+                self.text = "[Instructions]"
             if self.i == 0:
-                self.text = "Arrow keys Up, Down, Left, Right: fly spacecraft"
+                self.text = "[Instructions]"
             self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
             #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.personSpeed)))
             self.textRect.center = ((self.displayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.displayHeight/2.0))
@@ -736,21 +733,21 @@ class menuScreen(object):
     def handleUserInputMainMenu(self):
         if self.personYDelta == self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
             self.menuSelectionIndex = self.menuSelectionIndex - 1
-            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
-                self.menuSelectionIndex = self.menuSelectionIndex - 1
-        if self.personYDelta == -self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 6:
+##            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
+##                self.menuSelectionIndex = self.menuSelectionIndex - 1
+        if self.personYDelta == -self.personSpeed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 5:
             self.menuSelectionIndex = self.menuSelectionIndex + 1
-            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
-                self.menuSelectionIndex = self.menuSelectionIndex + 1    
-        if ((self.personXDelta == self.personSpeed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 5:
-            self.difficultySelection = (self.difficultySelection + 1) %len(self.difficultyChoices)
-        if (self.personXDelta == -self.personSpeed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 5:
-            self.difficultySelection = (self.difficultySelection - 1) %len(self.difficultyChoices)
+##            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
+##                self.menuSelectionIndex = self.menuSelectionIndex + 1    
+##        if ((self.personXDelta == self.personSpeed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 5:
+##            self.difficultySelection = (self.difficultySelection + 1) %len(self.difficultyChoices)
+##        if (self.personXDelta == -self.personSpeed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 5:
+##            self.difficultySelection = (self.difficultySelection - 1) %len(self.difficultyChoices)
         if self.enterPressed == True and self.menuSelectionIndex == 1:
             self.menuDirectory = "Credits"
         if self.enterPressed == True and self.menuSelectionIndex == 3:
             self.menuDirectory = "How To Play"
-        if self.enterPressed == True and self.menuSelectionIndex == 6:
+        if self.enterPressed == True and self.menuSelectionIndex == 5:
             self.startPlay = True
             del self.myHighScoreDatabase
         if self.enterPressed == True and self.menuSelectionIndex == 0:
@@ -1116,7 +1113,7 @@ class game(object):
 
         self.displayFrame = levelEditorFrame(self.gfx, self.camera, self.tileHeight, self.tileWidth)
         
-        self.FPSLimit = 60
+        self.FPSLimit = 30
     def showMenu(self, displayMenu):
         
         myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)

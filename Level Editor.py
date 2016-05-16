@@ -11,7 +11,7 @@ white = (255,255,255)
 red = (255,0,0)
 PI = math.pi
 
-class gfxHandler(object):
+class GfxHandler(object):
     def __init__(self):
         self.gfxDictionary = {}
 
@@ -96,7 +96,7 @@ class gfxHandler(object):
     def convertScreenCoordsToTileCoords(self, coordinates, camera, tileWidth, tileHeight):
         return int(coordinates[0]/float(tileWidth) - camera.viewToScreenPxlOffsetX/float(tileWidth) + float(camera.viewX) + 1), int(coordinates[1]/float(tileHeight) - camera.viewToScreenPxlOffsetY/float(tileHeight) + float(camera.viewY) + 1)
     
-class levelEditorFrame(object):
+class LevelEditorFrame(object):
     def __init__(self, gfx, camera, tileHeight, tileWidth, resChangeOnly=False):
         self.paletteY = 3
         self.paletteX = 1        
@@ -154,7 +154,7 @@ class levelEditorFrame(object):
                 self.paletteSelectR = ((int((userMouse.coords[0] - (self.paletteX * tileWidth))/float(tileWidth)) - (int(camera.displayWidth/float(tileWidth)) - self.frameWidth) + 1) * int(self.frameHeight - self.paletteY)) + int((userMouse.coords[1] - (self.paletteY * tileHeight))/float(tileHeight))
         return self
             
-class logicHandler(object):
+class LogicHandler(object):
     def mouseEventHandler(self, userMouse, camera, displayFrame, tileWidth, tileHeight, thisLevelMap, gfx):
         self.displayFrame = displayFrame
         self.thisLevelMap = thisLevelMap
@@ -478,7 +478,7 @@ class logicHandler(object):
         
         return myEnemies, millisecondsOnThisLeg, personImgLegIndex
 
-class menuScreen(object):
+class MenuScreen(object):
     def __init__(self, menuType, screenResSelection, difficultySelection, displayType, gameDisplay):
         self.gameDisplay = gameDisplay
         self.menuType = menuType
@@ -503,8 +503,8 @@ class menuScreen(object):
         self.colorIntensity = 255
         self.colorIntensityDirection = 5
         self.startPlay = False
-        self.gfx = gfxHandler()
-        self.logic = logicHandler()
+        self.gfx = GfxHandler()
+        self.logic = LogicHandler()
         self.exiting = False
         self.lost = False
         self.ammo = 0
@@ -522,8 +522,8 @@ class menuScreen(object):
         self.enterPressed = False
         self.personXDeltaWas = 0
         self.personYDeltaWas = 0
-        self.userMouse = mouse()
-        self.myHighScoreDatabase = highScoresDatabase()
+        self.userMouse = Mouse()
+        self.myHighScoreDatabase = HighScoresDatabase()
         self.myHighScores = self.myHighScoreDatabase.loadHighScores()
 
     def updateScreenAndLimitFPS(self, FPSLimit):
@@ -813,7 +813,7 @@ class menuScreen(object):
             self.menuDirectory = "Main"
             self.menuSelectionIndex = 4
 
-class highScoresDatabase(object):
+class HighScoresDatabase(object):
     def __init__(self):
         self.numberOfRecordsPerDifficulty = 10
         
@@ -915,14 +915,14 @@ class highScoresDatabase(object):
             self.initializeDatabase()
         self.connection.close()
         
-class gameplayObject(object):
+class GameplayObject(object):
     pass
 
-class characterObject(gameplayObject):
+class CharacterObject(GameplayObject):
     pass
 
 
-class particleObject(gameplayObject):
+class ParticleObject(GameplayObject):
     #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, physics actions remaining, particle width px, particle height px, frame speed, default speed, image, particlePhysicsLevel
     #if particlePhysicsLevel >= wallPhysicsLevel + 3 then particle pushes the wall
     #if particlePhysicsLevel = wallPhysicsLevel + 2 then particle goes through wall
@@ -932,18 +932,18 @@ class particleObject(gameplayObject):
     #physics actions represent the number of remaining times the particle can push/go through/bounce off walls
     pass
 
-class worldObject(gameplayObject):
+class WorldObject(GameplayObject):
     pass
 
 
-class mouse(object):
+class Mouse(object):
     def __init__(self):
         self.coords = (0,0)
         self.btn = (0,0,0)
         self.xTile = 0
         self.yTile = 0
 
-class camera(object):
+class Camera(object):
     def __init__(self, screenResSelection, displayType):
         self.screenResSelection = screenResSelection
         self.displayType = displayType
@@ -967,14 +967,14 @@ class camera(object):
         #TODO: Resolution/screen size change can put camera view outside of world
     
 
-class game(object):
+class Game(object):
     def __init__(self, screenResSelection, fullScreen):        
         self.clock = pygame.time.Clock()
-        self.camera = camera(screenResSelection, fullScreen)
+        self.camera = Camera(screenResSelection, fullScreen)
         self.gameDisplay = self.camera.updateScreenSettings()
-        self.gfx = gfxHandler()
-        self.userMouse = mouse()
-        self.logic = logicHandler()
+        self.gfx = GfxHandler()
+        self.userMouse = Mouse()
+        self.logic = LogicHandler()
         
         
         
@@ -1111,12 +1111,12 @@ class game(object):
         self.gfx.loadGfxDictionary("level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
 
-        self.displayFrame = levelEditorFrame(self.gfx, self.camera, self.tileHeight, self.tileWidth)
+        self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.tileHeight, self.tileWidth)
         
         self.FPSLimit = 30
     def showMenu(self, displayMenu):
         
-        myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
+        myMenuSystem = MenuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
         resBefore = self.camera.screenResSelection
         self.difficultySelection, self.camera.screenResSelection, self.camera.displayType, self.exiting = myMenuSystem.displayMenuScreenAndHandleUserInput()
         self.paused = False
@@ -1205,7 +1205,7 @@ screenResChoices.sort()
 #PLAYER = pygame.image.load("person.png")
 exiting = False
 while exiting == False:
-    myGame = game(int(len(screenResChoices)/2), "Window")
+    myGame = Game(int(len(screenResChoices)/2), "Window")
     exiting = myGame.showMenu("Main Menu")
     while myGame.exiting == False and myGame.lost == False:
         myGame.play()

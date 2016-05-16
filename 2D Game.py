@@ -12,7 +12,7 @@ red = (255,0,0)
 PI = math.pi
 
 
-class gfxHandler(object):
+class GfxHandler(object):
     def __init__(self):
         self.gfxDictionary = {}
 
@@ -94,7 +94,7 @@ class gfxHandler(object):
                 except:
                     pass
 
-class logicHandler(object):
+class LogicHandler(object):
     def keyPressAndGameEventHandler(self, exiting, lost, ammo, personXDelta, personYDelta, personSpeed, currentGun, shotsFiredFromMe, personXFacing, personYFacing):
         #HANDLE KEY PRESS/RELEASE/USER ACTIONS
         enterPressed = False
@@ -494,7 +494,7 @@ class logicHandler(object):
         
         return myEnemies, millisecondsOnThisLeg, personImgLegIndex
 
-class menuScreen(object):
+class MenuScreen(object):
     def __init__(self, menuType, screenResSelection, difficultySelection, displayType, gameDisplay):
         self.gameDisplay = gameDisplay
         self.menuType = menuType
@@ -519,8 +519,8 @@ class menuScreen(object):
         self.colorIntensity = 255
         self.colorIntensityDirection = 5
         self.startPlay = False
-        self.gfx = gfxHandler()
-        self.logic = logicHandler()
+        self.gfx = GfxHandler()
+        self.logic = LogicHandler()
         self.exiting = False
         self.lost = False
         self.ammo = 0
@@ -538,7 +538,7 @@ class menuScreen(object):
         self.enterPressed = False
         self.personXDeltaWas = 0
         self.personYDeltaWas = 0
-        self.myHighScoreDatabase = highScoresDatabase()
+        self.myHighScoreDatabase = HighScoresDatabase()
         self.myHighScores = self.myHighScoreDatabase.loadHighScores()
 
     def updateScreenAndLimitFPS(self, FPSLimit):
@@ -828,7 +828,7 @@ class menuScreen(object):
             self.menuDirectory = "Main"
             self.menuSelectionIndex = 4
 
-class highScoresDatabase(object):
+class HighScoresDatabase(object):
     def __init__(self):
         self.numberOfRecordsPerDifficulty = 10
         
@@ -930,14 +930,14 @@ class highScoresDatabase(object):
             self.initializeDatabase()
         self.connection.close()
         
-class gameplayObject(object):
+class GameplayObject(object):
     pass
 
-class characterObject(gameplayObject):
+class CharacterObject(GameplayObject):
     pass
 
 
-class particleObject(gameplayObject):
+class ParticleObject(GameplayObject):
     #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, physics actions remaining, particle width px, particle height px, frame speed, default speed, image, particlePhysicsLevel
     #if particlePhysicsLevel >= wallPhysicsLevel + 3 then particle pushes the wall
     #if particlePhysicsLevel = wallPhysicsLevel + 2 then particle goes through wall
@@ -947,10 +947,10 @@ class particleObject(gameplayObject):
     #physics actions represent the number of remaining times the particle can push/go through/bounce off walls
     pass
 
-class worldObject(gameplayObject):
+class WorldObject(GameplayObject):
     pass
 
-class camera(object):
+class Camera(object):
     def __init__(self, screenResSelection, displayType):
         self.screenResSelection = screenResSelection
         self.displayType = displayType
@@ -975,14 +975,14 @@ class camera(object):
         #TODO: Resolution/screen size can be larger than the world itself, 
         #   thus the world must be centered for attractive appearance
 
-class game(object):
+class Game(object):
     def __init__(self, screenResSelection, fullScreen):        
         self.clock = pygame.time.Clock()
-        self.camera = camera(screenResSelection, fullScreen)
+        self.camera = Camera(screenResSelection, fullScreen)
         self.gameDisplay = self.camera.updateScreenSettings()
         
-        self.logic = logicHandler()
-        self.gfx = gfxHandler()
+        self.logic = LogicHandler()
+        self.gfx = GfxHandler()
         
         
         pygame.display.set_caption("2D Game Framework")
@@ -1114,7 +1114,7 @@ class game(object):
         self.FPSLimit = 60
     def showMenu(self, displayMenu, camera):
         
-        myMenuSystem = menuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
+        myMenuSystem = MenuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
         self.difficultySelection, self.camera.screenResSelection, self.camera.displayType, self.exiting = myMenuSystem.displayMenuScreenAndHandleUserInput()
         self.paused = False
         del myMenuSystem
@@ -1196,7 +1196,7 @@ screenResChoices.sort()
 PLAYER = pygame.image.load("person.png")
 exiting = False
 while exiting == False:
-    myGame = game(int(len(screenResChoices)/2), "Window")
+    myGame = Game(int(len(screenResChoices)/2), "Window")
     exiting = myGame.showMenu("Main Menu", myGame.camera)
     while myGame.exiting == False and myGame.lost == False:
         myGame.play()

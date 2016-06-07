@@ -185,6 +185,7 @@ class LogicHandler(object):
         #at which the next frame is drawn. This prevents clipping by making
         #a judgement call that the next frame won't likely be drawn twice as slow as,
         #or longer, than this frame was drawn.
+
         #character.speed = character.speed*2
 
         
@@ -229,10 +230,8 @@ class LogicHandler(object):
         #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
         #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
         
-        #print "A: Player Y:" + str(personYTile) + " YDelta: " + str(character.deltaY) + " cameraViewY: " + str(cameraViewY) + " Test: " + str((thisLevelMap[int(1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + character.speed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))]))
-        #print "B: Player Y:" + str(personYTile) + " YDelta: " + str(character.deltaY) + " cameraViewY: " + str(cameraViewY) + " Test: " + str((thisLevelMap[int(1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y - (personYDeltaButScreenOffset + character.speed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))]))
-        
-        if (character.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y - (character.personYDeltaButScreenOffset + character.speed) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y - (character.personYDeltaButScreenOffset + character.speed) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))])) or (character.deltaY > 0 and (thisLevelMap[int(1 + (character.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y + (-character.personYDeltaButScreenOffset + character.speed + self.getNextGravityApplicationToWorld(character.gravityYDelta, character.timeSpentFalling, tileHeight)) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (character.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y + (-character.personYDeltaButScreenOffset + character.speed + self.getNextGravityApplicationToWorld(character.gravityYDelta, character.timeSpentFalling, tileHeight)) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))])):
+        #if (character.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y - (character.personYDeltaButScreenOffset + character.speed) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y - (character.personYDeltaButScreenOffset + character.speed) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))])) or (character.deltaY > 0 and (thisLevelMap[int(1 + (character.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y + (-character.personYDeltaButScreenOffset + character.speed + self.getNextGravityApplicationToWorld(character.gravityYDelta, character.timeSpentFalling, tileHeight)) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (character.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y + (-character.personYDeltaButScreenOffset + character.speed + self.getNextGravityApplicationToWorld(character.gravityYDelta, character.timeSpentFalling, tileHeight)) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))])):
+        if (character.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y - (character.personYDeltaButScreenOffset - character.deltaY) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y - (character.personYDeltaButScreenOffset - character.deltaY) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))])) or (character.deltaY > 0 and (thisLevelMap[int(1 + (character.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y + (-character.personYDeltaButScreenOffset + character.deltaY + self.getNextGravityApplicationToWorld(character.gravityYDelta, character.timeSpentFalling, tileHeight)) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (character.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((character.y + (-character.personYDeltaButScreenOffset + character.deltaY + self.getNextGravityApplicationToWorld(character.gravityYDelta, character.timeSpentFalling, tileHeight)) + character.personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((character.x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))])):
             character.yok = 0
             character.personYDeltaButScreenOffset = 0
             character.deltaY = 0
@@ -240,19 +239,7 @@ class LogicHandler(object):
                 character.gravityYDelta = 0
                 character.timeSpentFalling = 0
                 character.deltaY = -1
-            
-            
-        #if (thisLevelMap[int(1 + (character.height/float(tileHeight)) + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + character.speed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (character.height/float(tileHeight)) + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) + ((y + (-personYDeltaButScreenOffset + character.speed) + personYDeltaButScreenOffset)/float(tileHeight)))][int(1 + (character.width/float(tileWidth)) + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) + ((x+character.deltaX + character.personXDeltaButScreenOffset)/float(tileWidth)))]):
-        #    fallIfGravityOn = False
-        #    timeSpentFalling = 0
-        #    gravityYDelta = 0
-        #    character.deltaY = character.deltaY - gravityYDelta - (min(gravityYDelta + (timeSpentFalling + 1) * .05, tileHeight/float(2)))
-        #else:
-        #    fallIfGravityOn = True
-        #    timeSpentFalling = timeSpentFalling + 1
-        #    character.deltaY = character.deltaY - (min(gravityYDelta + (timeSpentFalling + 1) * .05, tileHeight/float(2)))
-            
-            
+                
         #RESET 1ST COLLISION CHECK PARAMATERS B/C NOW,
         #WE DON'T KNOW IF A COLLISION @ C or @ D or @ H or @ G WILL OCCUR
         #BECAUSE WE MAY HAVE HANDLED A COLLISION @ A, B, F, OR E.
@@ -510,7 +497,6 @@ class MenuScreen(object):
         self.displayType = displayType
         self.menuDirectory = "Main"
         self.menuJustOpened = True
-        self.difficultyChoices = ["Easy", "Medium", "Hard", "Expert"]
         #self.score = 0
         self.highScoreDifficulty = 0
         #self.myHealth = 100
@@ -530,14 +516,6 @@ class MenuScreen(object):
         self.logic = LogicHandler()
         self.exiting = False
         self.lost = False
-        #self.ammo = 0
-        #self.personXDelta = 0
-        #self.personYDelta = 0
-        #self.character.speed = 1
-        #self.activeWeapon = ""
-        #self.shotsFiredFromMe = False
-        #self.personXFacing = 0
-        #self.personYFacing = 0
         self.userCharacter = Character("User")
         self.userCharacter.speed = 1
         self.screenMoveCounter = 0
@@ -549,6 +527,7 @@ class MenuScreen(object):
         self.personYDeltaWas = 0
         self.myHighScoreDatabase = HighScoresDatabase()
         self.myHighScores = self.myHighScoreDatabase.loadHighScores()
+        self.difficultyChoices = self.myHighScoreDatabase.difficulties
 
     def updateScreenAndLimitFPS(self, FPSLimit):
         self.limit = FPSLimit
@@ -711,14 +690,7 @@ class MenuScreen(object):
             self.rgb = (self.colorIntensity, 0, 0)
         else:
             self.rgb = (255, 255, 255)
-        if self.highScoreDifficulty == 0:
-            self.textSurf, self.textRect = self.gfx.textObjects("<<  Easy High Scores  >>", self.smallText, self.rgb)
-        if self.highScoreDifficulty == 1:
-            self.textSurf, self.textRect = self.gfx.textObjects("<<  Medium High Scores  >>", self.smallText, self.rgb)
-        if self.highScoreDifficulty == 2:
-            self.textSurf, self.textRect = self.gfx.textObjects("<<  Hard High Scores  >>", self.smallText, self.rgb)
-        if self.highScoreDifficulty == 3:
-            self.textSurf, self.textRect = self.gfx.textObjects("<<  Expert High Scores  >>", self.smallText, self.rgb)
+        self.textSurf, self.textRect = self.gfx.textObjects("<<  " + self.difficultyChoices[self.highScoreDifficulty] + " High Scores  >>", self.smallText, self.rgb)
         self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 90))
         self.gameDisplay.blit(self.textSurf, self.textRect)
         for self.i in xrange(-1, 11):
@@ -748,6 +720,7 @@ class MenuScreen(object):
                     self.textRect.center = ((self.displayWidth*.8), (self.displayHeight * .95))
                 else:
                     self.rgb = (255, 255, 255)
+                    #print str(self.highScoreDifficulty)
                     self.text = str(self.myHighScores[self.highScoreDifficulty][self.i][self.j])
                     self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
                     #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.character.speed)))
@@ -806,8 +779,6 @@ class MenuScreen(object):
             else:
                 gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
             self.myProjectiles = []
-            #self.x = (self.displayWidth/2.0)-(self.rocketWidth/2.0)
-            #self.y = (self.displayHeight-self.rocketHeight)
             self.fullScreenWindowChanged = False
         if self.enterPressed == True and self.menuSelectionIndex == 0:
             self.menuDirectory = "Main"
@@ -840,7 +811,8 @@ class MenuScreen(object):
 class HighScoresDatabase(object):
     def __init__(self):
         self.numberOfRecordsPerDifficulty = 10
-        self.difficulties = ["easy", "medium", "hard", "expert"]
+        self.difficulties = ["Easy", "Medium", "Hard", "Expert"]
+        self.databaseName = "High_Scores.db"
         
     def fillInBlankHighScores(self, highScoresArray):
         self.workingArray = highScoresArray
@@ -858,19 +830,12 @@ class HighScoresDatabase(object):
     def loadHighScores(self):
         try:
             self.highScoresArray = [[],]
-            self.connection = sqlite3.connect("High_Scores.db")
+            self.connection = sqlite3.connect(self.databaseName)
             self.c = self.connection.cursor()
             self.row = ([])
             for self.loadCounter in xrange(len(self.difficulties)):
-                self.a = [[],]
-                if self.loadCounter == 0:
-                    self.c.execute("""SELECT * FROM easyHighScoreTable ORDER BY scoreRecordPK""")
-                elif self.loadCounter == 1:
-                    self.c.execute("""SELECT * FROM mediumHighScoreTable ORDER BY scoreRecordPK""")
-                elif self.loadCounter == 2:
-                    self.c.execute("""SELECT * FROM hardHighScoreTable ORDER BY scoreRecordPK""")
-                elif self.loadCounter == 3:
-                    self.c.execute("""SELECT * FROM expertHighScoreTable ORDER BY scoreRecordPK""")
+                self.a = [[],]                
+                self.c.execute("""SELECT * FROM " + self.difficulties[self.loadCounter] + "HighScoreTable ORDER BY scoreRecordPK""")
                 for self.row in self.c.fetchall():
                     self.a.append([self.row[0], str(self.row[1]), self.row[2], str(self.row[3]), str(self.row[4])])
                 #self.highScoresArray.append([row(0), row(1), row(2), row(3), row(4)])
@@ -886,22 +851,18 @@ class HighScoresDatabase(object):
         return self.highScoresArray
 
     def initializeDatabase(self):
-        self.connection = sqlite3.connect("High_Scores.db")
+        self.connection = sqlite3.connect(self.databaseName)
         self.c = self.connection.cursor()
-        self.c.execute("DROP TABLE IF EXISTS easyHighScoreTable")
-        self.c.execute("CREATE TABLE easyHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        self.c.execute("DROP TABLE IF EXISTS mediumHighScoreTable")
-        self.c.execute("CREATE TABLE mediumHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        self.c.execute("DROP TABLE IF EXISTS hardHighScoreTable")
-        self.c.execute("CREATE TABLE hardHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        self.c.execute("DROP TABLE IF EXISTS expertHighScoreTable")
-        self.c.execute("CREATE TABLE expertHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        for self.loadCounter in xrange(5):
+        for difficulty in self.difficulties:
+            self.c.execute("DROP TABLE IF EXISTS " + difficulty + "HighScoreTable")
+            self.c.execute("CREATE TABLE " + difficulty + "HighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+
+        for self.loadCounter in xrange(len(self.difficulties)):
             #self.highScoresArray.append([])
             self.highScoresArray.insert(self.loadCounter, self.fillInBlankHighScores(self.highScoresArray[self.loadCounter]))
             #self.highScoresArray = self.fillInBlankHighScores(self.highScoresArray[self.loadCounter])
         self.highScoresArray.remove([])
-        for self.loadCounter in xrange(5):
+        for self.loadCounter in xrange(len(self.difficulties)):
             self.updateHighScoresForThisDifficulty(self.highScoresArray[self.loadCounter], self.loadCounter)
         self.connection.close()
         return self.highScoresArray
@@ -910,31 +871,15 @@ class HighScoresDatabase(object):
         try:
             self.workingArray = workingArray
             self.difficulty = difficulty
-            self.connection = sqlite3.connect("High_Scores.db")
+            self.connection = sqlite3.connect(self.databaseName)
             self.c = self.connection.cursor()
-            self.updateCounter = -1
+            self.updateCounter = -1            
             for self.row in self.workingArray:
                 self.updateCounter = self.updateCounter + 1
-                if self.difficulty == 0:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS easyHighScoreTable")
-                        self.c.execute("CREATE TABLE easyHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO easyHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
-                if self.difficulty == 1:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS mediumHighScoreTable")
-                        self.c.execute("CREATE TABLE mediumHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO mediumHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
-                if self.difficulty == 2:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS hardHighScoreTable")
-                        self.c.execute("CREATE TABLE hardHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO hardHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
-                if self.difficulty == 3:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS expertHighScoreTable")
-                        self.c.execute("CREATE TABLE expertHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO expertHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))                
+                if self.updateCounter == 0:
+                    self.c.execute("DROP TABLE IF EXISTS " + self.difficulties[self.difficulty] + "HighScoreTable")
+                    self.c.execute("CREATE TABLE " + self.difficulties[self.difficulty] + "HighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+                self.c.execute("INSERT INTO " + self.difficulties[self.difficulty] + "HighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))                
                 self.connection.commit()
         except:
             self.initializeDatabase()
@@ -1254,8 +1199,8 @@ class Game(object):
             #self.gfx.drawSmallMessage("Ammo: " + str(self.userCharacter.ammo), 1, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.drawSmallMessage("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.displayWidth)
             #self.gfx.drawSmallMessage("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.drawSmallMessage("Player X: " + str(self.personXTile), 4, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.drawSmallMessage("Player Y: " + str(self.personYTile), 5, self.gameDisplay, white, self.camera.displayWidth)
+            self.gfx.drawSmallMessage("Player X: " + str(self.userCharacter.xTile), 4, self.gameDisplay, white, self.camera.displayWidth)
+            self.gfx.drawSmallMessage("Player Y: " + str(self.userCharacter.yTile), 5, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.drawSmallMessage("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 6, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.drawSmallMessage("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.displayWidth)
             #self.gfx.drawSmallMessage("View X: " + str(1 + self.camera.viewX - (self.camera.viewToScreenPxlOffsetX/float(self.tileWidth))), 8, self.gameDisplay, white, self.camera.displayWidth)
@@ -1275,8 +1220,7 @@ class Game(object):
             #LOST GAME ACTION HERE
             pass
         else:
-            pass
-            #del self.clock
+            del self.clock
 
 pygame.init()
 allResolutionsAvail = pygame.display.list_modes()

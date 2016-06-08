@@ -5,7 +5,7 @@ The purpose of this program is to serve as a library from which most other 2d vi
 
 ![Screenshot](/Screenshot.png?raw=true "Screenshot")
 
-I don't claim to be an artist - the drawings were done quickly in Gimp just to get something working. For production level games that use this library in the future, I will hire the right talent. This project is still in progress and it is a rewarding experience learning about and implementing screen drawing, image/sprite manipulation, nested for loops over arrays, and keypress handling.
+I don't claim to be an artist - the drawings were done quickly in Gimp just to get something working. For production level games that use this library in the future, I will hire the right talent to handle all my drawings and artwork. This project is still in progress and it is a rewarding experience learning about and implementing screen drawing, image/sprite manipulation, nested for loops over arrays, and keypress handling.
 
 So far, main character movement, character collision detection, bullet firing, and world drawing are all implemented. Future features will include gravity for side-scrolling type games, support for enemy movement and attack, a level editor, a database for level data to be stored, and joystick support.
 

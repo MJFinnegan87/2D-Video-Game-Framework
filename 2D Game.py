@@ -12,10 +12,6 @@ red = (255,0,0)
 PI = math.pi
 
 
-def fPart(x):
-    a = x-int(x)
-    return int(a*1000)
-
 class GfxHandler(object):
     def __init__(self):
         self.gfxDictionary = {}

@@ -1,4 +1,4 @@
-# 2D-Game-Engine
+# 2D-Video-Game-Framework
 This will serve as the foundation for any 2D video game I create.
 
 The purpose of this program is to serve as a library from which most other 2d video games could be made, saving time, and allowing easier code reuse. The goal is to include all elements common to all or most 2d video games so that only unique aspects of a particular game need to be implemented.

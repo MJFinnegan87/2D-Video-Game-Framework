@@ -1082,7 +1082,7 @@ class Game(object):
         self.shotsFiredFromMe = False
 
         self.gfx.loadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
-        self.gfx.loadGfxDictionary("../Images/characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.mouseWidth, self.personHeight, 0, 0)
+        #self.gfx.loadGfxDictionary("../Images/characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.mouseWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("../Images/level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
         self.gfx.loadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
 

@@ -816,6 +816,8 @@ class MenuScreen(object):
 class HighScoresDatabase(object):
     def __init__(self):
         self.numberOfRecordsPerDifficulty = 10
+        self.difficulties = ["Easy", "Medium", "Hard", "Expert"]
+        self.databaseName = "../Data/High_Scores.db"
         
     def fillInBlankHighScores(self, highScoresArray):
         self.workingArray = highScoresArray
@@ -833,19 +835,12 @@ class HighScoresDatabase(object):
     def loadHighScores(self):
         try:
             self.highScoresArray = [[],]
-            self.connection = sqlite3.connect("High_Scores.db")
+            self.connection = sqlite3.connect(self.databaseName)
             self.c = self.connection.cursor()
             self.row = ([])
-            for self.loadCounter in xrange(5):
-                self.a = [[],]
-                if self.loadCounter == 0:
-                    self.c.execute("""SELECT * FROM easyHighScoreTable ORDER BY scoreRecordPK""")
-                elif self.loadCounter == 1:
-                    self.c.execute("""SELECT * FROM mediumHighScoreTable ORDER BY scoreRecordPK""")
-                elif self.loadCounter == 2:
-                    self.c.execute("""SELECT * FROM hardHighScoreTable ORDER BY scoreRecordPK""")
-                elif self.loadCounter == 3:
-                    self.c.execute("""SELECT * FROM expertHighScoreTable ORDER BY scoreRecordPK""")
+            for self.loadCounter in xrange(len(self.difficulties)):
+                self.a = [[],]                
+                self.c.execute("""SELECT * FROM " + self.difficulties[self.loadCounter] + "HighScoreTable ORDER BY scoreRecordPK""")
                 for self.row in self.c.fetchall():
                     self.a.append([self.row[0], str(self.row[1]), self.row[2], str(self.row[3]), str(self.row[4])])
                 #self.highScoresArray.append([row(0), row(1), row(2), row(3), row(4)])
@@ -861,22 +856,18 @@ class HighScoresDatabase(object):
         return self.highScoresArray
 
     def initializeDatabase(self):
-        self.connection = sqlite3.connect("High_Scores.db")
+        self.connection = sqlite3.connect(self.databaseName)
         self.c = self.connection.cursor()
-        self.c.execute("DROP TABLE IF EXISTS easyHighScoreTable")
-        self.c.execute("CREATE TABLE easyHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        self.c.execute("DROP TABLE IF EXISTS mediumHighScoreTable")
-        self.c.execute("CREATE TABLE mediumHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        self.c.execute("DROP TABLE IF EXISTS hardHighScoreTable")
-        self.c.execute("CREATE TABLE hardHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        self.c.execute("DROP TABLE IF EXISTS expertHighScoreTable")
-        self.c.execute("CREATE TABLE expertHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-        for self.loadCounter in xrange(5):
+        for difficulty in self.difficulties:
+            self.c.execute("DROP TABLE IF EXISTS " + difficulty + "HighScoreTable")
+            self.c.execute("CREATE TABLE " + difficulty + "HighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+
+        for self.loadCounter in xrange(len(self.difficulties)):
             #self.highScoresArray.append([])
             self.highScoresArray.insert(self.loadCounter, self.fillInBlankHighScores(self.highScoresArray[self.loadCounter]))
             #self.highScoresArray = self.fillInBlankHighScores(self.highScoresArray[self.loadCounter])
         self.highScoresArray.remove([])
-        for self.loadCounter in xrange(5):
+        for self.loadCounter in xrange(len(self.difficulties)):
             self.updateHighScoresForThisDifficulty(self.highScoresArray[self.loadCounter], self.loadCounter)
         self.connection.close()
         return self.highScoresArray
@@ -885,36 +876,20 @@ class HighScoresDatabase(object):
         try:
             self.workingArray = workingArray
             self.difficulty = difficulty
-            self.connection = sqlite3.connect("High_Scores.db")
+            self.connection = sqlite3.connect(self.databaseName)
             self.c = self.connection.cursor()
-            self.updateCounter = -1
+            self.updateCounter = -1            
             for self.row in self.workingArray:
                 self.updateCounter = self.updateCounter + 1
-                if self.difficulty == 0:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS easyHighScoreTable")
-                        self.c.execute("CREATE TABLE easyHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO easyHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
-                if self.difficulty == 1:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS mediumHighScoreTable")
-                        self.c.execute("CREATE TABLE mediumHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO mediumHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
-                if self.difficulty == 2:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS hardHighScoreTable")
-                        self.c.execute("CREATE TABLE hardHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO hardHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))
-                if self.difficulty == 3:
-                    if self.updateCounter == 0:
-                        self.c.execute("DROP TABLE IF EXISTS expertHighScoreTable")
-                        self.c.execute("CREATE TABLE expertHighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
-                    self.c.execute("INSERT INTO expertHighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))                
+                if self.updateCounter == 0:
+                    self.c.execute("DROP TABLE IF EXISTS " + self.difficulties[self.difficulty] + "HighScoreTable")
+                    self.c.execute("CREATE TABLE " + self.difficulties[self.difficulty] + "HighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
+                self.c.execute("INSERT INTO " + self.difficulties[self.difficulty] + "HighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))                
                 self.connection.commit()
         except:
             self.initializeDatabase()
         self.connection.close()
-        
+
 class GameplayObject(object):
     pass
 
@@ -1106,10 +1081,10 @@ class Game(object):
         self.score = 0
         self.shotsFiredFromMe = False
 
-        self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
-        self.gfx.loadGfxDictionary("characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.mouseWidth, self.personHeight, 0, 0)
-        self.gfx.loadGfxDictionary("level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
-        self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
+        self.gfx.loadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.loadGfxDictionary("../Images/characters.png", "Characters", 8, self.numberOfFramesAnimPerWalk, self.mouseWidth, self.personHeight, 0, 0)
+        self.gfx.loadGfxDictionary("../Images/level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
+        self.gfx.loadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
 
         self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.tileHeight, self.tileWidth)
         

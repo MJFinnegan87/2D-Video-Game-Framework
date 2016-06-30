@@ -829,7 +829,7 @@ class HighScoresDatabase(object):
     def __init__(self):
         self.numberOfRecordsPerDifficulty = 10
         self.difficulties = ["Easy", "Medium", "Hard", "Expert"]
-        self.databaseName = "High_Scores.db"
+        self.databaseName = "../Data/High_Scores.db"
         
     def fillInBlankHighScores(self, highScoresArray):
         self.workingArray = highScoresArray
@@ -937,7 +937,7 @@ class Character(WorldObject):
         self.name = name
         self.numberOfFramesAnimPerWalk = numberOfFramesAnimPerWalk #3
         self.numberOfDirectionsFacingToDisplay = 8
-        self.imagesGFXName = "userplayer.png"
+        self.imagesGFXName = "../Images/userplayer.png"
         self.imagesGFXNameDesc = "User Player"
         self.imagesGFXRows = self.numberOfDirectionsFacingToDisplay
         self.imagesGFXColumns = self.numberOfFramesAnimPerWalk
@@ -1000,7 +1000,7 @@ class Bullet(WorldObject):
         self.cameFromObjectName = weapon
         self.img = img #IMAGE ASSIGNED BECAUSE 1) IMAGE NEEDS TO BE GENERATE AT TIME OF OBJECT CREATION, AND 2) WILL NOT BE CHANGING THROUGHOUT THE LIFE OF THE OBJECT
         #self.worldObjectID = worldObjectID
-        self.imagesGFXName = "bullets.png"
+        self.imagesGFXName = "../Images/bullets.png"
         self.imagesGFXNameDesc = "Bullets"
         self.imagesGFXRows = 4
         self.imagesGFXColumns = 1
@@ -1245,10 +1245,10 @@ class Game(object):
         self.userCharacter.x = (((self.camera.displayWidth/float(self.tileWidth))/2)*self.tileWidth) #Player screen X-coord in pixels
         self.userCharacter.y = (((self.camera.displayHeight/float(self.tileHeight))/2)*self.tileHeight) #Player screen Y-coord in pixels
 
-        self.gfx.loadGfxDictionary("spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.loadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
         self.gfx.loadGfxDictionary(self.userCharacter.imagesGFXName, self.userCharacter.imagesGFXNameDesc, self.userCharacter.numberOfDirectionsFacingToDisplay, self.userCharacter.numberOfFramesAnimPerWalk, self.userCharacter.width, self.userCharacter.height, 0, 0)
-        self.gfx.loadGfxDictionary("bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
-        self.gfx.loadGfxDictionary("world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
+        self.gfx.loadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
+        self.gfx.loadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
         
         self.FPSLimit = 200
         

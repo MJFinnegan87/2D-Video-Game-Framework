@@ -786,7 +786,6 @@ class Character(WorldObject):
         pass
 
     def testForWallCollision(self, thisLevelMap, camera, tileHeight, tileWidth, gravityAppliesToWorld, stickToWallsOnCollision):
-        self.deltaY = self.deltaY + self.gravityYDelta
 
         #This acts as a buffer to allow user to not get up against floor/ceiling
         #because the distance the user will travel over the next frame cannot
@@ -866,14 +865,14 @@ class Character(WorldObject):
             if stickToWallsOnCollision == False:
                 self.deltaX = 0
 
-    def applyGravity(self, tileHeight):
+    def calculateNextGravityVelocity(self, tileHeight):
         return (min(self.gravityYDelta + (.00005 * (self.timeSpentFalling**2)), tileHeight / 3.0)), self.timeSpentFalling + 1
 
     def getNextGravityApplicationToWorld(self, gravityYDelta, timeSpentFalling, tileHeight):
         character = Character("Temp")
         character.gravityYDelta = gravityYDelta
         character.timeSpentFalling = timeSpentFalling
-        a, b = self.applyGravity(tileHeight)
+        a, b = self.calculateNextGravityVelocity(tileHeight)
         del character
         return a
 
@@ -913,6 +912,9 @@ class Character(WorldObject):
                 self.millisecondsOnThisLeg = 0
             else:
                 self.millisecondsOnThisLeg = self.millisecondsOnThisLeg + millisecondsSinceLastFrame
+
+    def applyGravity(self):
+        self.deltaY = self.deltaY + self.gravityYDelta
 
     def attack(self):
         pass
@@ -1274,6 +1276,7 @@ class Game(object):
             self.particles, self.userCharacter = self.logic.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
 
             self.camera.testIfAtWorldEdgeCollision(self.thisLevelMap, self.userCharacter, self.tileWidth, self.tileHeight)
+            self.userCharacter.applyGravity()
             #CHECK FOR CHARACTER-WALL COLLISIONS
             self.userCharacter.testForWallCollision(self.thisLevelMap, self.camera, self.tileHeight, self.tileWidth, self.gravityAppliesToWorld, self.stickToWallsOnCollision)
             #ADJUST DIAGONAL SPEED IF USER PRESSES 2 ARROW KEYS
@@ -1287,7 +1290,7 @@ class Game(object):
             #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
             self.userCharacter.move(self.camera, self.tileWidth, self.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
             if self.gravityAppliesToWorld == True:
-                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.applyGravity(self.tileHeight)
+                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.calculateNextGravityVelocity(self.tileHeight)
             #MOVE PARTICLES
             self.particles = self.logic.moveParticlesAndHandleParticleCollision(self.particles, self.thisLevelMap)
             #GENERATE PARTICLES

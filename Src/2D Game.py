@@ -16,7 +16,7 @@ class GfxHandler(object):
     def __init__(self):
         self.gfxDictionary = {}
 
-    def loadGfxDictionary(self, file_name="", imageIndicator="", rows=0, columns=0, width=0, height=0, pictureXPadding=0, pictureYPadding=0):
+    def LoadGfxDictionary(self, file_name="", imageIndicator="", rows=0, columns=0, width=0, height=0, pictureXPadding=0, pictureYPadding=0):
         self.spriteSheet = pygame.image.load(file_name)
         imgTransparency = True
         
@@ -26,17 +26,17 @@ class GfxHandler(object):
 
         for j in xrange(rows):
             for k in xrange(columns):
-                #self.gfxDictionary[(j*k) + j] = self.getImage(self.getCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
-                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.getImage(self.getCoords((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
+                #self.gfxDictionary[(j*k) + j] = self.GetImage(self.GetCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
+                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.GetImage(self.GetCoords((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
 
-    def getImage(self, Coords, requiresTransparency):
+    def GetImage(self, Coords, requiresTransparency):
         image = pygame.Surface([Coords[2], Coords[3]])
         image.blit(self.spriteSheet, (0,0), Coords)
         if requiresTransparency == True:
             image.set_colorkey((0,0,0))
         return image
 
-    def getCoords(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, gfxHandlerRows, gfxHandlerColumns):
+    def GetCoords(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, gfxHandlerRows, gfxHandlerColumns):
         #print int((tileRequested%gfxHandlerColumns)*tileWidth)+(int(tileRequested%gfxHandlerColumns))*pictureXPadding
         #a = raw_input("")
         return (int((tileRequested%gfxHandlerColumns)*tileWidth)+(int(tileRequested%gfxHandlerColumns))*pictureXPadding,
@@ -44,51 +44,52 @@ class GfxHandler(object):
                 tileWidth,
                 tileHeight)
 
-    def textObjects(self, text, font, color):
+    def CreateTextObject(self, text, font, color):
         textSurface = font.render(text, True, color)
         return textSurface, textSurface.get_rect()
 
-    def drawLargeMessage(self, text, myGameDisplay, myColor):
+    def DrawLargeMessage(self, text, myGameDisplay, myColor):
         largeText = pygame.font.Font("freesansbold.ttf", 135)
-        textSurf, textRect = self.textObjects(text, largeText, myColor)
-        textRect.center = ((displayWidth/2), (displayHeight/2))
+        textSurf, textRect = self.CreateTextObject(text, largeText, myColor)
+        textRect.center = ((DisplayWidth/2), (DisplayHeight/2))
         myGameDisplay.blit(textSurf, textRect)
         pygame.display.update()
         time.sleep(2)
 
-    def drawSmallMessage(self, text, lineNumber, myGameDisplay, myColor, displayWidth):
+    def DrawSmallMessage(self, text, lineNumber, myGameDisplay, myColor, DisplayWidth):
         smallText = pygame.font.Font("freesansbold.ttf", 16)
-        textSurf, textRect = self.textObjects(text, smallText, myColor)
-        textRect.center = ((displayWidth-60), 15 + (15*lineNumber))
+        textSurf, textRect = self.CreateTextObject(text, smallText, myColor)
+        textRect.center = ((DisplayWidth-60), 15 + (15*lineNumber))
         myGameDisplay.blit(textSurf, textRect)
 
-    def drawImg(self, myImage, myCoords, myGameDisplay):
+    def DrawImg(self, myImage, myCoords, myGameDisplay):
         #pygame.draw.rect(myImage, grayConst, myCoords)
          myGameDisplay.blit(myImage, (myCoords[0], myCoords[1]))
 
-    def drawDialogs(self, conversationArray, (backR, backG, backB, backA), (foreR, foreG, foreB, foreA), (borderR, borderG, borderB, borderA), borderSize = 5):
+    def DrawDialogs(self, conversationArray, (backR, backG, backB, backA), (foreR, foreG, foreB, foreA), (borderR, borderG, borderB, borderA), borderSize = 5):
+        #Not working yet
         conversationSelections = []
         return conversationSelections
     
-    def drawObjectsAndParticles(self, particles, gameDisplay, camera, tileHeight, tileWidth, character):
-        self.drawImg(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
+    def DrawObjectsAndParticles(self, particles, gameDisplay, camera, tileHeight, tileWidth, character):
+        self.DrawImg(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
         for i in xrange(len(particles)):
             if particles[i].name == "User Bullet":
                 #print "x: " + str((1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth)
                 #print "y: " + str((1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight)
-                if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth) + particles[i].width > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth < camera.displayWidth:
+                if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth) + particles[i].width > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth < camera.DisplayWidth:
                     #self.drawObject("bullet" + str(particles[i][1]) + ".png", (1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth, (1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight, gameDisplay)
                     #print math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5))
                     #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][particles[i][1]], (180*math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5)))/PI)
-                    self.drawImg(particles[i].img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particles[i].yTile) * -tileHeight), gameDisplay)
+                    self.DrawImg(particles[i].img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particles[i].yTile) * -tileHeight), gameDisplay)
 
-    def drawWorldInCameraView(self, tileSet, camera, tileWidth, tileHeight, thisLevelMap, gameDisplay, timeElapsedSinceLastFrame=0):
-        for i in xrange(int(camera.displayWidth/float(tileWidth))+2):
-            for j in xrange(int(camera.displayHeight/float(tileHeight))+2):
+    def DrawWorldInCameraView(self, tileSet, camera, tileWidth, tileHeight, thisLevelMap, gameDisplay, timeElapsedSinceLastFrame=0):
+        for i in xrange(int(camera.DisplayWidth/float(tileWidth))+2):
+            for j in xrange(int(camera.DisplayHeight/float(tileHeight))+2):
                 try:
-                    imgToDraw, thisLevelMap = self.determineLocationImg(thisLevelMap, i, j, camera.viewX, camera.viewY, tileSet, timeElapsedSinceLastFrame)
+                    imgToDraw, thisLevelMap = self.GetImageForLocation(thisLevelMap, i, j, camera.viewX, camera.viewY, tileSet, timeElapsedSinceLastFrame)
                     if imgToDraw != "":
-                        self.drawImg(imgToDraw,
+                        self.DrawImg(imgToDraw,
                           (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX,
                           ((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY,
                           (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX)+ tileWidth,
@@ -97,24 +98,27 @@ class GfxHandler(object):
                     pass
         return thisLevelMap
 
-    def determineLocationImg(self, thisLevelMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
+    def GetImageForLocation(self, thisLevelMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
         imgToDraw = ""
-        if thisLevelMap[j+viewY][i+viewX] != []:
-            if type(thisLevelMap[j+viewY][i+viewX]) is int:
-                imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX]]
-            else:
-                thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
-                while thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame:
-                    thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame
-                    thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage + 1
-                    if thisLevelMap[j+viewY][i+viewX].activeImage >= ((thisLevelMap[j+viewY][i+viewX].ID + 1) * thisLevelMap[j+viewY][i+viewX].columns - thisLevelMap[j+viewY][i+viewX].ID):
-                        thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage - thisLevelMap[j+viewY][i+viewX].columns
-                #print thisLevelMap[j+viewY][i+viewX].activeImage
-                imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX].activeImage + int(thisLevelMap[j+viewY][i+viewX].ID)]
+        try:
+            if thisLevelMap[j+viewY][i+viewX] != []:
+                if type(thisLevelMap[j+viewY][i+viewX]) is int:
+                    imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX]]
+                else:
+                    thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
+                    while thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame:
+                        thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame
+                        thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage + 1
+                        if thisLevelMap[j+viewY][i+viewX].activeImage >= ((thisLevelMap[j+viewY][i+viewX].ID + 1) * thisLevelMap[j+viewY][i+viewX].columns - thisLevelMap[j+viewY][i+viewX].ID):
+                            thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage - thisLevelMap[j+viewY][i+viewX].columns
+                    #print thisLevelMap[j+viewY][i+viewX].activeImage
+                    imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX].activeImage + int(thisLevelMap[j+viewY][i+viewX].ID)]
+        except:
+            pass
         return imgToDraw, thisLevelMap
 
 class LogicHandler(object):
-    def handleHeyPressAndGameEvents(self, exiting, lost, character):
+    def HandleHeyPressAndGameEvents(self, exiting, lost, character):
         #HANDLE KEY PRESS/RELEASE/USER ACTIONS
         enterPressed = False
         keys = pygame.key.get_pressed()
@@ -122,11 +126,11 @@ class LogicHandler(object):
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 exiting = True
                 lost = False
-            #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY UP:
+            #IF PlayER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY UP:
             #if event.type == pygame.KEYUP and keys[pygame.K_SPACE] and ammo >0:
             #   character.shotsFiredFromMe = True
 
-            #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY DOWN:
+            #IF PlayER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY DOWN:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     character.shotsFiredFromMe = True
@@ -161,21 +165,21 @@ class LogicHandler(object):
                 character.yFacing = character.deltaY/abs(character.deltaY)
 
             
-        #IF PLAYER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
+        #IF PlayER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
         #if keys[pygame.K_SPACE] and ammo >0:
         #    shotsFiredFromMe = True
 
         return exiting, lost, character, enterPressed
 
-    def diagSpeedFix(self, XDelta, YDelta, speed):
+    def FixDiagSpeed(self, XDelta, YDelta, speed):
         #FIX DIAGONAL SPEED INCREASE
         #  
-        #  |\                                                                 |\
-        #  | \                                                                | \
-        # 5|  \ >5  -> solve for X and Y, while keeping x:y the same ratio: Y |  \ 5
-        #  |_  \                                                              |_  \
-        #  |_|__\                                                             |_|__\
-        #    5                                                                  X 
+        #      |\                                                                 |\
+        #      | \                                                                | \
+        # Y=5  |  \ Z>5  -> solve for X and Y, while keeping x:y the same ratio: Y|  \ 5
+        #      |_  \                                                              |_  \
+        #      |_|__\                                                             |_|__\
+        #       X=5                                                                  X 
         #
         #PERSON/BULLET/ITEM SHOULD NOT TRAVEL FASTER JUST BECAUSE OF TRAVELING DIAGONALLY. THE CODE BELOW ADJUSTS FOR THIS:
         if XDelta != 0 and YDelta != 0:
@@ -184,7 +188,7 @@ class LogicHandler(object):
             XDelta = tempXDelta
         return XDelta, YDelta
 
-    def generateParticles(self, particles, character, tileHeight, tileWidth, gfx):
+    def GenerateParticles(self, particles, character, tileHeight, tileWidth, gfx):
         if character.shotsFiredFromMe == True and not(character.yFacing == 0 and character.xFacing == 0) and character.activeWeapon < len(character.weapons):
             userBullet = Bullet("User Bullet", character.weapons[character.activeWeapon].name, character.xTile, character.yTile, 0, 0, character.weapons[character.activeWeapon].damage, character.weapons[character.activeWeapon].physicsIndicator, 1, character.weapons[character.activeWeapon].generateBulletWidth, character.weapons[character.activeWeapon].generateBulletHeight, character.weapons[character.activeWeapon].generateBulletSpeed, character.weapons[character.activeWeapon].generateBulletSpeed) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
             userBullet.speed = userBullet.defaultSpeed
@@ -213,7 +217,7 @@ class LogicHandler(object):
             character.shotsFiredFromMe = False
         return particles, character
 
-    def moveParticlesAndHandleParticleCollision(self, particles, thisLevelMap):
+    def MoveParticlesAndHandleParticleCollision(self, particles, thisLevelMap):
         #MOVE PARTICLES, OR DELETE THEM IF THEY REACH WORLD END
         myDeletedParticles = []
         for i in xrange(len(particles)):
@@ -229,12 +233,12 @@ class LogicHandler(object):
             
         return particles
 
-    def manageTimeAndFrameRate(self, lastTick, clock, FPSLimit):
+    def ManageTimeAndFrameRate(self, lastTick, clock, FPSLimit):
         timeElapsedSinceLastFrame = clock.get_time() - lastTick
         lastTick = clock.tick(FPSLimit)
         return timeElapsedSinceLastFrame
 
-    def alterAllSpeeds(self, timeElapsedSinceLastFrame, particleList, character):
+    def AdjustSpeedBasedOnFrameRate(self, timeElapsedSinceLastFrame, particleList, character):
         #MAKE PARTICLE SPEED CHANGE BASED ON FRAME RATE
         #character.speedThisFrameRate = character.defaultSpeed
         for i in xrange(len(particleList)):
@@ -248,20 +252,36 @@ class LogicHandler(object):
             elif particleList[i].dy > 0:
                 particleList[i].dy = particleList[i].speed
         #REDUCE PARTICLE SPEED SO IT DOESN'T TRAVEL FASTER WHEN DIAGONAL
-            particleList[i].dx, particleList[i].dy = self.diagSpeedFix(particleList[i].dx, particleList[i].dy, particleList[i].speed)
+            particleList[i].dx, particleList[i].dy = self.FixDiagSpeed(particleList[i].dx, particleList[i].dy, particleList[i].speed)
         if timeElapsedSinceLastFrame < 2000:
             character.speed = character.defaultSpeed * timeElapsedSinceLastFrame
             
-        character.deltaX, character.deltaY = self.diagSpeedFix(character.deltaX, character.deltaY, character.speed)        
+        character.deltaX, character.deltaY = self.FixDiagSpeed(character.deltaX, character.deltaY, character.speed)        
         return particleList, character
 
-class MenuScreen(object):
-    def __init__(self, menuType, screenResSelection, difficultySelection, displayType, gameDisplay):
+class Menu(object):
+    def __init__(self, name, titleText, titleFont, contentText, contentFont, itemMargin, unselectedTextColor, selectedTextColorLowPulsate, selectedTextColorHighPulsate, pulsateSpeed):
+        self.name = name
+        self.titleText = titleText
+        self.titleFont = titleFont
+        self.itemMargin = itemMargin
+        self.contentText = contentText
+        self.contentFont = contentFont
+        self.unselectedTextColor = unselectedTextColor
+        self.selectedTextColorLowPulsate = selectedTextColorLowPulsate
+        self.selectedTextColorHighPulsate = selectedTextColorHighPulsate
+        self.pulsateSpeed = pulsateSpeed
+
+    def DisplayMenu(self):
+        pass        
+
+class MenuManager(object):
+    def __init__(self, menuType, screenResSelection, difficultySelection, DisplayType, gameDisplay):
         self.gameDisplay = gameDisplay
         self.menuType = menuType
         self.screenResSelection = screenResSelection
         self.difficultySelection = difficultySelection
-        self.displayType = displayType
+        self.DisplayType = DisplayType
         self.menuDirectory = "Main"
         self.menuJustOpened = True
         #self.score = 0
@@ -270,12 +290,12 @@ class MenuScreen(object):
         self.currentLevel = 0
         self.menuSelectionIndex = 6
         #self.ammo = 0
-        self.displayWidth = screenResChoices[screenResSelection][0]
-        self.displayHeight = screenResChoices[screenResSelection][1]
-        if self.displayType == "Full Screen":
-            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+        self.DisplayWidth = screenResChoices[screenResSelection][0]
+        self.DisplayHeight = screenResChoices[screenResSelection][1]
+        if self.DisplayType == "Full Screen":
+            self.gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight), pygame.FULLSCREEN)
         else:
-            self.gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+            self.gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight))
         self.colorIntensity = 255
         self.colorIntensityDirection = 5
         self.startPlay = False
@@ -293,77 +313,78 @@ class MenuScreen(object):
         self.personXDeltaWas = 0
         self.personYDeltaWas = 0
         self.myHighScoreDatabase = HighScoresDatabase()
-        self.myHighScores = self.myHighScoreDatabase.loadHighScores()
+        self.myHighScores = self.myHighScoreDatabase.LoadHighScores()
         self.difficultyChoices = self.myHighScoreDatabase.difficulties
 
-    def updateScreenAndLimitFPS(self, FPSLimit):
+    def UpdateScreenAndLimitFPS(self, FPSLimit):
         self.limit = FPSLimit
         pygame.display.update()
         self.clock.tick(FPSLimit)
         
-    def displayMenuScreenAndHandleUserInput(self):
+    def DisplayMenuAndHandleUserInput(self):
         while self.exiting == False and self.startPlay == False:
-            self.displayTitle()
-            self.selectionColorPulsate()
-            self.handleMenuBackground()
-            self.getKeyPress()
+            self.DisplayTitle()
+            self.PulsateSelection()
+            self.HandleMenuBackground()
+            self.GetKeyPress()
+
             if self.menuDirectory == "Main":
-                self.displayMainMenu()
+                self.DisplayMainMenu()
                 if self.menuJustOpened == False:
-                    self.handleUserInputMainMenu()
+                    self.HandleUserInputMainMenu()
                 self.menuJustOpened = False
             elif self.menuDirectory == "Settings":
-                self.displaySettingsMenu()
-                self.handleUserInputSettingsMenu()
+                self.DisplaySettingsMenu()
+                self.HandleUserInputSettingsMenu()
             elif self.menuDirectory == "Credits":
-                self.displayCreditsMenu()
-                self.handleUserInputCreditsMenu()
+                self.DisplayCreditsMenu()
+                self.HandleUserInputCreditsMenu()
             elif self.menuDirectory == "How To Play":
-                self.displayHowToMenu()
-                self.handleUserInputHowToMenu()
+                self.DisplayHowToMenu()
+                self.HandleUserInputHowToMenu()
             elif self.menuDirectory == "High Scores":
-                self.displayHighScoresMenu()
-                self.handleUserInputHighScoresMenu()
+                self.DisplayHighScoresMenu()
+                self.HandleUserInputHighScoresMenu()
                 
             self.personYDeltaWas = self.userCharacter.deltaY
             self.personXDeltaWas = self.userCharacter.deltaX
-            self.updateScreenAndLimitFPS(self.menuFPSLimit)
+            self.UpdateScreenAndLimitFPS(self.menuFPSLimit)
             self.gameDisplay.fill(black)
         del self.clock
-        return self.difficultySelection, self.screenResSelection, self.displayType, self.exiting
+        return self.difficultySelection, self.screenResSelection, self.DisplayType, self.exiting
     
-    def displayTitle(self):
+    def DisplayTitle(self):
         gameTitle = "2d Game Framework"
         self.smallText = pygame.font.Font("freesansbold.ttf", 24)
         self.largeText = pygame.font.Font("freesansbold.ttf", 48)
-        self.textSurf, self.textRect = self.gfx.textObjects(gameTitle, self.largeText, white)
-        self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 25))
+        self.textSurf, self.textRect = self.gfx.CreateTextObject(gameTitle, self.largeText, white)
+        self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 25))
         self.gameDisplay.blit(self.textSurf, self.textRect)
         if self.menuType == "Paused":
-            self.textSurf, self.textRect = self.gfx.textObjects("-Paused-", self.smallText, white)
-            self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 60))
+            self.textSurf, self.textRect = self.gfx.CreateTextObject("-Paused-", self.smallText, white)
+            self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 60))
             self.gameDisplay.blit(self.textSurf, self.textRect)
 
-    def selectionColorPulsate(self):
+    def PulsateSelection(self):
         if self.colorIntensity + self.colorIntensityDirection > 255:
             self.colorIntensityDirection = -5
         elif self.colorIntensity + self.colorIntensityDirection < 65:
             self.colorIntensityDirection = 5
         self.colorIntensity = self.colorIntensity + self.colorIntensityDirection
 
-    def handleMenuBackground(self):
+    def HandleMenuBackground(self):
         pass
         #self.currentLevel, self.activeWeapon, self.enemiesAlive, self.myEnemies, self.myProjectiles = self.menuGameEventHandler.addGameObjects(
-            #self.enemiesAlive, self.currentLevel, self.activeWeapon, self.myEnemies, self.starProbabilitySpace, self.starDensity, self.starMoveSpeed, self.myProjectiles, self.displayWidth)
+            #self.enemiesAlive, self.currentLevel, self.activeWeapon, self.myEnemies, self.starProbabilitySpace, self.starDensity, self.starMoveSpeed, self.myProjectiles, self.DisplayWidth)
         #self.starMoveSpeed = self.menuGameEventHandler.adjustStarMoveSpeed(self.maximumStarMoveSpeed, self.numberOfStarSpeeds)
         #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.y, self.ammo = self.menuGameEventHandler.moveAndDrawProjectilesAndEnemies(
-            #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.x, self.y, self.rocketWidth, self.rocketHeight, self.difficultySelection, self.displayWidth, self.displayHeight, self.ammo, self.starMoveSpeed)
+            #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.x, self.y, self.rocketWidth, self.rocketHeight, self.difficultySelection, self.DisplayWidth, self.DisplayHeight, self.ammo, self.starMoveSpeed)
         #self.menuGameEventHandler.drawObject(myCharacter, self.x, self.y)
 
-    def getKeyPress(self):
-        self.exiting, self.lost, self.userCharacter, self.enterPressed = self.logic.handleHeyPressAndGameEvents(self.exiting, self.lost, self.userCharacter)
+    def GetKeyPress(self):
+        self.exiting, self.lost, self.userCharacter, self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.exiting, self.lost, self.userCharacter)
 
-    def displayMainMenu(self):
+    def DisplayMainMenu(self):
         self.mainMenuItemMargin = 25
         for self.i in xrange(7):
             self.rgb = (255, 255, 255)
@@ -389,18 +410,18 @@ class MenuScreen(object):
                 self.text = "Credits"
             if self.i == 0:
                 self.text = "Quit"
-            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-            self.textRect.center = ((self.displayWidth/2.0), (self.displayHeight/2.0 - self.i*(self.mainMenuItemMargin) + self.screenMoveCounter))
+            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+            self.textRect.center = ((self.DisplayWidth/2.0), (self.DisplayHeight/2.0 - self.i*(self.mainMenuItemMargin) + self.screenMoveCounter))
             self.gameDisplay.blit(self.textSurf, self.textRect)
 
-    def displaySettingsMenu(self):
+    def DisplaySettingsMenu(self):
         self.fullScreenWindowChanged = False
         for self.i in xrange(5):
             self.rgb = (255, 255, 255)
             if self.i == 4:
                 self.text = "Screen Size: " + str(screenResChoices[self.screenResSelection][0]) + "x" + str(screenResChoices[self.screenResSelection][1])
             if self.i == 3:
-                self.text = "Screen: " + self.displayType
+                self.text = "Screen: " + self.DisplayType
             if self.i == 2:
                 self.text = "Music Volume: 100"
             if self.i == 1:
@@ -409,17 +430,16 @@ class MenuScreen(object):
                 self.text = "Go Back"
             if self.i == self.menuSelectionIndex:
                 self.rgb = (self.colorIntensity, 0, 0)
-            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-            self.textRect.center = ((self.displayWidth/2.0), (self.displayHeight/2.0 - self.i*(self.mainMenuItemMargin)))
+            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+            self.textRect.center = ((self.DisplayWidth/2.0), (self.DisplayHeight/2.0 - self.i*(self.mainMenuItemMargin)))
             self.gameDisplay.blit(self.textSurf, self.textRect)
 
-    def displayCreditsMenu(self):
+    def DisplayCreditsMenu(self):
         creditsMoveSpeed = 5
-        if self.screenMoveCounter < self.displayHeight:
+        if self.screenMoveCounter < self.DisplayHeight:
             self.screenMoveCounter = self.screenMoveCounter + creditsMoveSpeed
-            self.displayTitle()
-            self.displayMainMenu()
-    
+            self.DisplayTitle()
+            self.DisplayMainMenu()
         for self.i in xrange(3):
             self.rgb = (255, 255, 255)
             if self.i == 2:
@@ -428,17 +448,17 @@ class MenuScreen(object):
                 self.text = "Art by Mike Finnegan"
             if self.i == 0:
                 self.text = "Music/SFX by Mike Finnegan"
-            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-            #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.character.speed)))
-            self.textRect.center = ((self.displayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.displayHeight/2.0))
+            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+            #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
+            self.textRect.center = ((self.DisplayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.DisplayHeight/2.0))
             self.gameDisplay.blit(self.textSurf, self.textRect)
 
-    def displayHowToMenu(self):
+    def DisplayHowToMenu(self):
         howToSpeed = 5
-        if self.screenMoveCounter < self.displayHeight:
+        if self.screenMoveCounter < self.DisplayHeight:
             self.screenMoveCounter = self.screenMoveCounter + howToSpeed
-            self.displayTitle()
-            self.displayMainMenu()
+            self.DisplayTitle()
+            self.DisplayMainMenu()
         for self.i in xrange(3):
             self.rgb = (255, 255, 255)
             if self.i == 2:
@@ -447,18 +467,18 @@ class MenuScreen(object):
                 self.text = "Space bar: shoot aliens"
             if self.i == 0:
                 self.text = "Arrow keys Up, Down, Left, Right: fly spacecraft"
-            self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-            #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.character.speed)))
-            self.textRect.center = ((self.displayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.displayHeight/2.0))
+            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+            #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
+            self.textRect.center = ((self.DisplayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.DisplayHeight/2.0))
             self.gameDisplay.blit(self.textSurf, self.textRect)
 
-    def displayHighScoresMenu(self):
+    def DisplayHighScoresMenu(self):
         if self.menuSelectionIndex == 0:
             self.rgb = (self.colorIntensity, 0, 0)
         else:
             self.rgb = (255, 255, 255)
-        self.textSurf, self.textRect = self.gfx.textObjects("<<  " + self.difficultyChoices[self.highScoreDifficulty] + " High Scores  >>", self.smallText, self.rgb)
-        self.textRect.center = ((self.displayWidth/2.0), (self.screenMoveCounter + 90))
+        self.textSurf, self.textRect = self.gfx.CreateTextObject("<<  " + self.difficultyChoices[self.highScoreDifficulty] + " High Scores  >>", self.smallText, self.rgb)
+        self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 90))
         self.gameDisplay.blit(self.textSurf, self.textRect)
         for self.i in xrange(-1, 11):
             for self.j in xrange(5):
@@ -474,27 +494,27 @@ class MenuScreen(object):
                         self.text = "State"
                     elif self.j == 4:
                         self.text = "Country"
-                    self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-                    #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.character.speed)))
-                    self.textRect.center = ((self.displayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.displayHeight/2.0))
+                    self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+                    #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
+                    self.textRect.center = ((self.DisplayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.DisplayHeight/2.0))
                 elif self.i == self.myHighScoreDatabase.numberOfRecordsPerDifficulty:
                     if self.menuSelectionIndex == 1:
                         self.rgb = (self.colorIntensity, 0, 0)
                     else:
                         self.rgb = (255, 255, 255)
                     self.text = "Go Back"
-                    self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-                    self.textRect.center = ((self.displayWidth*.8), (self.displayHeight * .95))
+                    self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+                    self.textRect.center = ((self.DisplayWidth*.8), (self.DisplayHeight * .95))
                 else:
                     self.rgb = (255, 255, 255)
                     #print str(self.highScoreDifficulty)
                     self.text = str(self.myHighScores[self.highScoreDifficulty][self.i][self.j])
-                    self.textSurf, self.textRect = self.gfx.textObjects(self.text, self.smallText, self.rgb)
-                    #self.textRect.center = ((self.displayWidth/2), (self.displayHeight/2 - self.i*(self.character.speed)))
-                    self.textRect.center = ((self.displayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.displayHeight/2.0))
+                    self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
+                    #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
+                    self.textRect.center = ((self.DisplayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.DisplayHeight/2.0))
                 self.gameDisplay.blit(self.textSurf, self.textRect)
 
-    def handleUserInputMainMenu(self):
+    def HandleUserInputMainMenu(self):
         if self.userCharacter.deltaY == self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
             self.menuSelectionIndex = self.menuSelectionIndex - 1
             if self.menuSelectionIndex == 5 and self.menuType == "Paused":
@@ -523,7 +543,7 @@ class MenuScreen(object):
             self.menuDirectory = "Settings"
             self.menuSelectionIndex = 4
 
-    def handleUserInputSettingsMenu(self):
+    def HandleUserInputSettingsMenu(self):
         if self.userCharacter.deltaY == self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
             self.menuSelectionIndex = self.menuSelectionIndex - 1
         if self.userCharacter.deltaY == -self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 4:
@@ -533,35 +553,35 @@ class MenuScreen(object):
         if (self.userCharacter.deltaX == -self.userCharacter.speed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 4:
             self.screenResSelection = (self.screenResSelection - 1) %len(screenResChoices)
         if (self.enterPressed == True or (abs(self.userCharacter.deltaX) == self.userCharacter.speed and self.personXDeltaWas == 0))and self.menuSelectionIndex == 3:
-            if self.displayType == "Window":
-                self.displayType = "Full Screen"
+            if self.DisplayType == "Window":
+                self.DisplayType = "Full Screen"
             else:
-                self.displayType = "Window"
+                self.DisplayType = "Window"
             self.fullScreenWindowChanged = True
         if ((((self.userCharacter.deltaX == self.userCharacter.speed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 4) or ((self.userCharacter.deltaX == -self.userCharacter.speed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 4)) or self.fullScreenWindowChanged == True:
-            self.displayWidth = screenResChoices[self.screenResSelection][0]
-            self.displayHeight = screenResChoices[self.screenResSelection][1]
-            if self.displayType == "Window":
-                gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+            self.DisplayWidth = screenResChoices[self.screenResSelection][0]
+            self.DisplayHeight = screenResChoices[self.screenResSelection][1]
+            if self.DisplayType == "Window":
+                gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight))
             else:
-                gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+                gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight), pygame.FULLSCREEN)
             self.myProjectiles = []
             self.fullScreenWindowChanged = False
         if self.enterPressed == True and self.menuSelectionIndex == 0:
             self.menuDirectory = "Main"
             self.menuSelectionIndex = 2
 
-    def handleUserInputCreditsMenu(self):
+    def HandleUserInputCreditsMenu(self):
         if self.enterPressed == True:
             self.screenMoveCounter = 0
             self.menuDirectory = "Main"
 
-    def handleUserInputHowToMenu(self):
+    def HandleUserInputHowToMenu(self):
         if self.enterPressed == True:
             self.screenMoveCounter = 0
             self.menuDirectory = "Main"
 
-    def handleUserInputHighScoresMenu(self):
+    def HandleUserInputHighScoresMenu(self):
         if (self.userCharacter.deltaY == self.userCharacter.speed and self.personYDeltaWas == 0):
             self.menuSelectionIndex = (self.menuSelectionIndex + 1) % 2
         if (self.userCharacter.deltaY == -self.userCharacter.speed and self.personYDeltaWas == 0):
@@ -581,7 +601,7 @@ class HighScoresDatabase(object):
         self.difficulties = ["Easy", "Medium", "Hard", "Expert"]
         self.databaseName = "../Data/High_Scores.db"
         
-    def fillInBlankHighScores(self, highScoresArray):
+    def FillInBlankHighScores(self, highScoresArray):
         self.workingArray = highScoresArray
         self.iNeedThisManyMoreBlankSlots = self.numberOfRecordsPerDifficulty - len(self.workingArray)
         self.n = 0
@@ -594,7 +614,7 @@ class HighScoresDatabase(object):
         #return self.workingArray
         return self.b
 
-    def loadHighScores(self):
+    def LoadHighScores(self):
         try:
             self.highScoresArray = [[],]
             self.connection = sqlite3.connect(self.databaseName)
@@ -607,17 +627,17 @@ class HighScoresDatabase(object):
                     self.a.append([self.row[0], str(self.row[1]), self.row[2], str(self.row[3]), str(self.row[4])])
                 #self.highScoresArray.append([row(0), row(1), row(2), row(3), row(4)])
                 self.a.remove([])
-                #self.a = self.a.append(self.fillInBlankHighScores(self.a))
+                #self.a = self.a.append(self.FillInBlankHighScores(self.a))
                 #self.a.remove([])
                 #print self.a
                 self.highScoresArray.insert(self.loadCounter, self.a)
         except:
-            self.initializeDatabase()
+            self.InitializeDatabase()
         
         self.connection.close()
         return self.highScoresArray
 
-    def initializeDatabase(self):
+    def InitializeDatabase(self):
         self.connection = sqlite3.connect(self.databaseName)
         self.c = self.connection.cursor()
         for difficulty in self.difficulties:
@@ -626,15 +646,15 @@ class HighScoresDatabase(object):
 
         for self.loadCounter in xrange(len(self.difficulties)):
             #self.highScoresArray.append([])
-            self.highScoresArray.insert(self.loadCounter, self.fillInBlankHighScores(self.highScoresArray[self.loadCounter]))
-            #self.highScoresArray = self.fillInBlankHighScores(self.highScoresArray[self.loadCounter])
+            self.highScoresArray.insert(self.loadCounter, self.FillInBlankHighScores(self.highScoresArray[self.loadCounter]))
+            #self.highScoresArray = self.FillInBlankHighScores(self.highScoresArray[self.loadCounter])
         self.highScoresArray.remove([])
         for self.loadCounter in xrange(len(self.difficulties)):
-            self.updateHighScoresForThisDifficulty(self.highScoresArray[self.loadCounter], self.loadCounter)
+            self.UpdateHighScoresForThisDifficulty(self.highScoresArray[self.loadCounter], self.loadCounter)
         self.connection.close()
         return self.highScoresArray
                 
-    def updateHighScoresForThisDifficulty(self, workingArray, difficulty):
+    def UpdateHighScoresForThisDifficulty(self, workingArray, difficulty):
         try:
             self.workingArray = workingArray
             self.difficulty = difficulty
@@ -649,13 +669,13 @@ class HighScoresDatabase(object):
                 self.c.execute("INSERT INTO " + self.difficulties[self.difficulty] + "HighScoreTable Values(?, ?, ?, ?, ?)", tuple((int(workingArray[self.updateCounter][0]), self.workingArray[self.updateCounter][1], int(self.workingArray[self.updateCounter][2]), self.workingArray[self.updateCounter][3], self.workingArray[self.updateCounter][4])))                
                 self.connection.commit()
         except:
-            self.initializeDatabase()
+            self.InitializeDatabase()
         self.connection.close()
         
-class GameplayObject(object):
+class GamePlayObject(object):
     pass
 
-class Weapon(GameplayObject):
+class Weapon(GamePlayObject):
     def __init__(self, name, damage, ammo, physIndic, generateBulletWidth, generateBulletHeight, generateBulletSpeed):
         self.name = name
         self.damage = damage
@@ -665,7 +685,7 @@ class Weapon(GameplayObject):
         self.generateBulletHeight = generateBulletHeight
         self.generateBulletSpeed = generateBulletSpeed
 
-class WorldObject(GameplayObject):
+class WorldObject(GamePlayObject):
     def __init__(self, name = "", desc = "", columns = 0, touchAction = 0, attackAction = 0, time = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False):
         self.name = name
         self.desc = desc
@@ -721,7 +741,7 @@ class Character(WorldObject):
         self.name = name
         self.numberOfFramesAnimPerWalk = numberOfFramesAnimPerWalk #3
         self.numberOfDirectionsFacingToDisplay = 8
-        self.imagesGFXName = "../Images/userplayer.png"
+        self.imagesGFXName = "../Images/userPlayer.png"
         self.imagesGFXNameDesc = "User Player"
         self.imagesGFXRows = self.numberOfDirectionsFacingToDisplay
         self.imagesGFXColumns = self.numberOfFramesAnimPerWalk
@@ -764,11 +784,11 @@ class Character(WorldObject):
     def AI(self):
         pass
 
-    def initializeScreenPosition(self, camera, tileWidth, tileHeight):
+    def InitializeScreenPosition(self, camera, tileWidth, tileHeight):
         self.x = (self.xTile - camera.viewX) * tileWidth
         self.y = (self.yTile - camera.viewY) * tileHeight
 
-    def move(self, camera, tileWidth, tileHeight, deltaX, deltaY):
+    def Move(self, camera, tileWidth, tileHeight, deltaX, deltaY):
         if self.xok == 1:
             self.x = self.x + deltaX + self.deltaXScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
             self.xTile = 1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + (self.x/float(tileWidth)) #0 BASED, JUST LIKE THE ARRAY, THIS IS LEFT MOST POINT OF USER'S CHAR
@@ -776,16 +796,16 @@ class Character(WorldObject):
             self.y = self.y + deltaY + self.deltaYScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
             self.yTile = 1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + (self.y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
 
-    def getLocationInWorld(self):
+    def GetLocationInWorld(self):
         return [self.xTile, self.yTile] #UNITS IN WORLD TILES
 
-    def getLocationOnScreen(self):
+    def GetLocationOnScreen(self):
         return [self.x, self.y] #UNITS IN SCREEN PIXELS
 
-    def testIfLocationVisibleOnScreen(self):
+    def TestIfLocationVisibleOnScreen(self):
         pass
 
-    def testForWallCollision(self, thisLevelMap, camera, tileHeight, tileWidth, gravityAppliesToWorld, stickToWallsOnCollision):
+    def TestForWallCollision(self, thisLevelMap, camera, tileHeight, tileWidth, gravityAppliesToWorld, stickToWallsOnCollision):
 
         #This acts as a buffer to allow user to not get up against floor/ceiling
         #because the distance the user will travel over the next frame cannot
@@ -802,7 +822,7 @@ class Character(WorldObject):
         #BUT ONLY ONE DIRECTION (FOR EX: LEFT) COLLIDES, THEN WE WANT TO KEEP THE USER MOVING
         #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
         #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
-        #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S self IS SMALLER
+        #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PlayER'S self IS SMALLER
         #THAN THE TILES THE WORLD IS MADE OF.
 
         #        A     B
@@ -836,13 +856,13 @@ class Character(WorldObject):
         #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
         #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
         
-        #if (self.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset + self.speed) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset + self.speed) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.speed + self.getNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.speed + self.getNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
-        if (self.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.getNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.getNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
+        #if (self.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset + self.speed) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset + self.speed) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.speed + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.speed + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
+        if (self.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
             self.yok = 0
             self.deltaYScreenOffset = 0
             if stickToWallsOnCollision == False:
                 self.deltaY = 0
-            if gravityAppliesToWorld == True and self.gravityYDelta != 0 and self.deltaY + self.getNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight) > 0:
+            if gravityAppliesToWorld == True and self.gravityYDelta != 0 and self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight) > 0:
                 self.gravityYDelta = 0
                 self.timeSpentFalling = 0
                 self.deltaY = -1
@@ -865,18 +885,18 @@ class Character(WorldObject):
             if stickToWallsOnCollision == False:
                 self.deltaX = 0
 
-    def calculateNextGravityVelocity(self, tileHeight):
+    def CalculateNextGravityVelocity(self, tileHeight):
         return (min(self.gravityYDelta + (.00005 * (self.timeSpentFalling**2)), tileHeight / 3.0)), self.timeSpentFalling + 1
 
-    def getNextGravityApplicationToWorld(self, gravityYDelta, timeSpentFalling, tileHeight):
+    def GetNextGravityApplicationToWorld(self, gravityYDelta, timeSpentFalling, tileHeight):
         character = Character("Temp")
         character.gravityYDelta = gravityYDelta
         character.timeSpentFalling = timeSpentFalling
-        a, b = self.calculateNextGravityVelocity(tileHeight)
+        a, b = self.CalculateNextGravityVelocity(tileHeight)
         del character
         return a
 
-    def determineCharPicBasedOnDirectionFacing(self):
+    def DetermineCharPicBasedOnDirectionFacing(self):
         if self.xFacing == 0 and self.yFacing > 0:
             #down
             self.imgDirectionIndex = 0
@@ -902,7 +922,7 @@ class Character(WorldObject):
             #down left
             self.imgDirectionIndex = 7
 
-    def determineCharPicBasedOnWalkOrMovement(self, millisecondsSinceLastFrame):
+    def DetermineCharPicBasedOnWalkOrMovement(self, millisecondsSinceLastFrame):
         if self.deltaX == 0 and self.deltaY == 0:
             self.imgLegIndex = 0
             self.millisecondsOnThisLeg = 0
@@ -913,43 +933,43 @@ class Character(WorldObject):
             else:
                 self.millisecondsOnThisLeg = self.millisecondsOnThisLeg + millisecondsSinceLastFrame
 
-    def applyGravity(self):
+    def ApplyGravity(self):
         self.deltaY = self.deltaY + self.gravityYDelta
 
-    def attack(self):
+    def Attack(self):
         pass
 
 class Camera(object):
-    def __init__(self, screenResSelection, displayType, x, y):
+    def __init__(self, screenResSelection, DisplayType, x, y):
         self.screenResSelection = screenResSelection
-        self.displayType = displayType
+        self.DisplayType = DisplayType
         self.viewX = x #Camera view X-coord measured in tiles
         self.viewY = y - 1#Camera view Y-coord measured in tiles
-        self.viewToScreenPxlOffsetX = 0 #Offset the camera view X-coord to the screen based on player fractional tile movement, in pixels
-        self.viewToScreenPxlOffsetY = 0 #Offset the camera view Y-coord to the screen based on player fractional tile movement, in pixels
+        self.viewToScreenPxlOffsetX = 0 #Offset the camera view X-coord to the screen based on Player fractional tile movement, in pixels
+        self.viewToScreenPxlOffsetY = 0 #Offset the camera view Y-coord to the screen based on Player fractional tile movement, in pixels
         self.zoom = 1
 
-    def updateScreenSettings(self):
-        self.displayWidth = screenResChoices[self.screenResSelection][0]
-        self.displayHeight = screenResChoices[self.screenResSelection][1]
-        #self.displayWidth = displayWidth #1280 #960
-        #self.displayHeight = displayHeight #720 #54
-        if self.displayType == "Full Screen":
-            gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight), pygame.FULLSCREEN)
+    def UpdateScreenSettings(self):
+        self.DisplayWidth = screenResChoices[self.screenResSelection][0]
+        self.DisplayHeight = screenResChoices[self.screenResSelection][1]
+        #self.DisplayWidth = DisplayWidth #1280 #960
+        #self.DisplayHeight = DisplayHeight #720 #54
+        if self.DisplayType == "Full Screen":
+            gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight), pygame.FULLSCREEN)
         else:
-            gameDisplay = pygame.display.set_mode((self.displayWidth, self.displayHeight))
+            gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight))
         return gameDisplay
         #TODO: Resolution/screen size change can put character outside of camera view
         #TODO: Resolution/screen size change can put camera view outside of world
         #TODO: Resolution/screen size can be larger than the world itself, 
         #   thus the world must be centered for attractive appearance
 
-    def move(self, tileWidth, tileHeight, deltaX = 0, deltaY = 0):#, deltaZ = 0, deltaZoom = 0):
+    def Move(self, tileWidth, tileHeight, deltaX = 0, deltaY = 0):#, deltaZ = 0, deltaZoom = 0):
         self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY - deltaY #MOVE CAMERA ALONG Y AXIS
         self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX - deltaX #MOVE CAMERA ALONG X AXIS
-        self.refreshViewCoords(tileWidth, tileHeight)
+        self.RefreshViewCoords(tileWidth, tileHeight)
 
-    def moveBasedOnCharacterMove(self, character, tileHeight, tileWidth, thisLevelMapWidth, thisLevelMapHeight):
+    def MoveBasedOnCharacterMovement(self, character, tileHeight, tileWidth, thisLevelMapWidth, thisLevelMapHeight):
 
         #        -COMPUTER SCREEN-
         #          |          |
@@ -963,7 +983,7 @@ class Camera(object):
         #          |          |
         #----------+----------+--------------
         #          |    IF    |
-        #          | PLAYER   |
+        #          | PlayER   |
         #          | TRIES TO |
         #          |   LEAVE  |
         #          | THIS AREA|
@@ -987,21 +1007,21 @@ class Camera(object):
             #IF CHARACTER IS PRESSING AGAINST BLOCK, BUT OUTSIDE OF MIDDLE 9TH AND CAMERA CAN MOVE FURTHER BEFORE HITTING THE EDGE OF THE WORLD, THEN MOVE CAMERA, BUT NOT THE PERSON
 
             #*UNLESS SCREEN SCROLLING PUTS CAMERA VIEW OUTSIDE OF THE WORLD
-            #(IS PLAYER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PLAYER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
-            if character.xok == 1 and self.atWorldEdgeX == False and ((character.deltaX < 0 and character.x + character.deltaX < (1*self.displayWidth)/3.0) or (character.deltaX >0 and character.x + character.deltaX > (2*self.displayWidth)/3.0)):
-                self.move(tileWidth, tileHeight, deltaX = character.deltaX) #MOVE CAMERA ALONG X AXIS
-                character.deltaXScreenOffset = -character.deltaX #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
+            #(IS PlayER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PlayER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
+            if character.xok == 1 and self.atWorldEdgeX == False and ((character.deltaX < 0 and character.x + character.deltaX < (1*self.DisplayWidth)/3.0) or (character.deltaX >0 and character.x + character.deltaX > (2*self.DisplayWidth)/3.0)):
+                self.Move(tileWidth, tileHeight, deltaX = character.deltaX) #MOVE CAMERA ALONG X AXIS
+                character.deltaXScreenOffset = -character.deltaX #KEEP PlayER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
             else:
                 character.deltaXScreenOffset = 0
 
-            if character.yok == 1 and self.atWorldEdgeY == False and ((character.deltaY < 0 and character.y + character.deltaY < (1*self.displayHeight)/3.0) or (character.deltaY >0 and character.y + character.deltaY > (2*self.displayHeight)/3.0)):
-                self.move(tileWidth, tileHeight, deltaY = character.deltaY) #MOVE CAMERA ALONG Y AXIS
-                character.deltaYScreenOffset = -character.deltaY #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
+            if character.yok == 1 and self.atWorldEdgeY == False and ((character.deltaY < 0 and character.y + character.deltaY < (1*self.DisplayHeight)/3.0) or (character.deltaY >0 and character.y + character.deltaY > (2*self.DisplayHeight)/3.0)):
+                self.Move(tileWidth, tileHeight, deltaY = character.deltaY) #MOVE CAMERA ALONG Y AXIS
+                character.deltaYScreenOffset = -character.deltaY #KEEP PlayER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
             else:
                 character.deltaYScreenOffset = 0
         return character
 
-    def refreshViewCoords(self, tileWidth, tileHeight):
+    def RefreshViewCoords(self, tileWidth, tileHeight):
         #CAMERA MOVES IN PIXELS, BUT THE WORLD IS BUILT IN TILES.
         #WHEN SCREEN MOVES IN PIXELS WITH USER'S MOVEMENT, THIS
         #IS STORED IN cameraViewToScreenPxlOffsetX/Y. BUT IF USER'S
@@ -1026,38 +1046,37 @@ class Camera(object):
             self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY + tileHeight
             self.viewY = self.viewY + 1
 
-    def getLocationInWorld(self, tileHeight, tileWidth):
+    def GetLocationInWorld(self, tileHeight, tileWidth):
         return [1 + self.viewX - (self.viewToScreenPxlOffsetX/float(tileWidth)), 1 + self.viewY - (self.viewToScreenPxlOffsetY/float(tileHeight))]
 
-    def setLocationInWorld(self, x, y, tileHeight, tileWidth):
+    def SetLocationInWorld(self, x, y, tileHeight, tileWidth):
         pass
         #self.viewX = (self.viewToScreenPxlOffsetX/float(tileWidth)) + x - 1
         #self.viewY = (self.viewToScreenPxlOffsetY/float(tileHeight)) + y - 1
 
-    def validatePosition(self, gameDisplay):
+    def ValidatePosition(self, gameDisplay):
         #CAN'T BE BEYOND WORLD EDGES
             #WHAT IF CAMERA VIEW IS LARGER THAN WORLD SIZE?
         #CAN'T PUT USER CHARACTER OUTSIDE OF INNER NINTH IF CAMERA CAN MOVE CLOSER TO WORLD EDGE
         pass
 
-    def testIfAtWorldEdgeCollision(self, thisLevelMap, character, tileWidth, tileHeight):
+    def TestIfAtWorldEdgeCollision(self, thisLevelMap, character, tileWidth, tileHeight):
         #SNAP CAMERA TO THE EDGE OF THE WORLD IF PAST IT
         self.atWorldEdgeX = False
         self.atWorldEdgeY = False
             #camera X  +      tiles on screen              +        frac. person next move         +   frac camera X                                         
-        if (1 + self.viewX + (self.displayWidth/float(tileWidth)) + (character.deltaX/float(tileWidth)) - (self.viewToScreenPxlOffsetX/float(tileWidth)) >= len(thisLevelMap[0])) and character.deltaX > 0:
-            self.viewToScreenPxlOffsetX = (float(float(self.displayWidth/float(tileWidth)) - int(self.displayWidth/float(tileWidth))))*tileWidth
-            self.viewX = int(len(thisLevelMap[0]) - int(self.displayWidth/float(tileWidth))) - 1
+        if (1 + self.viewX + (self.DisplayWidth/float(tileWidth)) + (character.deltaX/float(tileWidth)) - (self.viewToScreenPxlOffsetX/float(tileWidth)) >= len(thisLevelMap[0])) and character.deltaX > 0:
+            self.viewToScreenPxlOffsetX = (float(float(self.DisplayWidth/float(tileWidth)) - int(self.DisplayWidth/float(tileWidth))))*tileWidth
+            self.viewX = int(len(thisLevelMap[0]) - int(self.DisplayWidth/float(tileWidth))) - 1
             self.atWorldEdgeX = True
         else:
             if (1 + self.viewX - self.viewToScreenPxlOffsetX/float(tileWidth) + (character.deltaX/float(tileWidth)) <= 0 and character.deltaX <0):
                 self.viewX = -1
                 self.viewToScreenPxlOffsetX = 0
                 self.atWorldEdgeX = True
-        
-        if (1 + self.viewY + (self.displayHeight/float(tileHeight)) + (character.deltaY/float(tileHeight)) - (self.viewToScreenPxlOffsetY/float(tileHeight)) >= len(thisLevelMap)) and character.deltaY > 0:
-            self.viewToScreenPxlOffsetY = (float(float(self.displayHeight/float(tileHeight)) - int(self.displayHeight/float(tileHeight))))*tileHeight
-            self.viewY = int(len(thisLevelMap) - int(self.displayHeight/float(tileHeight))) - 1
+        if (1 + self.viewY + (self.DisplayHeight/float(tileHeight)) + (character.deltaY/float(tileHeight)) - (self.viewToScreenPxlOffsetY/float(tileHeight)) >= len(thisLevelMap)) and character.deltaY > 0:
+            self.viewToScreenPxlOffsetY = (float(float(self.DisplayHeight/float(tileHeight)) - int(self.DisplayHeight/float(tileHeight))))*tileHeight
+            self.viewY = int(len(thisLevelMap) - int(self.DisplayHeight/float(tileHeight))) - 1
             self.atWorldEdgeY = True
         else:
             if (1 + self.viewY - self.viewToScreenPxlOffsetY/float(tileHeight) + (character.deltaY/float(tileHeight)) <= 0 and character.deltaY < 0):
@@ -1233,7 +1252,7 @@ class Game(object):
         self.particles = []
 
         self.camera = Camera(screenResSelection, fullScreen, 14, 0)
-        self.gameDisplay = self.camera.updateScreenSettings()
+        self.gameDisplay = self.camera.UpdateScreenSettings()
 
         self.tileSheetRows = 9
         self.tileSheetColumns = 1
@@ -1241,91 +1260,97 @@ class Game(object):
         self.tileHeight = 64 * self.camera.zoom
         self.tileXPadding = 0
         self.tileYPadding = 0
-        self.gfx.loadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
         self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.thisLevelMapAttributes["startXFacing"], yFacing = self.thisLevelMapAttributes["startYFacing"], xTile = self.thisLevelMapAttributes["startX"], yTile = self.thisLevelMapAttributes["startY"], deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
-        self.userCharacter.initializeScreenPosition(self.camera, self.tileWidth, self.tileHeight)
+        self.userCharacter.InitializeScreenPosition(self.camera, self.tileWidth, self.tileHeight)
         for i in xrange (4):
             self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100)))
         self.characters = [self.userCharacter]
         for character in self.characters:
-            self.gfx.loadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
-        self.gfx.loadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
-        self.gfx.loadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
+            self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
         
         self.FPSLimit = 200
         
-    def showMenu(self, displayMenu, camera):
-        menuSystem = MenuScreen(displayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.displayType, self.gameDisplay)
-        self.difficultySelection, self.camera.screenResSelection, self.camera.displayType, self.exiting = menuSystem.displayMenuScreenAndHandleUserInput()
+    def ShowMenu(self, DisplayMenu, camera):
+        menuSystem = MenuManager(DisplayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.DisplayType, self.gameDisplay)
+        self.difficultySelection, self.camera.screenResSelection, self.camera.DisplayType, self.exiting = menuSystem.DisplayMenuAndHandleUserInput()
         self.paused = False
         del menuSystem
-        self.camera.updateScreenSettings()
+        self.camera.UpdateScreenSettings()
 
-    def play(self):
+    def Play(self):
         # GAME LOOP
         while not self.paused:
             #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.paused, self.lost, self.userCharacter, self.enterPressed = self.logic.handleHeyPressAndGameEvents(self.paused, self.lost, self.userCharacter)
+            self.paused, self.lost, self.userCharacter, self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.paused, self.lost, self.userCharacter)
             #Select the correct image for all characters based on direction facing
-            self.userCharacter.determineCharPicBasedOnDirectionFacing()
+            for character in self.characters:
+                character.DetermineCharPicBasedOnDirectionFacing()
             #Select the correct image for all characters based on what leg they are standing on
-            self.userCharacter.determineCharPicBasedOnWalkOrMovement(self.timeElapsedSinceLastFrame)
+            for character in self.characters:
+                character.DetermineCharPicBasedOnWalkOrMovement(self.timeElapsedSinceLastFrame)
             #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
-            self.timeElapsedSinceLastFrame = self.logic.manageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit)
+            self.timeElapsedSinceLastFrame = self.logic.ManageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit)
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-            self.particles, self.userCharacter = self.logic.alterAllSpeeds(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
-
-            self.camera.testIfAtWorldEdgeCollision(self.thisLevelMap, self.userCharacter, self.tileWidth, self.tileHeight)
-            self.userCharacter.applyGravity()
+            self.particles, self.userCharacter = self.logic.AdjustSpeedBasedOnFrameRate(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
+            self.camera.TestIfAtWorldEdgeCollision(self.thisLevelMap, self.userCharacter, self.tileWidth, self.tileHeight)
+            for character in self.characters:
+                character.ApplyGravity()
             #CHECK FOR CHARACTER-WALL COLLISIONS
-            self.userCharacter.testForWallCollision(self.thisLevelMap, self.camera, self.tileHeight, self.tileWidth, self.gravityAppliesToWorld, self.stickToWallsOnCollision)
+            for character in self.characters:
+                character.TestForWallCollision(self.thisLevelMap, self.camera, self.tileHeight, self.tileWidth, self.gravityAppliesToWorld, self.stickToWallsOnCollision)
             #ADJUST DIAGONAL SPEED IF USER PRESSES 2 ARROW KEYS
-            self.userCharacter.deltaX, self.userCharacter.deltaY = self.logic.diagSpeedFix(self.userCharacter.deltaX, self.userCharacter.deltaY, self.userCharacter.speed)
+            for character in self.characters:
+                character.deltaX, character.deltaY = self.logic.FixDiagSpeed(character.deltaX, character.deltaY, character.speed)
 
             #TODO: generateBadGuys()
             #TODO: badGuysMoveOrAttack()
             
             #TEST IF USER CHARACTER MOVES OUTSIDE OF INNER NINTH OF SCREEN
-            self.userCharacter = self.camera.moveBasedOnCharacterMove(self.userCharacter, self.tileHeight, self.tileWidth, self.thisLevelMapWidth, self.thisLevelMapHeight)
+            self.userCharacter = self.camera.MoveBasedOnCharacterMovement(self.userCharacter, self.tileHeight, self.tileWidth, self.thisLevelMapWidth, self.thisLevelMapHeight)
             #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
-            self.userCharacter.move(self.camera, self.tileWidth, self.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
+            self.userCharacter.Move(self.camera, self.tileWidth, self.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
             if self.gravityAppliesToWorld == True:
-                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.calculateNextGravityVelocity(self.tileHeight)
+                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.CalculateNextGravityVelocity(self.tileHeight)
             #MOVE PARTICLES
-            self.particles = self.logic.moveParticlesAndHandleParticleCollision(self.particles, self.thisLevelMap)
+            self.particles = self.logic.MoveParticlesAndHandleParticleCollision(self.particles, self.thisLevelMap)
             #GENERATE PARTICLES
-            self.particles, self.userCharacter = self.logic.generateParticles(self.particles, self.userCharacter, self.tileHeight, self.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
+            for character in self.characters:
+                self.particles, character = self.logic.GenerateParticles(self.particles, character, self.tileHeight, self.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-            self.gfx.drawWorldInCameraView("World Tiles", self.camera, self.tileWidth, self.tileHeight, self.thisLevelMap, self.gameDisplay)            
+            self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.tileWidth, self.tileHeight, self.thisLevelMap, self.gameDisplay)            
             #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.thisLevelObjects ARRAY
-            self.thisLevelObjects = self.gfx.drawWorldInCameraView("World Objects", self.camera, self.tileWidth, self.tileHeight, self.thisLevelObjects, self.gameDisplay, self.timeElapsedSinceLastFrame)
+            self.thisLevelObjects = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.tileWidth, self.tileHeight, self.thisLevelObjects, self.gameDisplay, self.timeElapsedSinceLastFrame)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            
-            self.gfx.drawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.tileHeight, self.tileWidth, self.userCharacter)
+            self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.tileHeight, self.tileWidth, self.userCharacter)
             
             #DRAW GAME STATS
-            #self.gfx.drawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.drawSmallMessage("Ammo: " + str(self.userCharacter.ammo), 1, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.drawSmallMessage("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.drawSmallMessage("Score: " + str(self.score), 3, self.gameDisplay, white, self.displayWidth)
-            #self.gfx.drawSmallMessage("Player wX: " + str(self.userCharacter.getLocationInWorld()[0]), 4, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.drawSmallMessage("Player wY: " + str(self.userCharacter.getLocationInWorld()[1]), 5, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.drawSmallMessage("Player sX: " + str(self.userCharacter.getLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.drawSmallMessage("Player sY: " + str(self.userCharacter.getLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Ammo: " + str(self.userCharacter.ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Score: " + str(self.score), 3, self.gameDisplay, white, self.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player wX: " + str(self.userCharacter.GetLocationInWorld()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player wY: " + str(self.userCharacter.GetLocationInWorld()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player sX: " + str(self.userCharacter.GetLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player sY: " + str(self.userCharacter.GetLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.DisplayWidth)
 
-            ##self.gfx.drawSmallMessage("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 6, self.gameDisplay, white, self.camera.displayWidth)
-            ##self.gfx.drawSmallMessage("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.displayWidth)
+            ##self.gfx.DrawSmallMessage("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 6, self.gameDisplay, white, self.camera.DisplayWidth)
+            ##self.gfx.DrawSmallMessage("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.DisplayWidth)
             
-            #self.gfx.drawSmallMessage("Cam X: " + str(self.camera.getLocationInWorld(self.tileWidth, self.tileHeight)[0]), 8, self.gameDisplay, white, self.camera.displayWidth)
-            #self.gfx.drawSmallMessage("Cam Y: " + str(self.camera.getLocationInWorld(self.tileWidth, self.tileHeight)[1]), 9, self.gameDisplay, white, self.camera.displayWidth)
-            self.gfx.drawSmallMessage("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 12, self.gameDisplay, white, self.camera.displayWidth)
+            #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocationInWorld(self.tileWidth, self.tileHeight)[0]), 8, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocationInWorld(self.tileWidth, self.tileHeight)[1]), 9, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("person dx: " + str(self.userCharacter.deltaX), 8, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("person dy: " + str(self.userCharacter.deltaY), 9, self.gameDisplay, white, self.camera.DisplayWidth)
+            self.gfx.DrawSmallMessage("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 12, self.gameDisplay, white, self.camera.DisplayWidth)
             pygame.display.update()
             if self.userCharacter.health <= 0:
                 self.lost = True
                 #self.exiting = True
-                self.gfx.drawLargeMessage("YOU LOSE", self.gameDisplay, white)
+                self.gfx.DrawLargeMessage("YOU LOSE", self.gameDisplay, white)
                 self.gameDisplay.fill(black)
-                self.gfx.drawLargeMessage(str(self.score) + " pts", self.gameDisplay, white)
+                self.gfx.DrawLargeMessage(str(self.score) + " pts", self.gameDisplay, white)
 
         #OUT OF THE GAME LOOP
         if self.lost == True:
@@ -1344,12 +1369,10 @@ screenResChoices.sort()
 exiting = False
 while exiting == False:
     myGame = Game(int(len(screenResChoices)/2), "Window")
-    exiting = myGame.showMenu("Main Menu", myGame.camera)
+    exiting = myGame.ShowMenu("Main Menu", myGame.camera)
     while myGame.exiting == False and myGame.lost == False:
-        myGame.play()
-        myGame.showMenu("Paused", myGame.camera)
-        #menuSystem = menuScreen("Main Menu", screenResSelection, difficultySelection, displayType)
-        #del menuSystem
+        myGame.Play()
+        myGame.ShowMenu("Paused", myGame.camera)
 del myGame
 pygame.quit()
 quit()

@@ -13,10 +13,21 @@ PI = math.pi
 
 
 class GfxHandler(object):
+    #INITIAL LOAD:
+    #LoadGfxDictionary Loads all images into gfxDictionary
+    
+    #GAME RUNTIME:
+    #DrawWorldInCameraView PASS Level. Foreach x, y in Level ->
+        #GetImageForLevelLocation PASS Level array(x, y) RETURNS Image Name ->
+        #GetImageCoordsInGfxDictionary PASS Image Name RETURNS Coordinates of the image within the gfxDictionary ->
+        #GetImageOutOfGfxDictionary PASS Coordinates of the requested image within the gfxDictionary RETURNS Image
+        #DrawImageToScreen PASS Image, coordinates DRAWS Image on the screen at given coordinates
+    
     def __init__(self):
         self.gfxDictionary = {}
 
     def LoadGfxDictionary(self, file_name="", imageIndicator="", rows=0, columns=0, width=0, height=0, pictureXPadding=0, pictureYPadding=0):
+        #Load collection of images into dictionary
         self.spriteSheet = pygame.image.load(file_name)
         imgTransparency = True
         
@@ -26,19 +37,20 @@ class GfxHandler(object):
 
         for j in xrange(rows):
             for k in xrange(columns):
-                #self.gfxDictionary[(j*k) + j] = self.GetImage(self.GetCoords((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
-                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.GetImage(self.GetCoords((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
+                #self.gfxDictionary[(j*k) + j] = self.GetImageOutOfGfxDictionary(self.GetImageCoordsInGfxDictionary((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
+                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.GetImageOutOfGfxDictionary(self.GetImageCoordsInGfxDictionary((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
 
-    def GetImage(self, Coords, requiresTransparency):
+    def GetImageOutOfGfxDictionary(self, Coords, requiresTransparency):
+        #Gets requested image out of the GfxDictionary.
+        #Requires coordinates
         image = pygame.Surface([Coords[2], Coords[3]])
         image.blit(self.spriteSheet, (0,0), Coords)
         if requiresTransparency == True:
             image.set_colorkey((0,0,0))
         return image
 
-    def GetCoords(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, gfxHandlerRows, gfxHandlerColumns):
-        #print int((tileRequested%gfxHandlerColumns)*tileWidth)+(int(tileRequested%gfxHandlerColumns))*pictureXPadding
-        #a = raw_input("")
+    def GetImageCoordsInGfxDictionary(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, gfxHandlerRows, gfxHandlerColumns):
+        #Gets coordinates of requested image's location within the gfxDictionary
         return (int((tileRequested%gfxHandlerColumns)*tileWidth)+(int(tileRequested%gfxHandlerColumns))*pictureXPadding,
                 int((tileRequested/gfxHandlerColumns)*tileHeight)+(int(tileRequested/gfxHandlerColumns))*pictureYPadding,
                 tileWidth,
@@ -62,8 +74,8 @@ class GfxHandler(object):
         textRect.center = ((DisplayWidth-60), 15 + (15*lineNumber))
         myGameDisplay.blit(textSurf, textRect)
 
-    def DrawImg(self, myImage, myCoords, myGameDisplay):
-        #pygame.draw.rect(myImage, grayConst, myCoords)
+    def DrawImageToScreen(self, myImage, myCoords, myGameDisplay):
+        #Draws a given image to the screen
          myGameDisplay.blit(myImage, (myCoords[0], myCoords[1]))
 
     def DrawDialogs(self, conversationArray, (backR, backG, backB, backA), (foreR, foreG, foreB, foreA), (borderR, borderG, borderB, borderA), borderSize = 5):
@@ -72,7 +84,8 @@ class GfxHandler(object):
         return conversationSelections
     
     def DrawObjectsAndParticles(self, particles, gameDisplay, camera, tileHeight, tileWidth, character):
-        self.DrawImg(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
+        #Draws objects, particles, and anything else that is animated or non-static part of the level
+        self.DrawImageToScreen(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
         for i in xrange(len(particles)):
             if particles[i].name == "User Bullet":
                 #print "x: " + str((1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth)
@@ -81,41 +94,42 @@ class GfxHandler(object):
                     #self.drawObject("bullet" + str(particles[i][1]) + ".png", (1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth, (1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight, gameDisplay)
                     #print math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5))
                     #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][particles[i][1]], (180*math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5)))/PI)
-                    self.DrawImg(particles[i].img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particles[i].yTile) * -tileHeight), gameDisplay)
+                    self.DrawImageToScreen(particles[i].img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particles[i].yTile) * -tileHeight), gameDisplay)
 
-    def DrawWorldInCameraView(self, tileSet, camera, tileWidth, tileHeight, thisLevelMap, gameDisplay, timeElapsedSinceLastFrame=0):
+    def DrawWorldInCameraView(self, tileSet, camera, tileWidth, tileHeight, wallMap, gameDisplay, timeElapsedSinceLastFrame=0):
+        #Draw static world objects in camera view
         for i in xrange(int(camera.DisplayWidth/float(tileWidth))+2):
             for j in xrange(int(camera.DisplayHeight/float(tileHeight))+2):
                 try:
-                    imgToDraw, thisLevelMap = self.GetImageForLocation(thisLevelMap, i, j, camera.viewX, camera.viewY, tileSet, timeElapsedSinceLastFrame)
+                    imgToDraw, wallMap = self.GetImageForLevelLocation(wallMap, i, j, camera.viewX, camera.viewY, tileSet, timeElapsedSinceLastFrame)
                     if imgToDraw != "":
-                        self.DrawImg(imgToDraw,
+                        self.DrawImageToScreen(imgToDraw,
                           (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX,
                           ((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY,
                           (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX)+ tileWidth,
                           (((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY) + tileHeight), gameDisplay)
                 except:
                     pass
-        return thisLevelMap
+        return wallMap
 
-    def GetImageForLocation(self, thisLevelMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
+    def GetImageForLevelLocation(self, wallMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
         imgToDraw = ""
         try:
-            if thisLevelMap[j+viewY][i+viewX] != []:
-                if type(thisLevelMap[j+viewY][i+viewX]) is int:
-                    imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX]]
+            if wallMap[j+viewY][i+viewX] != []:
+                if type(wallMap[j+viewY][i+viewX]) is int:
+                    imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX]]
                 else:
-                    thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
-                    while thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame:
-                        thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame
-                        thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage + 1
-                        if thisLevelMap[j+viewY][i+viewX].activeImage >= ((thisLevelMap[j+viewY][i+viewX].ID + 1) * thisLevelMap[j+viewY][i+viewX].columns - thisLevelMap[j+viewY][i+viewX].ID):
-                            thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage - thisLevelMap[j+viewY][i+viewX].columns
-                    #print thisLevelMap[j+viewY][i+viewX].activeImage
-                    imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX].activeImage + int(thisLevelMap[j+viewY][i+viewX].ID)]
+                    wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
+                    while wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > wallMap[j+viewY][i+viewX].timeBetweenAnimFrame:
+                        wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - wallMap[j+viewY][i+viewX].timeBetweenAnimFrame
+                        wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage + 1
+                        if wallMap[j+viewY][i+viewX].activeImage >= ((wallMap[j+viewY][i+viewX].ID + 1) * wallMap[j+viewY][i+viewX].columns - wallMap[j+viewY][i+viewX].ID):
+                            wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage - wallMap[j+viewY][i+viewX].columns
+                    #print wallMap[j+viewY][i+viewX].activeImage
+                    imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX].activeImage + int(wallMap[j+viewY][i+viewX].ID)]
         except:
             pass
-        return imgToDraw, thisLevelMap
+        return imgToDraw, wallMap
 
 class LogicHandler(object):
     def HandleHeyPressAndGameEvents(self, exiting, lost, character):
@@ -126,11 +140,11 @@ class LogicHandler(object):
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 exiting = True
                 lost = False
-            #IF PlayER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY UP:
+            #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY UP:
             #if event.type == pygame.KEYUP and keys[pygame.K_SPACE] and ammo >0:
             #   character.shotsFiredFromMe = True
 
-            #IF PlayER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY DOWN:
+            #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY DOWN:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     character.shotsFiredFromMe = True
@@ -165,7 +179,7 @@ class LogicHandler(object):
                 character.yFacing = character.deltaY/abs(character.deltaY)
 
             
-        #IF PlayER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
+        #IF PLAYER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
         #if keys[pygame.K_SPACE] and ammo >0:
         #    shotsFiredFromMe = True
 
@@ -217,11 +231,11 @@ class LogicHandler(object):
             character.shotsFiredFromMe = False
         return particles, character
 
-    def MoveParticlesAndHandleParticleCollision(self, particles, thisLevelMap):
+    def MoveParticlesAndHandleParticleCollision(self, particles, wallMap):
         #MOVE PARTICLES, OR DELETE THEM IF THEY REACH WORLD END
         myDeletedParticles = []
         for i in xrange(len(particles)):
-            if particles[i].xTile + particles[i].dx > len(thisLevelMap[0]) or particles[i].yTile + particles[i].dy > len(thisLevelMap) or particles[i].xTile + particles[i].dx < 0 or particles[i].yTile + particles[i].dy < 0:
+            if particles[i].xTile + particles[i].dx > len(wallMap[0]) or particles[i].yTile + particles[i].dy > len(wallMap) or particles[i].xTile + particles[i].dx < 0 or particles[i].yTile + particles[i].dy < 0:
                 myDeletedParticles.append(i)
             else:
                 particles[i].xTile = particles[i].xTile + particles[i].dx
@@ -735,6 +749,9 @@ class Bullet(WorldObject):
         self.imagesGFXColumns = 1
         self.weapon = weapon
 
+class AI(object):
+    pass
+
 class Character(WorldObject):
     def __init__(self, name = "", boundToCamera = False, xFacing = 0, yFacing = 0, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False):
         #GENERAL
@@ -751,8 +768,8 @@ class Character(WorldObject):
         self.yFacing = yFacing
         self.xTile = xTile
         self.yTile = yTile - 1
-        self.x = 0 #NEEDS TO BE CALCULATED
-        self.y = 0 #NEEDS TO BE CALCULATED
+        self.x = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME
+        self.y = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME
         self.xok = 1
         self.yok = 1 
         self.deltaX = deltaX #specifies the change in xTile on the next frame
@@ -766,6 +783,7 @@ class Character(WorldObject):
         self.boundToCamera = boundToCamera
 
         #SPECIFIC PROPERTIES
+        self.AI = AI()
         self.defaultSpeed = defaultSpeed #.5
         self.speed = 0
         self.health = 100
@@ -780,9 +798,6 @@ class Character(WorldObject):
         self.deltaYScreenOffset = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.shotsFiredFromMe = shotsFiredFromMe
         self.weapons = weapons
-
-    def AI(self):
-        pass
 
     def InitializeScreenPosition(self, camera, tileWidth, tileHeight):
         self.x = (self.xTile - camera.viewX) * tileWidth
@@ -805,7 +820,7 @@ class Character(WorldObject):
     def TestIfLocationVisibleOnScreen(self):
         pass
 
-    def TestForWallCollision(self, thisLevelMap, camera, tileHeight, tileWidth, gravityAppliesToWorld, stickToWallsOnCollision):
+    def UpdateDirectionBasedOnWallCollisionTest(self, wallMap, camera, tileHeight, tileWidth, gravity, stickToWallsOnCollision):
 
         #This acts as a buffer to allow user to not get up against floor/ceiling
         #because the distance the user will travel over the next frame cannot
@@ -822,7 +837,7 @@ class Character(WorldObject):
         #BUT ONLY ONE DIRECTION (FOR EX: LEFT) COLLIDES, THEN WE WANT TO KEEP THE USER MOVING
         #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
         #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
-        #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PlayER'S self IS SMALLER
+        #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S self IS SMALLER
         #THAN THE TILES THE WORLD IS MADE OF.
 
         #        A     B
@@ -840,9 +855,12 @@ class Character(WorldObject):
 
         self.yok = 1
         self.xok = 1
+        #self.deltaY = self.deltaY + self.gravityYDelta
+        #self.gravityYDelta = 0
+        #self.timeSpentFalling = 0
         needToRevert = 0
         #COLLISION CHECK @ C or @ D or @ H or @ G
-        if (self.deltaX > 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
+        if (self.deltaX > 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
             tempxok = self.xok #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
             tempdeltaXScreenOffset = self.deltaXScreenOffset #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
             temppersonXDelta = self.deltaX #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
@@ -856,13 +874,13 @@ class Character(WorldObject):
         #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
         #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
         
-        #if (self.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset + self.speed) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset + self.speed) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.speed + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.speed + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
-        if (self.deltaY < 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
+        #if (self.deltaY < 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
+        if (self.deltaY < 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
             self.yok = 0
             self.deltaYScreenOffset = 0
             if stickToWallsOnCollision == False:
                 self.deltaY = 0
-            if gravityAppliesToWorld == True and self.gravityYDelta != 0 and self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight) > 0:
+            if gravity == True and self.gravityYDelta != 0 and self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight) > 0:
                 self.gravityYDelta = 0
                 self.timeSpentFalling = 0
                 self.deltaY = -1
@@ -879,7 +897,7 @@ class Character(WorldObject):
         #COLLISION CHECK @ C or @ D or @ H or @ G
         #NOW TEST FOR COLLISION @ C, D, H, OR G NOW KNOWING THAT WE HANDLED MAY HAVE HANDLED A COLLISION @ C, D, H, OR G
         #LIKEWISE, THIS FORMULA IS DEPENDENT ON VARS IN 2ND SECTION THAT CHANGED
-        if ((self.deltaX)> 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (thisLevelMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or thisLevelMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
+        if ((self.deltaX)> 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
             self.xok = 0
             self.deltaXScreenOffset = 0
             if stickToWallsOnCollision == False:
@@ -969,7 +987,7 @@ class Camera(object):
         self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX - deltaX #MOVE CAMERA ALONG X AXIS
         self.RefreshViewCoords(tileWidth, tileHeight)
 
-    def MoveBasedOnCharacterMovement(self, character, tileHeight, tileWidth, thisLevelMapWidth, thisLevelMapHeight):
+    def MoveBasedOnCharacterMovement(self, character, tileHeight, tileWidth, levelWidth, levelHeight):
 
         #        -COMPUTER SCREEN-
         #          |          |
@@ -983,7 +1001,7 @@ class Camera(object):
         #          |          |
         #----------+----------+--------------
         #          |    IF    |
-        #          | PlayER   |
+        #          | PLAYER   |
         #          | TRIES TO |
         #          |   LEAVE  |
         #          | THIS AREA|
@@ -1007,16 +1025,16 @@ class Camera(object):
             #IF CHARACTER IS PRESSING AGAINST BLOCK, BUT OUTSIDE OF MIDDLE 9TH AND CAMERA CAN MOVE FURTHER BEFORE HITTING THE EDGE OF THE WORLD, THEN MOVE CAMERA, BUT NOT THE PERSON
 
             #*UNLESS SCREEN SCROLLING PUTS CAMERA VIEW OUTSIDE OF THE WORLD
-            #(IS PlayER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PlayER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
+            #(IS PLAYER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PLAYER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
             if character.xok == 1 and self.atWorldEdgeX == False and ((character.deltaX < 0 and character.x + character.deltaX < (1*self.DisplayWidth)/3.0) or (character.deltaX >0 and character.x + character.deltaX > (2*self.DisplayWidth)/3.0)):
                 self.Move(tileWidth, tileHeight, deltaX = character.deltaX) #MOVE CAMERA ALONG X AXIS
-                character.deltaXScreenOffset = -character.deltaX #KEEP PlayER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
+                character.deltaXScreenOffset = -character.deltaX #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
             else:
                 character.deltaXScreenOffset = 0
 
             if character.yok == 1 and self.atWorldEdgeY == False and ((character.deltaY < 0 and character.y + character.deltaY < (1*self.DisplayHeight)/3.0) or (character.deltaY >0 and character.y + character.deltaY > (2*self.DisplayHeight)/3.0)):
                 self.Move(tileWidth, tileHeight, deltaY = character.deltaY) #MOVE CAMERA ALONG Y AXIS
-                character.deltaYScreenOffset = -character.deltaY #KEEP PlayER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
+                character.deltaYScreenOffset = -character.deltaY #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
             else:
                 character.deltaYScreenOffset = 0
         return character
@@ -1060,30 +1078,68 @@ class Camera(object):
         #CAN'T PUT USER CHARACTER OUTSIDE OF INNER NINTH IF CAMERA CAN MOVE CLOSER TO WORLD EDGE
         pass
 
-    def TestIfAtWorldEdgeCollision(self, thisLevelMap, character, tileWidth, tileHeight):
+    def TestIfAtWorldEdgeCollision(self, wallMap, character, tileWidth, tileHeight):
         #SNAP CAMERA TO THE EDGE OF THE WORLD IF PAST IT
         self.atWorldEdgeX = False
         self.atWorldEdgeY = False
             #camera X  +      tiles on screen              +        frac. person next move         +   frac camera X                                         
-        if (1 + self.viewX + (self.DisplayWidth/float(tileWidth)) + (character.deltaX/float(tileWidth)) - (self.viewToScreenPxlOffsetX/float(tileWidth)) >= len(thisLevelMap[0])) and character.deltaX > 0:
+        if (1 + self.viewX + (self.DisplayWidth/float(tileWidth)) + (character.deltaX/float(tileWidth)) - (self.viewToScreenPxlOffsetX/float(tileWidth)) >= len(wallMap[0])) and character.deltaX > 0:
             self.viewToScreenPxlOffsetX = (float(float(self.DisplayWidth/float(tileWidth)) - int(self.DisplayWidth/float(tileWidth))))*tileWidth
-            self.viewX = int(len(thisLevelMap[0]) - int(self.DisplayWidth/float(tileWidth))) - 1
+            self.viewX = int(len(wallMap[0]) - int(self.DisplayWidth/float(tileWidth))) - 1
             self.atWorldEdgeX = True
         else:
             if (1 + self.viewX - self.viewToScreenPxlOffsetX/float(tileWidth) + (character.deltaX/float(tileWidth)) <= 0 and character.deltaX <0):
                 self.viewX = -1
                 self.viewToScreenPxlOffsetX = 0
                 self.atWorldEdgeX = True
-        if (1 + self.viewY + (self.DisplayHeight/float(tileHeight)) + (character.deltaY/float(tileHeight)) - (self.viewToScreenPxlOffsetY/float(tileHeight)) >= len(thisLevelMap)) and character.deltaY > 0:
+        if (1 + self.viewY + (self.DisplayHeight/float(tileHeight)) + (character.deltaY/float(tileHeight)) - (self.viewToScreenPxlOffsetY/float(tileHeight)) >= len(wallMap)) and character.deltaY > 0:
             self.viewToScreenPxlOffsetY = (float(float(self.DisplayHeight/float(tileHeight)) - int(self.DisplayHeight/float(tileHeight))))*tileHeight
-            self.viewY = int(len(thisLevelMap) - int(self.DisplayHeight/float(tileHeight))) - 1
+            self.viewY = int(len(wallMap) - int(self.DisplayHeight/float(tileHeight))) - 1
             self.atWorldEdgeY = True
         else:
             if (1 + self.viewY - self.viewToScreenPxlOffsetY/float(tileHeight) + (character.deltaY/float(tileHeight)) <= 0 and character.deltaY < 0):
                 self.viewY = -1
                 self.viewToScreenPxlOffsetY = 0
                 self.atWorldEdgeY = True
-    
+
+class Level(object):
+    def __init__(self, index, name, description, weather, sideScroller, wallMap, objectMap, music, loopMusic, startX, startY, startXFacing, startYFacing, xSize, ySize, gravity, stickToWallsOnCollision, tileSheetRows, tileSheetColumns, tileWidth, tileHeight, tileXPadding, tileYPadding):
+        self.index = index
+        self.name = name
+        self.description = description
+        self.weather = weather
+        self.sideScroller = sideScroller
+        self.wallMap = wallMap
+        self.objectMap = objectMap
+        self.music = music
+        self.loopMusic = loopMusic
+        self.startX = startX
+        self.startY = startY
+        self.startXFacing = startXFacing
+        self.startYFacing = startYFacing
+        self.gravity = gravity
+        self.stickToWallsOnCollision = stickToWallsOnCollision
+        self.levelHeight = len(objectMap)
+        self.levelWidth = len(objectMap[0])
+
+        self.tileSheetRows = 9
+        self.tileSheetColumns = 1
+        self.tileWidth = 64
+        self.tileHeight = 64
+        self.tileXPadding = 0
+        self.tileYPadding = 0
+
+class World(object):
+    def __init__(self, filePath, fileName):
+        self.filePath = filePath
+        self.fileName = fileName
+        
+    def GetNumberOfLevels(self):
+        pass
+
+    def GetLevel(self, index):
+        return Level(index, name, description, weather, sideScroller, wallMap, objectMap, music, loopMusic, startX, startY, startXFacing, startYFacing, xSize, ySize, gravity, stickToWallsOnCollision)
+
 class Game(object):
     def __init__(self, screenResSelection, fullScreen):        
         self.clock = pygame.time.Clock()
@@ -1103,8 +1159,7 @@ class Game(object):
         self.difficultySelection = 0
         self.enterPressed = False
         
-        self.thisLevelMapAttributes = {"levelName": "Level 1", "startX": 22, "startY": 2, "startXFacing": 0, "startYFacing": 1, "weather": "clear", "gravity": False, "stickToWallsOnCollision": False}
-        self.thisLevelMap = [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        self.currentLevel = Level(0, "Demo", "This is a demonstration level", "Clear", False, [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1],
                         [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
                         [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
@@ -1171,16 +1226,7 @@ class Game(object):
                         [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
                         [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
                         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
-        self.thisLevelMapHeight = len(self.thisLevelMap)
-        self.thisLevelMapWidth = len(self.thisLevelMap[0])
-        self.gravityAppliesToWorld = self.thisLevelMapAttributes["gravity"] #CHOOSE TRUE FOR SLIDE-SCROLLER TYPE GAME, OR FALSE FOR RPG TYPE GAME!
-        self.stickToWallsOnCollision = self.thisLevelMapAttributes["stickToWallsOnCollision"]
-        #WORLD OBJECTS ARE STORED IN AN ARRAY THAT REPRESENTS X, Y COORDINATES OF THE LEVEL. LOCATIONS WITH NO WORLD OBJECTS ARE EMPTY.
-        #THIS METHOD IS PREFERRED TO STORING AN ARRAY OF OBJECTS EACH CONTAINING AN X, Y PROPERTY BECAUSE THIS WAY ALLOWS MORE CODE REUSE,
-        #AND ONLY ITERATING OVER SECTION OF THE LEVEL THAT IS VISIBLE TO THE CAMERA'S POINT OF VIEW, RATHER THAN ITERATING OVER EACH
-        #LEVEL OBJECT AND TESTING IF ITS X, Y COORDINATES FALL WITHIN THE CAMERA'S POINT OF VIEW.
-        self.thisLevelObjects = [[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]], [[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
@@ -1247,22 +1293,15 @@ class Game(object):
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
                             [[],[],WorldObject(name = "Diamond", desc = "Diamond Flicker Example", columns = 4, touchAction = 0, attackAction = 0, time = 1000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = True),[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]]                   
-
+                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]], "", True, 22, 2, 1, 0, 0, 0, False, False, 9, 1, 64, 64, 0, 0)
         self.particles = []
 
         self.camera = Camera(screenResSelection, fullScreen, 14, 0)
         self.gameDisplay = self.camera.UpdateScreenSettings()
 
-        self.tileSheetRows = 9
-        self.tileSheetColumns = 1
-        self.tileWidth = 64 * self.camera.zoom
-        self.tileHeight = 64 * self.camera.zoom
-        self.tileXPadding = 0
-        self.tileYPadding = 0
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
-        self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.thisLevelMapAttributes["startXFacing"], yFacing = self.thisLevelMapAttributes["startYFacing"], xTile = self.thisLevelMapAttributes["startX"], yTile = self.thisLevelMapAttributes["startY"], deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
-        self.userCharacter.InitializeScreenPosition(self.camera, self.tileWidth, self.tileHeight)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.currentLevel.tileSheetRows, self.currentLevel.tileSheetColumns, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.tileXPadding, self.currentLevel.tileYPadding)
+        self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.currentLevel.startXFacing, yFacing = self.currentLevel.startYFacing, xTile = self.currentLevel.startX, yTile = self.currentLevel.startY, deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
+        self.userCharacter.InitializeScreenPosition(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
         for i in xrange (4):
             self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100)))
         self.characters = [self.userCharacter]
@@ -1294,13 +1333,13 @@ class Game(object):
             #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
             self.timeElapsedSinceLastFrame = self.logic.ManageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit)
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-            self.particles, self.userCharacter = self.logic.AdjustSpeedBasedOnFrameRate(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
-            self.camera.TestIfAtWorldEdgeCollision(self.thisLevelMap, self.userCharacter, self.tileWidth, self.tileHeight)
             for character in self.characters:
                 character.ApplyGravity()
+            self.particles, self.userCharacter = self.logic.AdjustSpeedBasedOnFrameRate(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
+            self.camera.TestIfAtWorldEdgeCollision(self.currentLevel.wallMap, self.userCharacter, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
             #CHECK FOR CHARACTER-WALL COLLISIONS
             for character in self.characters:
-                character.TestForWallCollision(self.thisLevelMap, self.camera, self.tileHeight, self.tileWidth, self.gravityAppliesToWorld, self.stickToWallsOnCollision)
+                character.UpdateDirectionBasedOnWallCollisionTest(self.currentLevel.wallMap, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision)
             #ADJUST DIAGONAL SPEED IF USER PRESSES 2 ARROW KEYS
             for character in self.characters:
                 character.deltaX, character.deltaY = self.logic.FixDiagSpeed(character.deltaX, character.deltaY, character.speed)
@@ -1309,22 +1348,22 @@ class Game(object):
             #TODO: badGuysMoveOrAttack()
             
             #TEST IF USER CHARACTER MOVES OUTSIDE OF INNER NINTH OF SCREEN
-            self.userCharacter = self.camera.MoveBasedOnCharacterMovement(self.userCharacter, self.tileHeight, self.tileWidth, self.thisLevelMapWidth, self.thisLevelMapHeight)
+            self.userCharacter = self.camera.MoveBasedOnCharacterMovement(self.userCharacter, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)
             #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
-            self.userCharacter.Move(self.camera, self.tileWidth, self.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
-            if self.gravityAppliesToWorld == True:
-                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.CalculateNextGravityVelocity(self.tileHeight)
+            self.userCharacter.Move(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
+            if self.currentLevel.gravity == True:
+                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.CalculateNextGravityVelocity(self.currentLevel.tileHeight)
             #MOVE PARTICLES
-            self.particles = self.logic.MoveParticlesAndHandleParticleCollision(self.particles, self.thisLevelMap)
+            self.particles = self.logic.MoveParticlesAndHandleParticleCollision(self.particles, self.currentLevel.wallMap)
             #GENERATE PARTICLES
             for character in self.characters:
-                self.particles, character = self.logic.GenerateParticles(self.particles, character, self.tileHeight, self.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
-            #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-            self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.tileWidth, self.tileHeight, self.thisLevelMap, self.gameDisplay)            
-            #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.thisLevelObjects ARRAY
-            self.thisLevelObjects = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.tileWidth, self.tileHeight, self.thisLevelObjects, self.gameDisplay, self.timeElapsedSinceLastFrame)
+                self.particles, character = self.logic.GenerateParticles(self.particles, character, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
+            #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE wallMap ARRAY
+            self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gameDisplay)            
+            #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.objectMap ARRAY
+            self.currentLevel.objectMap = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.tileHeight, self.tileWidth, self.userCharacter)
+            self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.userCharacter)
             
             #DRAW GAME STATS
             #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.DisplayWidth)

@@ -870,7 +870,7 @@ class Character(WorldObject):
     def TestIfLocationVisibleOnScreen(self):
         pass
 
-    def TestForWallCollision(self, thisLevelMap, camera, tileHeight, tileWidth, gravityAppliesToWorld, stickToWallsOnCollision):
+    def UpdateDirectionBasedOnWallCollisionTest(self, thisLevelMap, camera, tileHeight, tileWidth, gravityAppliesToWorld, stickToWallsOnCollision):
 
         #This acts as a buffer to allow user to not get up against floor/ceiling
         #because the distance the user will travel over the next frame cannot
@@ -1235,10 +1235,10 @@ class World(object):
     def RemoveLevel(self, index):
         pass
 
-    def GetLevel(self, index):
-        return Level(index, name, description, weather, sideScroller, wallMap, objectMap, music, loopMusic, startX, startY, startXFacing, startYFacing, xSize, ySize, gravity, stickToWallsOnCollision)
+    def GetLevel(self, index):                     
+        return Level(index, name, description, weather, sideScroller, wallMap, objectMap, music, loopMusic, startX, startY, startXFacing, startYFacing, xSize, ySize, gravity, stickToWallsOnCollision, tileSheetRows, tileSheetColumns, tileWidth, tileHeight, tileXPadding, tileYPadding)
 
-    def UpdateLevel(self, index, level):
+    def UpdateWorldWithLevel(self, index, level):
         index
         name
         description
@@ -1254,6 +1254,12 @@ class World(object):
         startYFacing = 1
         gravity = False
         stickToWallsOnCollision = False
+        tileSheetRows
+        tileSheetColumns
+        tileWidth
+        tileHeight
+        tileXPadding
+        tileYPadding
     
 class Game(object):
     def __init__(self, screenResSelection, fullScreen):        
@@ -1393,15 +1399,11 @@ class Game(object):
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
                             [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]], "", True, 22, 2, 1, 0, 0, 0, False, False, 9, 1, 64, 64, 0, 0)
 
-
-
-
         self.clock = pygame.time.Clock()
         self.userMouse = Mouse()
         self.logic = LogicHandler()
         self.gfx = GfxHandler()
-        
-        
+                
         pygame.display.set_caption("2D Game Framework")
         
         self.lastTick = 0
@@ -1424,9 +1426,9 @@ class Game(object):
         
         self.mouseWidth = self.currentLevel.tileWidth
         self.personHeight = self.currentLevel.tileHeight
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.tileSheetRows, self.tileSheetColumns, self.tileWidth, self.tileHeight, self.tileXPadding, self.tileYPadding)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.currentLevel.tileSheetRows, self.currentLevel.tileSheetColumns, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.tileXPadding, self.currentLevel.tileYPadding)
         self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.currentLevel.startXFacing, yFacing = self.currentLevel.startYFacing, xTile = self.currentLevel.startX, yTile = self.currentLevel.startY, deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
-        self.userCharacter.InitializeScreenPosition(self.camera, self.tileWidth, self.tileHeight)
+        self.userCharacter.InitializeScreenPosition(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
         for i in xrange (4):
             self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100)))
         self.characters = [self.userCharacter]
@@ -1435,7 +1437,7 @@ class Game(object):
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
-        self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.tileHeight, self.tileWidth)
+        self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth)
         self.FPSLimit = 200
         
     def ShowMenu(self, displayMenu, camera):
@@ -1459,10 +1461,10 @@ class Game(object):
             #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
             self.particles, self.userCharacter = self.logic.AdjustSpeedBasedOnFrameRate(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
 
-            self.camera.TestIfAtWorldEdgeCollision(self.currentLevel.wallMap, self.userCharacter, self.tileWidth, self.tileHeight, self.displayFrame)
+            self.camera.TestIfAtWorldEdgeCollision(self.currentLevel.wallMap, self.userCharacter, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.displayFrame)
             self.userCharacter.ApplyGravity()
             #CHECK FOR CHARACTER-WALL COLLISIONS
-            ###self.userCharacter.TestForWallCollision(self.currentLevel.wallMap, self.camera, self.tileHeight, self.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision)
+            ###self.userCharacter.UpdateDirectionBasedOnWallCollisionTest(self.currentLevel.wallMap, self.camera, self.tileHeight, self.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision)
             #ADJUST DIAGONAL SPEED IF USER PRESSES 2 ARROW KEYS
             self.userCharacter.deltaX, self.userCharacter.deltaY = self.logic.FixDiagSpeed(self.userCharacter.deltaX, self.userCharacter.deltaY, self.userCharacter.speed)
 
@@ -1470,29 +1472,32 @@ class Game(object):
             #TODO: badGuysMoveOrAttack()
             
             #TEST IF USER CHARACTER MoveS OUTSIDE OF INNER NINTH OF SCREEN
-            self.userCharacter = self.camera.MoveBasedOnCharacterMove(self.userCharacter, self.tileHeight, self.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)
+            self.userCharacter = self.camera.MoveBasedOnCharacterMove(self.userCharacter, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)
             #Move THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
-            self.userCharacter.Move(self.camera, self.tileWidth, self.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
-            if self.currentLevel.gravity == True:
-                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.CalculateNextGravityVelocity(self.tileHeight)
+            self.userCharacter.Move(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
+
+            #I THINK I NEED TO DELETE THIS
+            ###if self.currentLevel.gravity == True:
+            ###    self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.CalculateNextGravityVelocity(self.currentLevel.tileHeight)
+
             #Move PARTICLES
             self.particles = self.logic.MoveParticlesAndHandleParticleCollision(self.particles, self.currentLevel.wallMap)
             #GENERATE PARTICLES
-            self.particles, self.userCharacter = self.logic.GenerateParticles(self.particles, self.userCharacter, self.tileHeight, self.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
+            self.particles, self.userCharacter = self.logic.GenerateParticles(self.particles, self.userCharacter, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE thisLevelMap ARRAY
-            self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.tileWidth, self.tileHeight, self.currentLevel.wallMap, self.gameDisplay)            
+            self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gameDisplay)
             #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.thisLevelObjects ARRAY
-            self.currentLevel.objectMap = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.tileWidth, self.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame)
+            self.currentLevel.objectMap = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
             ###self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.tileHeight, self.tileWidth, self.userCharacter)
 
             #DRAW THE LEVEL EDITOR FRAME AND FRAME OBJECTS
-            self.displayFrame.DrawLevelEditorFrame(self.camera, self.tileWidth, self.tileHeight, self.currentLevel.wallMap, self.gfx, self.gameDisplay)
-            self.displayFrame.DrawTileAndObjectPalette(self.camera, self.tileWidth, self.tileHeight, self.gfx, self.gameDisplay)
+            self.displayFrame.DrawLevelEditorFrame(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gfx, self.gameDisplay)
+            self.displayFrame.DrawTileAndObjectPalette(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.gfx, self.gameDisplay)
             #CONVERT MOUSE COORDS -> WORLD TILES
-            self.userMouse.xTile, self.userMouse.yTile = self.gfx.ConvertScreenCoordsToTileCoords(self.userMouse.coords, self.camera, self.tileWidth, self.tileHeight)
+            self.userMouse.xTile, self.userMouse.yTile = self.gfx.ConvertScreenCoordsToTileCoords(self.userMouse.coords, self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
 
-            self.displayFrame, self.currentLevel.wallMap = self.logic.HandleMouseEvents(self.userMouse, self.camera, self.displayFrame, self.tileWidth, self.tileHeight, self.currentLevel.wallMap, self.gfx)
+            self.displayFrame, self.currentLevel.wallMap = self.logic.HandleMouseEvents(self.userMouse, self.camera, self.displayFrame, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gfx)
             
             #DRAW GAME STATS
             #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.displayWidth)

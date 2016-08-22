@@ -17,7 +17,7 @@ class GfxHandler(object):
     #LoadGfxDictionary Loads all images into gfxDictionary
     
     #GAME RUNTIME:
-    #DrawWorldInCameraView PASS Level. Foreach x, y in Level ->
+    #DrawStaticObjects PASS Level. Foreach x, y in Level ->
         #GetImageForLevelLocation PASS Level array(x, y) RETURNS Image Name ->
         #GetImageCoordsInGfxDictionary PASS Image Name RETURNS Coordinates of the image within the gfxDictionary ->
         #GetImageOutOfGfxDictionary PASS Coordinates of the requested image within the gfxDictionary RETURNS Image
@@ -82,21 +82,22 @@ class GfxHandler(object):
         #Not working yet
         conversationSelections = []
         return conversationSelections
-    
-    def DrawObjectsAndParticles(self, particles, gameDisplay, camera, tileHeight, tileWidth, character):
-        #Draws objects, particles, and anything else that is animated or non-static part of the level
-        self.DrawImageToScreen(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
-        for i in xrange(len(particles)):
-            if particles[i].name == "User Bullet":
-                #print "x: " + str((1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth)
-                #print "y: " + str((1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight)
-                if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth) + particles[i].width > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth < camera.DisplayWidth:
-                    #self.drawObject("bullet" + str(particles[i][1]) + ".png", (1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth, (1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight, gameDisplay)
-                    #print math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5))
-                    #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][particles[i][1]], (180*math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5)))/PI)
-                    self.DrawImageToScreen(particles[i].img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particles[i].xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particles[i].yTile) * -tileHeight), gameDisplay)
 
-    def DrawWorldInCameraView(self, tileSet, camera, tileWidth, tileHeight, wallMap, gameDisplay, timeElapsedSinceLastFrame=0):
+    def DrawCharacter(self, character, gameDisplay):
+        self.DrawImageToScreen(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
+    
+    def DrawParticle(self, particle, gameDisplay, camera, tileHeight, tileWidth):
+        #Draws objects, particles, and anything else that is animated or non-static part of the level
+        if particle.name == "User Bullet":
+            #print "x: " + str((1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth)
+            #print "y: " + str((1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight)
+            if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particle.xTile) * -tileWidth) + particle.width > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particle.xTile) * -tileWidth < camera.DisplayWidth:
+                #self.drawObject("bullet" + str(particles[i][1]) + ".png", (1 + cameraViewX + (-cameraViewToScreenPxlOffsetX/float(tileWidth)) - particles[i][2]) * -tileWidth, (1 + cameraViewY + (-cameraViewToScreenPxlOffsetY/float(tileHeight)) - particles[i][3]) * -tileHeight, gameDisplay)
+                #print math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5))
+                #img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][particles[i][1]], (180*math.acos(particles[i][4]/float((particles[i][4]**2 + particles[i][5]**2)**.5)))/PI)
+                self.DrawImageToScreen(particle.img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particle.xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particle.yTile) * -tileHeight), gameDisplay)
+
+    def DrawStaticObjects(self, tileSet, camera, tileWidth, tileHeight, wallMap, gameDisplay, timeElapsedSinceLastFrame=0):
         #Draw static world objects in camera view
         for i in xrange(int(camera.DisplayWidth/float(tileWidth))+2):
             for j in xrange(int(camera.DisplayHeight/float(tileHeight))+2):
@@ -1331,6 +1332,8 @@ class Game(object):
     def Play(self):
         # GAME LOOP
         while not self.paused:
+            self.gfx.DrawStaticObjects("World Tiles", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gameDisplay)  #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE wallMap ARRAY
+            self.currentLevel.objectMap = self.gfx.DrawStaticObjects("World Objects", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame) #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.objectMap ARRAY
             self.paused, self.lost, self.characters[0], self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.paused, self.lost, self.characters[0]) #HANDLE KEY PRESSES AND PYGAME EVENTS
             self.timeElapsedSinceLastFrame = self.logic.ManageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit) #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
 
@@ -1338,8 +1341,7 @@ class Game(object):
             #TODO: badGuysMoveOrAttack()
             
             for i in xrange(len(self.characters)):
-                #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-                self.characters[i] = self.logic.CorrectSpeed(self.timeElapsedSinceLastFrame, self.characters[i], "Character")
+                self.characters[i] = self.logic.CorrectSpeed(self.timeElapsedSinceLastFrame, self.characters[i], "Character") #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
                 self.characters[i].DetermineCharPicBasedOnDirectionFacing() #Select the correct image for all characters based on direction facing
                 self.characters[i].DetermineCharPicBasedOnWalkOrMovement(self.timeElapsedSinceLastFrame) #Select the correct image for all characters based on what leg they are standing on
                 self.particles, self.characters[i] = self.logic.GenerateParticles(self.particles, self.characters[i], self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.gfx) #GENERATE PARTICLES (self.bullets, rain drops, snowflakes, etc...)
@@ -1350,6 +1352,7 @@ class Game(object):
                 self.characters[i].UpdateDirectionBasedOnWallCollisionTest(self.currentLevel.wallMap, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision) #CHECK FOR CHARACTER-WALL COLLISIONS
                 self.characters[i] = self.camera.MoveBasedOnCharacterMovement(self.characters[i], self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)#TEST IF USER CHARACTER MOVES OUTSIDE OF INNER NINTH OF SCREEN
                 self.characters[i].Move(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight) #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
+                self.gfx.DrawCharacter(self.characters[i], self.gameDisplay)
 
             myDeletedParticles = []
             for j in xrange(len(self.particles)):
@@ -1359,16 +1362,11 @@ class Game(object):
                     self.particles[j].gravityYDelta, self.particles[j].timeSpentFalling = self.particles[j].CalculateNextGravityVelocity(self.currentLevel.tileHeight)
                 if self.particles[j].MoveAndHandleCollision(self.currentLevel.wallMap) == "DELETE": #MOVE AND HANDLE DESTRUCTION
                     myDeletedParticles.append(j)
+                else:
+                    self.gfx.DrawParticle(self.particles[j], self.gameDisplay, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth)
 
             for k in xrange(len(myDeletedParticles)):
-                del self.particles[myDeletedParticles[k]-i]
-                
-            #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE wallMap ARRAY
-            self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gameDisplay)            
-            #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.objectMap ARRAY
-            self.currentLevel.objectMap = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame)
-            #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.characters[0])
+                del self.particles[myDeletedParticles[k]]
             
             #DRAW GAME STATS
             #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.DisplayWidth)

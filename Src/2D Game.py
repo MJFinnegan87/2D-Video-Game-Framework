@@ -178,14 +178,13 @@ class LogicHandler(object):
             if character.deltaY != 0:
                 character.yFacing = character.deltaY/abs(character.deltaY)
 
-            
         #IF PLAYER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
         #if keys[pygame.K_SPACE] and ammo >0:
         #    shotsFiredFromMe = True
 
         return exiting, lost, character, enterPressed
 
-    def FixDiagSpeed(self, XDelta, YDelta, speed):
+    def FixDiagSpeed(self, XDelta, YDelta, speed, gravityApplies, gravityYDelta):
         #FIX DIAGONAL SPEED INCREASE
         #  
         #      |\                                                                 |\
@@ -197,14 +196,19 @@ class LogicHandler(object):
         #
         #PERSON/BULLET/ITEM SHOULD NOT TRAVEL FASTER JUST BECAUSE OF TRAVELING DIAGONALLY. THE CODE BELOW ADJUSTS FOR THIS:
         if XDelta != 0 and YDelta != 0:
-            tempXDelta = (XDelta/abs(XDelta)) * (math.cos(math.atan(abs(YDelta/XDelta))) * speed)
-            YDelta = (YDelta/abs(YDelta)) * (math.sin(math.atan(abs(YDelta/XDelta))) * speed)
+            if gravityApplies == True:
+                adjustedSpeed = speed + gravityYDelta
+            else:
+                adjustedSpeed = speed
+            tempXDelta = (XDelta/abs(XDelta)) * (math.cos(math.atan(abs(YDelta/XDelta))) * adjustedSpeed)
+            YDelta = (YDelta/abs(YDelta)) * (math.sin(math.atan(abs(YDelta/XDelta))) * adjustedSpeed)
             XDelta = tempXDelta
         return XDelta, YDelta
+        
 
     def GenerateParticles(self, particles, character, tileHeight, tileWidth, gfx):
         if character.shotsFiredFromMe == True and not(character.yFacing == 0 and character.xFacing == 0) and character.activeWeapon < len(character.weapons):
-            userBullet = Bullet("User Bullet", character.weapons[character.activeWeapon].name, character.xTile, character.yTile, 0, 0, character.weapons[character.activeWeapon].damage, character.weapons[character.activeWeapon].physicsIndicator, 1, character.weapons[character.activeWeapon].generateBulletWidth, character.weapons[character.activeWeapon].generateBulletHeight, character.weapons[character.activeWeapon].generateBulletSpeed, character.weapons[character.activeWeapon].generateBulletSpeed) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
+            userBullet = Bullet("User Bullet", character.weapons[character.activeWeapon].name, character.xTile, character.yTile, 0, 0, character.weapons[character.activeWeapon].damage, character.weapons[character.activeWeapon].physicsIndicator, 1, character.weapons[character.activeWeapon].generateBulletWidth, character.weapons[character.activeWeapon].generateBulletHeight, character.weapons[character.activeWeapon].generateBulletSpeed, character.weapons[character.activeWeapon].generateBulletSpeed, None, character.weapons[character.activeWeapon].gravityApplies) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
             userBullet.speed = userBullet.defaultSpeed
             if character.xFacing == 0:
                 tempDX = 0 #THIS AVOIDS THE DIVIDE BY 0 ERROR
@@ -231,47 +235,31 @@ class LogicHandler(object):
             character.shotsFiredFromMe = False
         return particles, character
 
-    def MoveParticlesAndHandleParticleCollision(self, particles, wallMap):
-        #MOVE PARTICLES, OR DELETE THEM IF THEY REACH WORLD END
-        myDeletedParticles = []
-        for i in xrange(len(particles)):
-            if particles[i].xTile + particles[i].dx > len(wallMap[0]) or particles[i].yTile + particles[i].dy > len(wallMap) or particles[i].xTile + particles[i].dx < 0 or particles[i].yTile + particles[i].dy < 0:
-                myDeletedParticles.append(i)
-            else:
-                particles[i].xTile = particles[i].xTile + particles[i].dx
-                particles[i].yTile = particles[i].yTile + particles[i].dy
-        for i in xrange(len(myDeletedParticles)):
-            del particles[myDeletedParticles[i]-i]
-            
-        #COLLISION DETECT IF WALL HIT, AND BOUNCE/PERFORM ACTION IF NECESSARY
-            
-        return particles
-
     def ManageTimeAndFrameRate(self, lastTick, clock, FPSLimit):
         timeElapsedSinceLastFrame = clock.get_time() - lastTick
         lastTick = clock.tick(FPSLimit)
         return timeElapsedSinceLastFrame
 
-    def AdjustSpeedBasedOnFrameRate(self, timeElapsedSinceLastFrame, particleList, character):
-        #MAKE PARTICLE SPEED CHANGE BASED ON FRAME RATE
-        #character.speedThisFrameRate = character.defaultSpeed
-        for i in xrange(len(particleList)):
-            particleList[i].speed = particleList[i].defaultSpeed * timeElapsedSinceLastFrame
-            if particleList[i].dx < 0:
-                particleList[i].dx = -particleList[i].speed
-            elif particleList[i].dx > 0:
-                particleList[i].dx = particleList[i].speed
-            if particleList[i].dy < 0:
-                particleList[i].dy = -particleList[i].speed
-            elif particleList[i].dy > 0:
-                particleList[i].dy = particleList[i].speed
-        #REDUCE PARTICLE SPEED SO IT DOESN'T TRAVEL FASTER WHEN DIAGONAL
-            particleList[i].dx, particleList[i].dy = self.FixDiagSpeed(particleList[i].dx, particleList[i].dy, particleList[i].speed)
-        if timeElapsedSinceLastFrame < 2000:
-            character.speed = character.defaultSpeed * timeElapsedSinceLastFrame
-            
-        character.deltaX, character.deltaY = self.FixDiagSpeed(character.deltaX, character.deltaY, character.speed)        
-        return particleList, character
+    def CorrectSpeed(self, timeElapsedSinceLastFrame, obj, objType):
+        if objType == "Particle":
+            #MAKE PARTICLE SPEED CHANGE BASED ON FRAME RATE
+            #character.speedThisFrameRate = character.defaultSpeed
+            obj.speed = obj.defaultSpeed * timeElapsedSinceLastFrame
+            if obj.dx < 0:
+                obj.dx = -obj.speed
+            elif obj.dx > 0:
+                obj.dx = obj.speed
+            if obj.dy < 0:
+                obj.dy = -obj.speed
+            elif obj.dy > 0:
+                obj.dy = obj.speed
+            #REDUCE PARTICLE SPEED SO IT DOESN'T TRAVEL FASTER WHEN DIAGONAL
+            obj.dx, obj.dy = self.FixDiagSpeed(obj.dx, obj.dy, obj.speed, obj.gravityApplies, obj.gravityYDelta)
+        if objType == "Character":
+            if timeElapsedSinceLastFrame < 2000:
+                obj.speed = obj.defaultSpeed * timeElapsedSinceLastFrame
+                obj.deltaX, obj.deltaY = self.FixDiagSpeed(obj.deltaX, obj.deltaY, obj.speed, obj.gravityApplies, obj.gravityYDelta)
+        return obj
 
 class Menu(object):
     def __init__(self, name, titleText, titleFont, contentText, contentFont, itemMargin, unselectedTextColor, selectedTextColorLowPulsate, selectedTextColorHighPulsate, pulsateSpeed):
@@ -690,7 +678,7 @@ class GamePlayObject(object):
     pass
 
 class Weapon(GamePlayObject):
-    def __init__(self, name, damage, ammo, physIndic, generateBulletWidth, generateBulletHeight, generateBulletSpeed):
+    def __init__(self, name, damage, ammo, physIndic, generateBulletWidth, generateBulletHeight, generateBulletSpeed, gravity):
         self.name = name
         self.damage = damage
         self.ammo = ammo
@@ -698,6 +686,7 @@ class Weapon(GamePlayObject):
         self.generateBulletWidth = generateBulletWidth
         self.generateBulletHeight = generateBulletHeight
         self.generateBulletSpeed = generateBulletSpeed
+        self.gravityApplies = gravity
 
 class WorldObject(GamePlayObject):
     def __init__(self, name = "", desc = "", columns = 0, touchAction = 0, attackAction = 0, time = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False):
@@ -727,7 +716,7 @@ class Bullet(WorldObject):
 
     #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
     
-    def __init__(self, name, weapon, xTile, yTile, dx, dy, damage, physicsIndicator, physicsCounter, width, height, speed = .01, defaultSpeed = .01, img=None):
+    def __init__(self, name, weapon, xTile, yTile, dx, dy, damage, physicsIndicator, physicsCounter, width, height, speed = .01, defaultSpeed = .01, img=None, gravity = False):
         self.name = name
         self.defaultSpeed = defaultSpeed
         self.speed = speed
@@ -748,12 +737,32 @@ class Bullet(WorldObject):
         self.imagesGFXRows = 4
         self.imagesGFXColumns = 1
         self.weapon = weapon
+        self.gravityApplies = gravity
+        self.gravityYDelta = 0
+        self.timeSpentFalling = 0
+
+    def MoveAndHandleCollision(self, wallMap):
+        #MOVE PARTICLES, OR DELETE THEM IF THEY REACH WORLD END
+            if self.xTile + self.dx > len(wallMap[0]) or self.yTile + self.dy > len(wallMap) or self.xTile + self.dx < 0 or self.yTile + self.dy < 0:
+                return "DELETE"
+            else:
+                self.xTile = self.xTile + self.dx
+                self.yTile = self.yTile + self.dy
+                return ""
+            
+        #COLLISION DETECT IF WALL HIT, AND BOUNCE/PERFORM ACTION IF NECESSARY
+
+    def ApplyGravity(self):
+        self.dy = self.dy + self.gravityYDelta
+
+    def CalculateNextGravityVelocity(self, tileHeight):
+        return (min(self.gravityYDelta + (.00005 * (self.timeSpentFalling**2)), tileHeight / 3.0)), self.timeSpentFalling + 1
 
 class AI(object):
     pass
 
 class Character(WorldObject):
-    def __init__(self, name = "", boundToCamera = False, xFacing = 0, yFacing = 0, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False):
+    def __init__(self, name = "", boundToCamera = False, xFacing = 0, yFacing = 0, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False, gravity = False):
         #GENERAL
         self.name = name
         self.numberOfFramesAnimPerWalk = numberOfFramesAnimPerWalk #3
@@ -798,17 +807,18 @@ class Character(WorldObject):
         self.deltaYScreenOffset = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.shotsFiredFromMe = shotsFiredFromMe
         self.weapons = weapons
+        self.gravityApplies = gravity
 
     def InitializeScreenPosition(self, camera, tileWidth, tileHeight):
         self.x = (self.xTile - camera.viewX) * tileWidth
         self.y = (self.yTile - camera.viewY) * tileHeight
 
-    def Move(self, camera, tileWidth, tileHeight, deltaX, deltaY):
+    def Move(self, camera, tileWidth, tileHeight):
         if self.xok == 1:
-            self.x = self.x + deltaX + self.deltaXScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
+            self.x = self.x + self.deltaX + self.deltaXScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
             self.xTile = 1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + (self.x/float(tileWidth)) #0 BASED, JUST LIKE THE ARRAY, THIS IS LEFT MOST POINT OF USER'S CHAR
         if self.yok == 1:
-            self.y = self.y + deltaY + self.deltaYScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
+            self.y = self.y + self.deltaY + self.deltaYScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
             self.yTile = 1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + (self.y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
 
     def GetLocationInWorld(self):
@@ -821,7 +831,6 @@ class Character(WorldObject):
         pass
 
     def UpdateDirectionBasedOnWallCollisionTest(self, wallMap, camera, tileHeight, tileWidth, gravity, stickToWallsOnCollision):
-
         #This acts as a buffer to allow user to not get up against floor/ceiling
         #because the distance the user will travel over the next frame cannot
         #be known with absolute certainty because it is a function of the speed
@@ -1300,17 +1309,17 @@ class Game(object):
         self.gameDisplay = self.camera.UpdateScreenSettings()
 
         self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.currentLevel.tileSheetRows, self.currentLevel.tileSheetColumns, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.tileXPadding, self.currentLevel.tileYPadding)
-        self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.currentLevel.startXFacing, yFacing = self.currentLevel.startYFacing, xTile = self.currentLevel.startX, yTile = self.currentLevel.startY, deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
+        self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.currentLevel.startXFacing, yFacing = self.currentLevel.startYFacing, xTile = self.currentLevel.startX, yTile = self.currentLevel.startY, deltaX = 0, deltaY = 0, gravity = True) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
         self.userCharacter.InitializeScreenPosition(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
         for i in xrange (4):
-            self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100)))
+            self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100), False))
         self.characters = [self.userCharacter]
         for character in self.characters:
             self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
         
-        self.FPSLimit = 200
+        self.FPSLimit = 240
         
     def ShowMenu(self, DisplayMenu, camera):
         menuSystem = MenuManager(DisplayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.DisplayType, self.gameDisplay)
@@ -1322,69 +1331,65 @@ class Game(object):
     def Play(self):
         # GAME LOOP
         while not self.paused:
-            #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.paused, self.lost, self.userCharacter, self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.paused, self.lost, self.userCharacter)
-            #Select the correct image for all characters based on direction facing
-            for character in self.characters:
-                character.DetermineCharPicBasedOnDirectionFacing()
-            #Select the correct image for all characters based on what leg they are standing on
-            for character in self.characters:
-                character.DetermineCharPicBasedOnWalkOrMovement(self.timeElapsedSinceLastFrame)
-            #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
-            self.timeElapsedSinceLastFrame = self.logic.ManageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit)
-            #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-            for character in self.characters:
-                character.ApplyGravity()
-            self.particles, self.userCharacter = self.logic.AdjustSpeedBasedOnFrameRate(self.timeElapsedSinceLastFrame, self.particles, self.userCharacter)
-            self.camera.TestIfAtWorldEdgeCollision(self.currentLevel.wallMap, self.userCharacter, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
-            #CHECK FOR CHARACTER-WALL COLLISIONS
-            for character in self.characters:
-                character.UpdateDirectionBasedOnWallCollisionTest(self.currentLevel.wallMap, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision)
-            #ADJUST DIAGONAL SPEED IF USER PRESSES 2 ARROW KEYS
-            for character in self.characters:
-                character.deltaX, character.deltaY = self.logic.FixDiagSpeed(character.deltaX, character.deltaY, character.speed)
+            self.paused, self.lost, self.characters[0], self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.paused, self.lost, self.characters[0]) #HANDLE KEY PRESSES AND PYGAME EVENTS
+            self.timeElapsedSinceLastFrame = self.logic.ManageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit) #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
 
             #TODO: generateBadGuys()
             #TODO: badGuysMoveOrAttack()
             
-            #TEST IF USER CHARACTER MOVES OUTSIDE OF INNER NINTH OF SCREEN
-            self.userCharacter = self.camera.MoveBasedOnCharacterMovement(self.userCharacter, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)
-            #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
-            self.userCharacter.Move(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.userCharacter.deltaX, self.userCharacter.deltaY)
-            if self.currentLevel.gravity == True:
-                self.userCharacter.gravityYDelta, self.userCharacter.timeSpentFalling = self.userCharacter.CalculateNextGravityVelocity(self.currentLevel.tileHeight)
-            #MOVE PARTICLES
-            self.particles = self.logic.MoveParticlesAndHandleParticleCollision(self.particles, self.currentLevel.wallMap)
-            #GENERATE PARTICLES
-            for character in self.characters:
-                self.particles, character = self.logic.GenerateParticles(self.particles, character, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.gfx)# (self.bullets, rain drops, snowflakes, etc...)
+            for i in xrange(len(self.characters)):
+                #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
+                self.characters[i] = self.logic.CorrectSpeed(self.timeElapsedSinceLastFrame, self.characters[i], "Character")
+                self.characters[i].DetermineCharPicBasedOnDirectionFacing() #Select the correct image for all characters based on direction facing
+                self.characters[i].DetermineCharPicBasedOnWalkOrMovement(self.timeElapsedSinceLastFrame) #Select the correct image for all characters based on what leg they are standing on
+                self.particles, self.characters[i] = self.logic.GenerateParticles(self.particles, self.characters[i], self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.gfx) #GENERATE PARTICLES (self.bullets, rain drops, snowflakes, etc...)
+                if self.currentLevel.gravity == True:
+                    self.characters[i].ApplyGravity()
+                    self.characters[i].gravityYDelta, self.characters[i].timeSpentFalling = self.characters[i].CalculateNextGravityVelocity(self.currentLevel.tileHeight)
+                self.camera.TestIfAtWorldEdgeCollision(self.currentLevel.wallMap, self.characters[i], self.currentLevel.tileWidth, self.currentLevel.tileHeight)
+                self.characters[i].UpdateDirectionBasedOnWallCollisionTest(self.currentLevel.wallMap, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision) #CHECK FOR CHARACTER-WALL COLLISIONS
+                self.characters[i] = self.camera.MoveBasedOnCharacterMovement(self.characters[i], self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)#TEST IF USER CHARACTER MOVES OUTSIDE OF INNER NINTH OF SCREEN
+                self.characters[i].Move(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight) #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
+
+            myDeletedParticles = []
+            for j in xrange(len(self.particles)):
+                self.particles[j] = self.logic.CorrectSpeed(self.timeElapsedSinceLastFrame, self.particles[j], "Particle") #ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
+                if self.currentLevel.gravity == True and self.particles[j].gravityApplies == True: #HANDLE GRAVITY WHERE APPLICABLE
+                    self.particles[j].ApplyGravity()
+                    self.particles[j].gravityYDelta, self.particles[j].timeSpentFalling = self.particles[j].CalculateNextGravityVelocity(self.currentLevel.tileHeight)
+                if self.particles[j].MoveAndHandleCollision(self.currentLevel.wallMap) == "DELETE": #MOVE AND HANDLE DESTRUCTION
+                    myDeletedParticles.append(j)
+
+            for k in xrange(len(myDeletedParticles)):
+                del self.particles[myDeletedParticles[k]-i]
+                
             #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE wallMap ARRAY
             self.gfx.DrawWorldInCameraView("World Tiles", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gameDisplay)            
             #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.objectMap ARRAY
             self.currentLevel.objectMap = self.gfx.DrawWorldInCameraView("World Objects", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame)
             #DRAW PEOPLE, ENEMIES, OBJECTS AND PARTICLES
-            self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.userCharacter)
+            self.gfx.DrawObjectsAndParticles(self.particles, self.gameDisplay, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.characters[0])
             
             #DRAW GAME STATS
             #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Ammo: " + str(self.userCharacter.ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Ammo: " + str(self.characters[i].ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.DisplayWidth)
             #self.gfx.DrawSmallMessage("Score: " + str(self.score), 3, self.gameDisplay, white, self.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Player wX: " + str(self.userCharacter.GetLocationInWorld()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Player wY: " + str(self.userCharacter.GetLocationInWorld()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Player sX: " + str(self.userCharacter.GetLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Player sY: " + str(self.userCharacter.GetLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocationInWorld()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocationInWorld()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player sX: " + str(self.characters[0].GetLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player sY: " + str(self.characters[0].GetLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.DisplayWidth)
 
             ##self.gfx.DrawSmallMessage("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 6, self.gameDisplay, white, self.camera.DisplayWidth)
             ##self.gfx.DrawSmallMessage("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.DisplayWidth)
             
             #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocationInWorld(self.tileWidth, self.tileHeight)[0]), 8, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocationInWorld(self.tileWidth, self.tileHeight)[1]), 9, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("person dx: " + str(self.userCharacter.deltaX), 8, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("person dy: " + str(self.userCharacter.deltaY), 9, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("person dx: " + str(self.characters[0].deltaX), 8, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("person dy: " + str(self.characters[0].deltaY), 9, self.gameDisplay, white, self.camera.DisplayWidth)
             self.gfx.DrawSmallMessage("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 12, self.gameDisplay, white, self.camera.DisplayWidth)
             pygame.display.update()
-            if self.userCharacter.health <= 0:
+            if self.characters[0].health <= 0:
                 self.lost = True
                 #self.exiting = True
                 self.gfx.DrawLargeMessage("YOU LOSE", self.gameDisplay, white)

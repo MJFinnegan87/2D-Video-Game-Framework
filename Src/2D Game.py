@@ -1,257 +1,19 @@
 import pygame
 import time
 import random
-import sys,os
-import math
-import sqlite3
 
-#Python 2.7
+from DataAccessLayer import *
+from HardwareAccessLayer import *
+from GraphicsPresentationLayer import *
+from Models import *
+from Controllers import *
+
+#Python 3.6
+#https://github.com/Microsoft/PTVS/wiki/Selecting-and-Installing-Python-Interpreters#hey-i-already-have-an-interpreter-on-my-machine-but-ptvs-doesnt-seem-to-know-about-it
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
 PI = math.pi
-
-
-class GfxHandler(object):    
-    #GAME RUNTIME:
-    #DrawStaticObjects PASS Level. Foreach x, y in Level ->
-        #GetImageForLevelLocation PASS Level array(x, y) RETURNS Image ->
-        #DrawImageToScreen PASS Image, coordinates DRAWS Image on the screen at given coordinates
-    
-    def __init__(self):
-        self.gfxDictionary = {}
-
-    def LoadGfxDictionary(self, file_name="", imageIndicator="", rows=0, columns=0, width=0, height=0, pictureXPadding=0, pictureYPadding=0):
-        #Load collection of images into dictionary
-        self.spriteSheet = pygame.image.load(file_name)
-        imgTransparency = True
-        
-        if imageIndicator == "World Tiles":
-            imgTransparency = False
-        self.gfxDictionary.update({imageIndicator:{}}) #NESTED HASHTABLE
-
-        for j in xrange(rows):
-            for k in xrange(columns):
-                #self.gfxDictionary[(j*k) + j] = self.GetImageFromSpritesheet(self.GetImageCoordsInSpritesheet((j*k) + j, width, height, pictureXPadding, pictureYPadding, rows, columns))
-                self.gfxDictionary[imageIndicator].update({(j*columns) + k:self.GetImageFromSpritesheet(self.GetImageCoordsInSpritesheet((j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency)})
-
-    def GetImageFromSpritesheet(self, Coords, requiresTransparency):
-        #Gets requested image out of the GfxDictionary.
-        #Requires coordinates
-        image = pygame.Surface([Coords[2], Coords[3]])
-        image.blit(self.spriteSheet, (0,0), Coords)
-        if requiresTransparency == True:
-            image.set_colorkey((0,0,0))
-        return image
-
-    def GetImageCoordsInSpritesheet(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, spritesheetRows, spritesheetColumns):
-        #Gets coordinates of requested image's location within the gfxDictionary
-        return (int((tileRequested%spritesheetColumns)*tileWidth)+(int(tileRequested%spritesheetColumns))*pictureXPadding,
-                int((tileRequested/spritesheetColumns)*tileHeight)+(int(tileRequested/spritesheetColumns))*pictureYPadding,
-                tileWidth,
-                tileHeight)
-
-    def CreateTextObject(self, text, font, color):
-        textSurface = font.render(text, True, color)
-        return textSurface, textSurface.get_rect()
-
-    def DrawLargeMessage(self, text, myGameDisplay, myColor):
-        largeText = pygame.font.Font("freesansbold.ttf", 135)
-        textSurf, textRect = self.CreateTextObject(text, largeText, myColor)
-        textRect.center = ((DisplayWidth/2), (DisplayHeight/2))
-        myGameDisplay.blit(textSurf, textRect)
-        pygame.display.update()
-        time.sleep(2)
-
-    def DrawSmallMessage(self, text, lineNumber, myGameDisplay, myColor, DisplayWidth):
-        smallText = pygame.font.Font("freesansbold.ttf", 16)
-        textSurf, textRect = self.CreateTextObject(text, smallText, myColor)
-        textRect.center = ((DisplayWidth-60), 15 + (15*lineNumber))
-        myGameDisplay.blit(textSurf, textRect)
-
-    def DrawImageToScreen(self, myImage, myCoords, myGameDisplay):
-        #Draws a given image to the screen
-         myGameDisplay.blit(myImage, (myCoords[0], myCoords[1]))
-
-    def DrawDialogs(self, conversationArray, (backR, backG, backB, backA), (foreR, foreG, foreB, foreA), (borderR, borderG, borderB, borderA), borderSize = 5):
-        #Not working yet
-        conversationSelections = []
-        return conversationSelections
-
-    def DrawCharacter(self, character, gameDisplay):
-        self.DrawImageToScreen(self.gfxDictionary[character.imagesGFXNameDesc][character.imgDirectionIndex+(character.numberOfDirectionsFacingToDisplay*character.imgLegIndex)], (character.x, character.y), gameDisplay)
-    
-    def DrawParticle(self, particle, gameDisplay, camera, tileHeight, tileWidth):
-        #Draws objects, particles, and anything else that is animated or non-static part of the level
-        if particle.name == "User Bullet":
-            if ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particle.xTile) * -tileWidth) + particle.width > 0 and (1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particle.xTile) * -tileWidth < camera.DisplayWidth:
-                self.DrawImageToScreen(particle.img, ((1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) - particle.xTile) * -tileWidth, (1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) - particle.yTile) * -tileHeight), gameDisplay)
-
-    def DrawStaticObjects(self, tileSet, camera, tileWidth, tileHeight, wallMap, gameDisplay, timeElapsedSinceLastFrame=0):
-        #Draw static world objects in camera view
-        for i in xrange(int(camera.DisplayWidth/float(tileWidth))+2):
-            for j in xrange(int(camera.DisplayHeight/float(tileHeight))+2):
-                try:
-                    imgToDraw, wallMap = self.GetImageForLevelLocation(wallMap, i, j, camera.viewX, camera.viewY, tileSet, timeElapsedSinceLastFrame)
-                    if imgToDraw != "":
-                        self.DrawImageToScreen(imgToDraw,
-                          (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX,
-                          ((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY,
-                          (((i-1)*tileWidth)+camera.viewToScreenPxlOffsetX)+ tileWidth,
-                          (((j-1)*tileHeight)+camera.viewToScreenPxlOffsetY) + tileHeight), gameDisplay)
-                except:
-                    pass
-        return wallMap
-
-    def GetImageForLevelLocation(self, wallMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
-        imgToDraw = ""
-        try:
-            if wallMap[j+viewY][i+viewX] != []:
-                #If it's a static world object
-                if type(wallMap[j+viewY][i+viewX]) is int:
-                    imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX]]
-                #Otherwise, if it's a non-static world object (flame animation, water flowing animation, etc...)
-                else:
-                    wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
-                    while wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > wallMap[j+viewY][i+viewX].timeBetweenAnimFrame:
-                        wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - wallMap[j+viewY][i+viewX].timeBetweenAnimFrame
-                        wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage + 1
-                        if wallMap[j+viewY][i+viewX].activeImage >= ((wallMap[j+viewY][i+viewX].ID + 1) * wallMap[j+viewY][i+viewX].columns - wallMap[j+viewY][i+viewX].ID):
-                            wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage - wallMap[j+viewY][i+viewX].columns
-                    imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX].activeImage + int(wallMap[j+viewY][i+viewX].ID)]
-        except:
-            pass
-        return imgToDraw, wallMap
-
-class LogicHandler(object):
-    def HandleHeyPressAndGameEvents(self, exiting, lost, character):
-        #HANDLE KEY PRESS/RELEASE/USER ACTIONS
-        enterPressed = False
-        keys = pygame.key.get_pressed()
-        for event in pygame.event.get():                #ASK WHAT EVENTS OCCURRED
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                exiting = True
-                lost = False
-            #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY UP:
-            #if event.type == pygame.KEYUP and keys[pygame.K_SPACE] and ammo >0:
-            #   character.shotsFiredFromMe = True
-
-            #IF PLAYER MUST PRESS TRIGGER REPEATEDLY, FIRE ON KEY DOWN:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    character.shotsFiredFromMe = True
-                if event.key == pygame.K_KP1 or event.key == pygame.K_1:
-                    character.activeWeapon = 0
-                if event.key == pygame.K_KP2 or event.key == pygame.K_2:
-                    character.activeWeapon = 1
-                if event.key == pygame.K_KP3 or event.key == pygame.K_3:
-                    character.activeWeapon = 2
-                if event.key == pygame.K_KP4 or event.key == pygame.K_4:
-                    character.activeWeapon = 3
-                if event.key == pygame.K_KP_ENTER or event.key == pygame.K_RETURN:
-                    enterPressed = True
-            
-        character.deltaX = 0
-        character.deltaY = 0                                #VS. ASK WHAT KEYS ARE DOWN AT THIS MOMENT.
-        if keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]:
-            character.deltaX = character.speed
-        if keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
-            character.deltaX = -character.speed
-        if keys[pygame.K_UP] and not keys[pygame.K_DOWN]:
-            character.deltaY = -character.speed
-        if keys[pygame.K_DOWN] and not keys[pygame.K_UP]:
-            character.deltaY = character.speed
-
-        if character.deltaX != 0 or character.deltaY != 0:
-            character.xFacing = 0
-            character.yFacing = 0
-            if character.deltaX != 0:
-                character.xFacing = character.deltaX/abs(character.deltaX)
-            if character.deltaY != 0:
-                character.yFacing = character.deltaY/abs(character.deltaY)
-
-        #IF PLAYER SHOULD BE ABLE TO HOLD DOWN TRIGGER:
-        #if keys[pygame.K_SPACE] and ammo >0:
-        #    shotsFiredFromMe = True
-
-        return exiting, lost, character, enterPressed
-
-    def FixDiagSpeed(self, XDelta, YDelta, speed, gravityApplies, gravityYDelta):
-        #FIX DIAGONAL SPEED INCREASE
-        #  
-        #      |\                                                                 |\
-        #      | \                                                                | \
-        # Y=5  |  \ Z>5  -> solve for X and Y, while keeping x:y the same ratio: Y|  \ 5
-        #      |_  \                                                              |_  \
-        #      |_|__\                                                             |_|__\
-        #       X=5                                                                  X 
-        #
-        #PERSON/BULLET/ITEM SHOULD NOT TRAVEL FASTER JUST BECAUSE OF TRAVELING DIAGONALLY. THE CODE BELOW ADJUSTS FOR THIS:
-        if XDelta != 0 and YDelta != 0:
-            if gravityApplies == True:
-                adjustedSpeed = speed# + gravityYDelta
-            else:
-                adjustedSpeed = speed
-            tempXDelta = (XDelta/abs(XDelta)) * (math.cos(math.atan(abs(YDelta/XDelta))) * adjustedSpeed)
-            YDelta = (YDelta/abs(YDelta)) * (math.sin(math.atan(abs(YDelta/XDelta))) * adjustedSpeed)
-            XDelta = tempXDelta
-        return XDelta, YDelta
-        
-
-    def GenerateParticles(self, particles, character, tileHeight, tileWidth, gfx):
-        if character.shotsFiredFromMe == True and not(character.yFacing == 0 and character.xFacing == 0) and character.activeWeapon < len(character.weapons):
-            userBullet = Bullet("User Bullet", character.weapons[character.activeWeapon].name, character.xTile, character.yTile, 0, 0, character.weapons[character.activeWeapon].damage, character.weapons[character.activeWeapon].physicsIndicator, 1, character.weapons[character.activeWeapon].generateBulletWidth, character.weapons[character.activeWeapon].generateBulletHeight, character.weapons[character.activeWeapon].generateBulletSpeed, character.weapons[character.activeWeapon].generateBulletSpeed, None, character.weapons[character.activeWeapon].gravityApplies) #putting multiple instances of the image itself in the array because they could be rotated at different directions and putting a pointer to one image and then rotating many many times severly impacts FPS due to slow rotate method
-            userBullet.speed = userBullet.defaultSpeed
-            if character.xFacing == 0:
-                tempDX = 0 #THIS AVOIDS THE DIVIDE BY 0 ERROR
-                if character.yFacing == 0:
-                    tempDY = 0
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][int(userBullet.weapon)], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
-                else:
-                    tempDY = (character.yFacing/float(abs(character.yFacing))) * userBullet.speed
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][int(userBullet.weapon)], ((-character.yFacing/float(abs(character.yFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
-            else:
-                if character.yFacing == 0:
-                    tempDX = (character.xFacing/float(abs(character.xFacing))) * userBullet.speed
-                    tempDY = 0
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][int(userBullet.weapon)], (180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
-                else:
-                    tempDX = (character.xFacing/float(abs(character.xFacing))) * (math.cos(math.atan(abs(character.yFacing/float(character.xFacing)))) * userBullet.speed)
-                    tempDY = (character.yFacing/float(abs(character.yFacing))) * (math.sin(math.atan(abs(character.yFacing/float(character.xFacing)))) * userBullet.speed)
-                    img = pygame.transform.rotate(gfx.gfxDictionary["Particles"][int(userBullet.weapon)], ((-character.yFacing/float(abs(character.yFacing))) * 180*math.acos(tempDX/float((tempDX**2 + tempDY**2)**.5)))/PI)
-                           #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
-            userBullet.dx = tempDX
-            userBullet.dy = tempDY
-            userBullet.img = img
-            particles.append(userBullet)
-            character.shotsFiredFromMe = False
-        return particles, character
-
-    def ManageTimeAndFrameRate(self, lastTick, clock, FPSLimit):
-        timeElapsedSinceLastFrame = clock.get_time() - lastTick
-        lastTick = clock.tick(FPSLimit)
-        return timeElapsedSinceLastFrame
-
-    def CorrectSpeed(self, timeElapsedSinceLastFrame, obj, objType):
-        if objType == "Particle":
-            #MAKE PARTICLE SPEED CHANGE BASED ON FRAME RATE
-            #character.speedThisFrameRate = character.defaultSpeed
-            obj.speed = obj.defaultSpeed * timeElapsedSinceLastFrame
-            if obj.dx < 0:
-                obj.dx = -obj.speed
-            elif obj.dx > 0:
-                obj.dx = obj.speed
-            if obj.dy < 0:
-                obj.dy = -obj.speed
-            elif obj.dy > 0:
-                obj.dy = obj.speed
-            #REDUCE PARTICLE SPEED SO IT DOESN'T TRAVEL FASTER WHEN DIAGONAL
-            obj.dx, obj.dy = self.FixDiagSpeed(obj.dx, obj.dy, obj.speed, obj.gravityApplies, obj.gravityYDelta)
-        if objType == "Character":
-            if timeElapsedSinceLastFrame < 2000:
-                obj.speed = obj.defaultSpeed * timeElapsedSinceLastFrame
-                obj.deltaX, obj.deltaY = self.FixDiagSpeed(obj.deltaX, obj.deltaY, obj.speed, obj.gravityApplies, obj.gravityYDelta)
-        return obj
 
 class Menu(object):
     def __init__(self, name, titleText, titleFont, contentText, contentFont, itemMargin, unselectedTextColor, selectedTextColorLowPulsate, selectedTextColorHighPulsate, pulsateSpeed):
@@ -265,6 +27,7 @@ class Menu(object):
         self.selectedTextColorLowPulsate = selectedTextColorLowPulsate
         self.selectedTextColorHighPulsate = selectedTextColorHighPulsate
         self.pulsateSpeed = pulsateSpeed
+        #self.HWController = Hardware()
 
     def DisplayMenu(self):
         pass        
@@ -281,7 +44,6 @@ class MenuManager(object):
         #self.score = 0
         self.highScoreDifficulty = 0
         #self.myHealth = 100
-        self.currentLevel = 0
         self.menuSelectionIndex = 6
         #self.ammo = 0
         self.DisplayWidth = screenResChoices[screenResSelection][0]
@@ -294,7 +56,7 @@ class MenuManager(object):
         self.colorIntensityDirection = 5
         self.startPlay = False
         self.gfx = GfxHandler()
-        self.logic = LogicHandler()
+        #self.HWController = Hardware()
         self.exiting = False
         self.lost = False
         self.userCharacter = Character("User")
@@ -339,8 +101,9 @@ class MenuManager(object):
             elif self.menuDirectory == "High Scores":
                 self.DisplayHighScoresMenu()
                 self.HandleUserInputHighScoresMenu()
-                
-            self.personYDeltaWas = self.userCharacter.deltaY
+
+            if self.upKey == True:
+                self.personYDeltaWas = self.userCharacter.deltaY
             self.personXDeltaWas = self.userCharacter.deltaX
             self.UpdateScreenAndLimitFPS(self.menuFPSLimit)
             self.gameDisplay.fill(black)
@@ -368,19 +131,16 @@ class MenuManager(object):
 
     def HandleMenuBackground(self):
         pass
-        #self.currentLevel, self.activeWeapon, self.enemiesAlive, self.myEnemies, self.myProjectiles = self.menuGameEventHandler.addGameObjects(
-            #self.enemiesAlive, self.currentLevel, self.activeWeapon, self.myEnemies, self.starProbabilitySpace, self.starDensity, self.starMoveSpeed, self.myProjectiles, self.DisplayWidth)
+        #self.world.activeLevel, self.activeWeapon, self.enemiesAlive, self.myEnemies, self.myProjectiles = self.menuGameEventHandler.addGameObjects(
+            #self.enemiesAlive, self.world.activeLevel, self.activeWeapon, self.myEnemies, self.starProbabilitySpace, self.starDensity, self.starMoveSpeed, self.myProjectiles, self.DisplayWidth)
         #self.starMoveSpeed = self.menuGameEventHandler.adjustStarMoveSpeed(self.maximumStarMoveSpeed, self.numberOfStarSpeeds)
         #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.y, self.ammo = self.menuGameEventHandler.moveAndDrawProjectilesAndEnemies(
             #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.x, self.y, self.rocketWidth, self.rocketHeight, self.difficultySelection, self.DisplayWidth, self.DisplayHeight, self.ammo, self.starMoveSpeed)
         #self.menuGameEventHandler.drawObject(myCharacter, self.x, self.y)
 
-    def GetKeyPress(self):
-        self.exiting, self.lost, self.userCharacter, self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.exiting, self.lost, self.userCharacter)
-
     def DisplayMainMenu(self):
         self.mainMenuItemMargin = 25
-        for self.i in xrange(7):
+        for self.i in range(7):
             self.rgb = (255, 255, 255)
             if self.i == self.menuSelectionIndex:
                 self.rgb = (self.colorIntensity, 0, 0)
@@ -410,7 +170,7 @@ class MenuManager(object):
 
     def DisplaySettingsMenu(self):
         self.fullScreenWindowChanged = False
-        for self.i in xrange(5):
+        for self.i in range(5):
             self.rgb = (255, 255, 255)
             if self.i == 4:
                 self.text = "Screen Size: " + str(screenResChoices[self.screenResSelection][0]) + "x" + str(screenResChoices[self.screenResSelection][1])
@@ -434,7 +194,7 @@ class MenuManager(object):
             self.screenMoveCounter = self.screenMoveCounter + creditsMoveSpeed
             self.DisplayTitle()
             self.DisplayMainMenu()
-        for self.i in xrange(3):
+        for self.i in range(3):
             self.rgb = (255, 255, 255)
             if self.i == 2:
                 self.text = "Programming by Mike Finnegan"
@@ -453,7 +213,7 @@ class MenuManager(object):
             self.screenMoveCounter = self.screenMoveCounter + howToSpeed
             self.DisplayTitle()
             self.DisplayMainMenu()
-        for self.i in xrange(3):
+        for self.i in range(3):
             self.rgb = (255, 255, 255)
             if self.i == 2:
                 self.text = "Escape key: pause game"
@@ -474,8 +234,8 @@ class MenuManager(object):
         self.textSurf, self.textRect = self.gfx.CreateTextObject("<<  " + self.difficultyChoices[self.highScoreDifficulty] + " High Scores  >>", self.smallText, self.rgb)
         self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 90))
         self.gameDisplay.blit(self.textSurf, self.textRect)
-        for self.i in xrange(-1, 11):
-            for self.j in xrange(5):
+        for self.i in range(-1, 11):
+            for self.j in range(5):
                 if self.i == -1:
                     self.rgb = (255, 255, 255)
                     if self.j == 0:
@@ -600,7 +360,7 @@ class HighScoresDatabase(object):
         self.iNeedThisManyMoreBlankSlots = self.numberOfRecordsPerDifficulty - len(self.workingArray)
         self.n = 0
         self.b = [[],]
-        for self.row in xrange(self.iNeedThisManyMoreBlankSlots):
+        for self.row in range(self.iNeedThisManyMoreBlankSlots):
             self.n = self.n + 1
             self.b.append([self.n, "-", 0, "-", "-"])
         self.b.remove([])
@@ -614,7 +374,7 @@ class HighScoresDatabase(object):
             self.connection = sqlite3.connect(self.databaseName)
             self.c = self.connection.cursor()
             self.row = ([])
-            for self.loadCounter in xrange(len(self.difficulties)):
+            for self.loadCounter in range(len(self.difficulties)):
                 self.a = [[],]                
                 self.c.execute("""SELECT * FROM " + self.difficulties[self.loadCounter] + "HighScoreTable ORDER BY scoreRecordPK""")
                 for self.row in self.c.fetchall():
@@ -638,12 +398,12 @@ class HighScoresDatabase(object):
             self.c.execute("DROP TABLE IF EXISTS " + difficulty + "HighScoreTable")
             self.c.execute("CREATE TABLE " + difficulty + "HighScoreTable(scoreRecordPK INT, Name TEXT, Score INT, State TEXT, Country TEXT)")
 
-        for self.loadCounter in xrange(len(self.difficulties)):
+        for self.loadCounter in range(len(self.difficulties)):
             #self.highScoresArray.append([])
             self.highScoresArray.insert(self.loadCounter, self.FillInBlankHighScores(self.highScoresArray[self.loadCounter]))
             #self.highScoresArray = self.FillInBlankHighScores(self.highScoresArray[self.loadCounter])
         self.highScoresArray.remove([])
-        for self.loadCounter in xrange(len(self.difficulties)):
+        for self.loadCounter in range(len(self.difficulties)):
             self.UpdateHighScoresForThisDifficulty(self.highScoresArray[self.loadCounter], self.loadCounter)
         self.connection.close()
         return self.highScoresArray
@@ -665,490 +425,19 @@ class HighScoresDatabase(object):
         except:
             self.InitializeDatabase()
         self.connection.close()
-        
-class GamePlayObject(object):
-    pass
-
-class Weapon(GamePlayObject):
-    def __init__(self, name, damage, ammo, physIndic, generateBulletWidth, generateBulletHeight, generateBulletSpeed, gravity):
-        self.name = name
-        self.damage = damage
-        self.ammo = ammo
-        self.physicsIndicator = physIndic
-        self.generateBulletWidth = generateBulletWidth
-        self.generateBulletHeight = generateBulletHeight
-        self.generateBulletSpeed = generateBulletSpeed
-        self.gravityApplies = gravity
-
-class WorldObject(GamePlayObject):
-    def __init__(self, name = "", desc = "", columns = 0, touchAction = 0, attackAction = 0, time = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False):
-        self.name = name
-        self.desc = desc
-        self.columns = columns
-        self.walkThroughPossible = walkThrough
-        self.actionOnTouch = touchAction
-        self.actionOnAttack = attackAction
-        self.activeImage = ID*(columns - 1)
-        self.timeBetweenAnimFrame = time
-        self.timeElapsedSinceLastFrame = 0
-        self.ID = ID
-        self.scoreChangeOnTouch = scoreChangeOnTouch
-        self.scoreChangeOnAttack = scoreChangeOnAttack
-        self.healthChangeOnTouch = healthChangeOnTouch
-        self.healthChangeOnAttack = healthChangeOnAttack
-
-class Bullet(WorldObject):
-    #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, physics actions remaining, particle width px, particle height px, frame speed, default speed, image, particlePhysicsLevel
-    #if particlePhysicsLevel >= wallPhysicsLevel + 3 then particle pushes the wall
-    #if particlePhysicsLevel = wallPhysicsLevel + 2 then particle goes through wall
-    #if particlePhysicsLevel = wallPhysicsLevel + 1 then particle bounces off wall
-    #if particlePhysicsLevel <= wallPhysicsLevel then particle absorbs into wall
-
-    #physics actions represent the number of remaining times the particle can push/go through/bounce off walls
-
-    #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
-    
-    def __init__(self, name, weapon, xTile, yTile, dx, dy, damage, physicsIndicator, physicsCounter, width, height, speed = .01, defaultSpeed = .01, img=None, gravity = False):
-        self.name = name
-        self.defaultSpeed = defaultSpeed
-        self.speed = speed
-        self.xTile = xTile
-        self.yTile = yTile
-        self.dx = dx
-        self.dy = dy
-        self.width = width
-        self.height = height
-        self.damage = damage
-        self.physicsIndicator = physicsIndicator
-        self.physicsCounter = physicsCounter
-        self.cameFromObjectName = weapon
-        self.img = img #IMAGE ASSIGNED BECAUSE 1) IMAGE NEEDS TO BE GENERATE AT TIME OF OBJECT CREATION, AND 2) WILL NOT BE CHANGING THROUGHOUT THE LIFE OF THE OBJECT
-        #self.worldObjectID = worldObjectID
-        self.imagesGFXName = "../Images/bullets.png"
-        self.imagesGFXNameDesc = "Bullets"
-        self.imagesGFXRows = 4
-        self.imagesGFXColumns = 1
-        self.weapon = weapon
-        self.gravityApplies = gravity
-        self.gravityYDelta = 0
-        self.timeSpentFalling = 0
-
-    def MoveAndHandleCollision(self, wallMap):
-        #MOVE PARTICLES, OR DELETE THEM IF THEY REACH WORLD END
-            if self.xTile + self.dx > len(wallMap[0]) or self.yTile + self.dy > len(wallMap) or self.xTile + self.dx < 0 or self.yTile + self.dy < 0:
-                return "DELETE"
-            else:
-                self.xTile = self.xTile + self.dx
-                self.yTile = self.yTile + self.dy
-                return ""
-            
-        #COLLISION DETECT IF WALL HIT, AND BOUNCE/PERFORM ACTION IF NECESSARY
-
-    def ApplyGravity(self):
-        self.dy = self.dy + self.gravityYDelta
-
-    def CalculateNextGravityVelocity(self, tileHeight):
-        return (min(self.gravityYDelta + (.00005 * (self.timeSpentFalling**2)), tileHeight / 3.0)), self.timeSpentFalling + 1
-
-class AI(object):
-    pass
-
-class Character(WorldObject):
-    def __init__(self, name = "", boundToCamera = False, xFacing = 0, yFacing = 0, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False, gravity = False):
-        #GENERAL
-        self.name = name
-        self.numberOfFramesAnimPerWalk = numberOfFramesAnimPerWalk #3
-        self.numberOfDirectionsFacingToDisplay = 8
-        self.imagesGFXName = "../Images/userPlayer.png"
-        self.imagesGFXNameDesc = "User Player"
-        self.imagesGFXRows = self.numberOfDirectionsFacingToDisplay
-        self.imagesGFXColumns = self.numberOfFramesAnimPerWalk
-
-        #LOCATION/APPEARANCE
-        self.xFacing = xFacing
-        self.yFacing = yFacing
-        self.xTile = xTile
-        self.yTile = yTile - 1
-        self.x = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME
-        self.y = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME
-        self.xok = 1
-        self.yok = 1 
-        self.deltaX = deltaX #specifies the change in xTile on the next frame
-        self.deltaY = deltaY #specifies the change in yTile on the next frame
-        self.timeSpentFalling = timeSpentFalling #This is important to track because falling velocity due to gravity is non-linear
-        self.gravityYDelta = 0
-        self.imgDirectionIndex = imgDirectionIndex #IMAGE INDICIES REFERENCE IMAGE BECAUSE IMAGE WILL CHANGE THROUGHOUT LIFE OF THE OBJECT
-        self.imgLegIndex = imgLegIndex
-        self.millisecondsOnEachLeg = millisecondsOnEachLeg #250
-        self.millisecondsOnThisLeg = 0
-        self.boundToCamera = boundToCamera
-
-        #SPECIFIC PROPERTIES
-        self.AI = AI()
-        self.defaultSpeed = defaultSpeed #.5
-        self.speed = 0
-        self.health = 100
-        self.ammo = ammo
-        self.activeWeapon = activeWeapon
-        self.score = score
-        self.weapons = weapons
-        self.inventory = inventory
-        self.width = width
-        self.height = height
-        self.deltaXScreenOffset = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
-        self.deltaYScreenOffset = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
-        self.shotsFiredFromMe = shotsFiredFromMe
-        self.weapons = weapons
-        self.gravityApplies = gravity
-
-    def InitializeScreenPosition(self, camera, tileWidth, tileHeight):
-        self.x = (self.xTile - camera.viewX) * tileWidth
-        self.y = (self.yTile - camera.viewY) * tileHeight
-
-    def Move(self, camera, tileWidth, tileHeight):
-        if self.xok == 1:
-            self.x = self.x + self.deltaX + self.deltaXScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
-            self.xTile = 1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + (self.x/float(tileWidth)) #0 BASED, JUST LIKE THE ARRAY, THIS IS LEFT MOST POINT OF USER'S CHAR
-        if self.yok == 1:
-            self.y = self.y + self.deltaY + self.deltaYScreenOffset #MOVE USER'S CHARACTER, BUT DON'T MOVE HIM IN ONE DIRECTION IF THE SCREEN SCROLL IS ALSO MOVING IN THAT DIRECTION
-            self.yTile = 1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + (self.y/float(tileHeight)) #0 BASED, JUST LIKE THE ARRAY, THIS IS TOP MOST POINT OF USER'S CHAR
-
-    def GetLocationInWorld(self):
-        return [self.xTile, self.yTile] #UNITS IN WORLD TILES
-
-    def GetLocationOnScreen(self):
-        return [self.x, self.y] #UNITS IN SCREEN PIXELS
-
-    def TestIfLocationVisibleOnScreen(self):
-        pass
-
-    def UpdateDirectionBasedOnWallCollisionTest(self, levelMap, camera, tileHeight, tileWidth, gravity, stickToWallsOnCollision):
-        #This acts as a buffer to allow user to not get up against floor/ceiling
-        #because the distance the user will travel over the next frame cannot
-        #be known with absolute certainty because it is a function of the speed
-        #at which the next frame is drawn. This prevents clipping by making
-        #a judgement call that the next frame won't likely be drawn twice as slow as,
-        #or longer, than this frame was drawn.
-        
-        #CHARACTER<->WALL COLLISION DETECTION:
-        #COLLISION DETECTION ACTUALLY HAS TO CHECK 2 DIRECTIONS FOR EACH OF THE 4 CORNERS FOR 2D MOVEMENT:
-        #EACH OF THESE 2x4 CHECKS ARE LABLED BELOW AND CODE IS MARKED INDICATING WHICH
-        #CORNER CHECK IS OCCURRING. THIS WOULD BE GOOD ENOUGH IF WE JUST STOPPED THE self
-        #ON COLLISION. FOR A BETTER USER EXPERIENCE, IF USER IS MOVING IN 2 DIRECTIONS (FOR EX LEFT + DOWN),
-        #BUT ONLY ONE DIRECTION (FOR EX: LEFT) COLLIDES, THEN WE WANT TO KEEP THE USER MOVING
-        #IN THE 1 GOOD DIRECTION ONLY. THIS REQUIRES 2 COLLISION CHECKS @ EACH OF THE 8 POINTS BECAUSE
-        #THE OUTCOME AND REMEDIATION OF A COLLISION CHECK ON ONE SIDE AFFECTS BY THE OUTCOME AND REMEDIATION
-        #OF THE NEXT COLLISION CHECK @ 90deg/270deg DIFFERENT DIRECTION AND BECAUSE PLAYER'S self IS SMALLER
-        #THAN THE TILES THE WORLD IS MADE OF.
-
-        #        A     B
-        #        ^     ^
-        #        |     |
-        #    H <-+-----+-> C
-        #        | _O_ |
-        #        |  |  |
-        #        | / \ |
-        #    G <-+-----+-> D
-        #        |     |
-        #        V     V
-        #        F     E
-
-        for wallMap in levelMap:
-            self.yok = 1
-            self.xok = 1
-            #self.deltaY = self.deltaY + self.gravityYDelta
-            #self.gravityYDelta = 0
-            #self.timeSpentFalling = 0
-            needToRevert = 0
-            #COLLISION CHECK @ C or @ D or @ H or @ G
-            if (self.deltaX > 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
-                tempxok = self.xok #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
-                tempdeltaXScreenOffset = self.deltaXScreenOffset #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
-                temppersonXDelta = self.deltaX #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
-                self.xok = 0
-                self.deltaXScreenOffset = 0
-                if stickToWallsOnCollision == False:
-                    self.deltaX = 0
-                needToRevert = 1
-
-            #COLLISION CHECK @ A or @ B or @ F or @ E 
-            #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
-            #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
-            
-            #if (self.deltaY < 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
-            if (self.deltaY < 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
-                self.yok = 0
-                self.deltaYScreenOffset = 0
-                if stickToWallsOnCollision == False:
-                    self.deltaY = 0
-                #if gravity == True and self.gravityYDelta != 0 and self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight) > 0:
-                if gravity == True and self.gravityYDelta != 0 and self.deltaY + self.gravityYDelta > 0:
-                    self.gravityYDelta = 0
-                    self.timeSpentFalling = 0
-                    self.deltaY = 0
-                    
-            #RESET 1ST COLLISION CHECK PARAMATERS B/C NOW,
-            #WE DON'T KNOW IF A COLLISION @ C or @ D or @ H or @ G WILL OCCUR
-            #BECAUSE WE MAY HAVE HANDLED A COLLISION @ A, B, F, OR E.
-            #KNOWING THIS BEFOREHAND AFFECTS THE OUTCOME OF COLLISION TEST.
-            if needToRevert == 1:
-                self.xok = tempxok
-                self.deltaXScreenOffset = tempdeltaXScreenOffset
-                self.deltaX = temppersonXDelta
-
-            #COLLISION CHECK @ C or @ D or @ H or @ G
-            #NOW TEST FOR COLLISION @ C, D, H, OR G NOW KNOWING THAT WE HANDLED MAY HAVE HANDLED A COLLISION @ C, D, H, OR G
-            #LIKEWISE, THIS FORMULA IS DEPENDENT ON VARS IN 2ND SECTION THAT CHANGED
-            if ((self.deltaX)> 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.viewY + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.viewX + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
-                self.xok = 0
-                self.deltaXScreenOffset = 0
-                if stickToWallsOnCollision == False:
-                    self.deltaX = 0
-
-    def CalculateNextGravityVelocity(self, tileHeight):
-        return (min(self.gravityYDelta + (.00005 * (self.timeSpentFalling**2)), tileHeight / 3.0)), self.timeSpentFalling + 1
-
-    def GetNextGravityApplicationToWorld(self, gravityYDelta, timeSpentFalling, tileHeight):
-        character = Character("Temp")
-        character.gravityYDelta = gravityYDelta
-        character.timeSpentFalling = timeSpentFalling
-        a, b = self.CalculateNextGravityVelocity(tileHeight)
-        del character
-        return a
-
-    def DetermineCharPicBasedOnDirectionFacing(self):
-        if self.xFacing == 0 and self.yFacing > 0:
-            #down
-            self.imgDirectionIndex = 0
-        if self.xFacing == 0 and self.yFacing < 0:
-            #up
-            self.imgDirectionIndex = 1
-        if self.xFacing > 0 and self.yFacing == 0:
-            #right
-            self.imgDirectionIndex = 2
-        if self.xFacing < 0 and self.yFacing == 0:
-            #left
-            self.imgDirectionIndex = 3
-        if self.xFacing > 0 and self.yFacing > 0:
-            #down right
-            self.imgDirectionIndex = 4
-        if self.xFacing < 0 and self.yFacing < 0:
-            #up left
-            self.imgDirectionIndex = 5
-        if self.xFacing > 0 and self.yFacing < 0:
-            #up right
-            self.imgDirectionIndex = 6
-        if self.xFacing < 0 and self.yFacing > 0:
-            #down left
-            self.imgDirectionIndex = 7
-
-    def DetermineCharPicBasedOnWalkOrMovement(self, millisecondsSinceLastFrame):
-        if self.deltaX == 0 and self.deltaY == 0:
-            self.imgLegIndex = 0
-            self.millisecondsOnThisLeg = 0
-        else:
-            if (self.millisecondsOnThisLeg >= self.millisecondsOnEachLeg):
-                self.imgLegIndex = (self.imgLegIndex + 1) % self.numberOfFramesAnimPerWalk
-                self.millisecondsOnThisLeg = 0
-            else:
-                self.millisecondsOnThisLeg = self.millisecondsOnThisLeg + millisecondsSinceLastFrame
-
-    def ApplyGravity(self):
-        self.deltaY = self.deltaY + self.gravityYDelta
-
-    def Attack(self):
-        pass
-
-class Camera(object):
-    def __init__(self, screenResSelection, DisplayType, x, y):
-        self.screenResSelection = screenResSelection
-        self.DisplayType = DisplayType
-        self.viewX = x #Camera view X-coord measured in tiles
-        self.viewY = y - 1#Camera view Y-coord measured in tiles
-        self.viewToScreenPxlOffsetX = 0 #Offset the camera view X-coord to the screen based on Player fractional tile movement, in pixels
-        self.viewToScreenPxlOffsetY = 0 #Offset the camera view Y-coord to the screen based on Player fractional tile movement, in pixels
-        self.zoom = 1
-
-    def UpdateScreenSettings(self):
-        self.DisplayWidth = screenResChoices[self.screenResSelection][0]
-        self.DisplayHeight = screenResChoices[self.screenResSelection][1]
-        #self.DisplayWidth = DisplayWidth #1280 #960
-        #self.DisplayHeight = DisplayHeight #720 #54
-        if self.DisplayType == "Full Screen":
-            gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight), pygame.FULLSCREEN)
-        else:
-            gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight))
-        return gameDisplay
-        #TODO: Resolution/screen size change can put character outside of camera view
-        #TODO: Resolution/screen size change can put camera view outside of world
-        #TODO: Resolution/screen size can be larger than the world itself, 
-        #   thus the world must be centered for attractive appearance
-
-    def Move(self, tileWidth, tileHeight, deltaX = 0, deltaY = 0):#, deltaZ = 0, deltaZoom = 0):
-        self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY - deltaY #MOVE CAMERA ALONG Y AXIS
-        self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX - deltaX #MOVE CAMERA ALONG X AXIS
-        self.RefreshViewCoords(tileWidth, tileHeight)
-
-    def MoveBasedOnCharacterMovement(self, character, tileHeight, tileWidth, levelWidth, levelHeight):
-
-        #        -COMPUTER SCREEN-
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #----------+----------+--------------
-        #          |    IF    |
-        #          | PLAYER   |
-        #          | TRIES TO |
-        #          |   LEAVE  |
-        #          | THIS AREA|
-        #          |   THEN   |
-        #          | PREVENT  |
-        #          | AND START|
-        #          |  SCREEN  |
-        #          |SCROLLING*|
-        #------------------------------------
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-        #          |          |
-
-        if character.boundToCamera == True:
-            #IF CHARACTER IS PRESSING AGAINST BLOCK, BUT OUTSIDE OF MIDDLE 9TH AND CAMERA CAN MOVE FURTHER BEFORE HITTING THE EDGE OF THE WORLD, THEN MOVE CAMERA, BUT NOT THE PERSON
-
-            #*UNLESS SCREEN SCROLLING PUTS CAMERA VIEW OUTSIDE OF THE WORLD
-            #(IS PLAYER MOVING TO THE LEFT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE THE CAMERA FARTHER LEFT THAN WORLD START)    OR    (IS PLAYER MOVING TO THE RIGHT TO LEAVE MIDDLE THIRD AND IS IT NOT THE CASE THAT SCREEN SCROLLING WOULD PLACE CAMERA FARTHER RIGHT THAN WORLD END)?
-            if character.xok == 1 and self.atWorldEdgeX == False and ((character.deltaX < 0 and character.x + character.deltaX < (1*self.DisplayWidth)/3.0) or (character.deltaX >0 and character.x + character.deltaX > (2*self.DisplayWidth)/3.0)):
-                self.Move(tileWidth, tileHeight, deltaX = character.deltaX) #MOVE CAMERA ALONG X AXIS
-                character.deltaXScreenOffset = -character.deltaX #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
-            else:
-                character.deltaXScreenOffset = 0
-
-            if character.yok == 1 and self.atWorldEdgeY == False and ((character.deltaY < 0 and character.y + character.deltaY < (1*self.DisplayHeight)/3.0) or (character.deltaY >0 and character.y + character.deltaY > (2*self.DisplayHeight)/3.0)):
-                self.Move(tileWidth, tileHeight, deltaY = character.deltaY) #MOVE CAMERA ALONG Y AXIS
-                character.deltaYScreenOffset = -character.deltaY #KEEP PLAYER'S CHARACTER FIXED @ MIDDLE 9TH EDGE
-            else:
-                character.deltaYScreenOffset = 0
-        return character
-
-    def RefreshViewCoords(self, tileWidth, tileHeight):
-        #CAMERA MOVES IN PIXELS, BUT THE WORLD IS BUILT IN TILES.
-        #WHEN SCREEN MOVES IN PIXELS WITH USER'S MOVEMENT, THIS
-        #IS STORED IN cameraViewToScreenPxlOffsetX/Y. BUT IF USER'S
-        #MOVEMENT (AND THEREFORE, cameraViewToScreenPxlOffsetX/Y) GOES BEYOND
-        #THE SIZE OF A TILE, THEN TAKE AWAY THE TILE SIZE FROM THE 
-        #cameraViewToScreenPxlOffsetX/Y, AND CONSIDER THAT THE CAMERA HAS MOVED
-        #1 TILE IN DISTANCE IN THE WORLD. THIS IS IMPORTANT IN
-        #ACCURATELY TRACKING THE CAMERA'S LOCATION COORDINATES.
-        if self.viewToScreenPxlOffsetX >= tileWidth:
-            self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX - tileWidth
-            self.viewX = self.viewX - 1
-            
-        elif self.viewToScreenPxlOffsetX <0:
-            self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX + tileWidth
-            self.viewX = self.viewX + 1
-
-        if self.viewToScreenPxlOffsetY >= tileHeight:
-            self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY - tileHeight
-            self.viewY = self.viewY - 1
-
-        elif self.viewToScreenPxlOffsetY <0:
-            self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY + tileHeight
-            self.viewY = self.viewY + 1
-
-    def GetLocationInWorld(self, tileHeight, tileWidth):
-        return [1 + self.viewX - (self.viewToScreenPxlOffsetX/float(tileWidth)), 1 + self.viewY - (self.viewToScreenPxlOffsetY/float(tileHeight))]
-
-    def SetLocationInWorld(self, x, y, tileHeight, tileWidth):
-        pass
-        #self.viewX = (self.viewToScreenPxlOffsetX/float(tileWidth)) + x - 1
-        #self.viewY = (self.viewToScreenPxlOffsetY/float(tileHeight)) + y - 1
-
-    def ValidatePosition(self, gameDisplay):
-        #CAN'T BE BEYOND WORLD EDGES
-            #WHAT IF CAMERA VIEW IS LARGER THAN WORLD SIZE?
-        #CAN'T PUT USER CHARACTER OUTSIDE OF INNER NINTH IF CAMERA CAN MOVE CLOSER TO WORLD EDGE
-        pass
-
-    def TestIfAtWorldEdgeCollision(self, wallMap, character, tileWidth, tileHeight):
-        #SNAP CAMERA TO THE EDGE OF THE WORLD IF PAST IT
-        self.atWorldEdgeX = False
-        self.atWorldEdgeY = False
-            #camera X  +      tiles on screen              +        frac. person next move         +   frac camera X                                         
-        if (1 + self.viewX + (self.DisplayWidth/float(tileWidth)) + (character.deltaX/float(tileWidth)) - (self.viewToScreenPxlOffsetX/float(tileWidth)) >= len(wallMap[0])) and character.deltaX > 0:
-            self.viewToScreenPxlOffsetX = (float(float(self.DisplayWidth/float(tileWidth)) - int(self.DisplayWidth/float(tileWidth))))*tileWidth
-            self.viewX = int(len(wallMap[0]) - int(self.DisplayWidth/float(tileWidth))) - 1
-            self.atWorldEdgeX = True
-        else:
-            if (1 + self.viewX - self.viewToScreenPxlOffsetX/float(tileWidth) + (character.deltaX/float(tileWidth)) <= 0 and character.deltaX <0):
-                self.viewX = -1
-                self.viewToScreenPxlOffsetX = 0
-                self.atWorldEdgeX = True
-        if (1 + self.viewY + (self.DisplayHeight/float(tileHeight)) + (character.deltaY/float(tileHeight)) - (self.viewToScreenPxlOffsetY/float(tileHeight)) >= len(wallMap)) and character.deltaY > 0:
-            self.viewToScreenPxlOffsetY = (float(float(self.DisplayHeight/float(tileHeight)) - int(self.DisplayHeight/float(tileHeight))))*tileHeight
-            self.viewY = int(len(wallMap) - int(self.DisplayHeight/float(tileHeight))) - 1
-            self.atWorldEdgeY = True
-        else:
-            if (1 + self.viewY - self.viewToScreenPxlOffsetY/float(tileHeight) + (character.deltaY/float(tileHeight)) <= 0 and character.deltaY < 0):
-                self.viewY = -1
-                self.viewToScreenPxlOffsetY = 0
-                self.atWorldEdgeY = True
-
-class Level(object):
-    def __init__(self, index, name, description, weather, sideScroller, wallMap, objectMap, music, loopMusic, startX, startY, startXFacing, startYFacing, xSize, ySize, gravity, stickToWallsOnCollision, tileSheetRows, tileSheetColumns, tileWidth, tileHeight, tileXPadding, tileYPadding):
-        self.index = index
-        self.name = name
-        self.description = description
-        self.weather = weather
-        self.sideScroller = sideScroller
-        self.wallMap = wallMap
-        self.objectMap = objectMap
-        self.music = music
-        self.loopMusic = loopMusic
-        self.startX = startX
-        self.startY = startY
-        self.startXFacing = startXFacing
-        self.startYFacing = startYFacing
-        self.gravity = gravity
-        self.stickToWallsOnCollision = stickToWallsOnCollision
-        self.levelHeight = len(objectMap)
-        self.levelWidth = len(objectMap[0])
-
-        self.tileSheetRows = 9
-        self.tileSheetColumns = 1
-        self.tileWidth = 64
-        self.tileHeight = 64
-        self.tileXPadding = 0
-        self.tileYPadding = 0
-
-class World(object):
-    def __init__(self, filePath, fileName):
-        self.filePath = filePath
-        self.fileName = fileName
-        
-    def GetNumberOfLevels(self):
-        pass
-
-    def GetLevel(self, index):
-        return Level(index, name, description, weather, sideScroller, wallMap, objectMap, music, loopMusic, startX, startY, startXFacing, startYFacing, xSize, ySize, gravity, stickToWallsOnCollision)
 
 class Game(object):
-    def __init__(self, screenResSelection, fullScreen):        
+    def __init__(self, screenResSelection, fullScreen, worldDB, worldDBFilePath, startingLevel, calculationsPerFrame):
+        self.calculationsPerFrame = calculationsPerFrame #Tradeoff: increasing calculations per frame, reduces the probability of incorrect object pass-through, but can reduce frame rate.
+        
+        self.world = World(worldDBFilePath, worldDB)
+        #self.world.Reset()
+        self.world.LoadWallObjects()
+        self.world.LoadWorldObjects()
+        self.world.LoadLevel(startingLevel)
+        #self.world.activeLevel.gravity = True
         self.clock = pygame.time.Clock()
-        
-        self.logic = LogicHandler()
         self.gfx = GfxHandler()
-        
         
         pygame.display.set_caption("2D Game Framework")
         
@@ -1161,168 +450,32 @@ class Game(object):
         self.difficultySelection = 0
         self.enterPressed = False
 
-        self.grass = WorldObject(name = "Grass", desc = "Grass world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = True)
-        self.houseTopLeft = WorldObject(name = "House top left", desc = "House top left world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False)
-        self.houseTopRight = WorldObject(name = "House top right", desc = "House top right world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False)
-        self.houseMidLeft = WorldObject(name = "House mid left", desc = "House mid left world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False)
-        self.houseMidRight = WorldObject(name = "House mid right", desc = "House mid right world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False)
-        self.houseBottomLeft = WorldObject(name = "House bottom left", desc = "House bottom left world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False)
-        self.houseBottomRight = WorldObject(name = "House bottom right", desc = "House bottom right world object", columns = 1, touchAction = 0, attackAction = 0, time = 100000000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = False)
-        
-        self.diamond = WorldObject(name = "Diamond", desc = "Diamond Flicker Example", columns = 4, touchAction = 0, attackAction = 0, time = 1000, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThrough = True)
-        
-        self.currentLevel = Level(0, "Demo", "This is a demonstration level", "Clear", False, [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,8,0,0,0,7,8,0,0,0,7,8,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,6,0,0,0,5,6,0,0,0,5,6,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,4,0,0,0,3,4,0,0,0,3,4,0,0,0,0,0,0,0,0,0,1,1],
-                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]], [[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[], self.diamond,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],self.diamond,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],self.diamond,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],self.diamond,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],self.diamond,[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
-                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]], "", True, 22, 2, 1, 0, 0, 0, False, False, 9, 1, 64, 64, 0, 0)
+
         self.particles = []
 
-        self.camera = Camera(screenResSelection, fullScreen, 14, 0)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.world.activeLevel.tileSheetRows, self.world.activeLevel.tileSheetColumns, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
+        self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer TEST.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 42, height = 43, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
+        self.camera = Camera(screenResSelection, fullScreen, 14, 0, self.userCharacter, 1/2.0, 1/2.0)
         self.gameDisplay = self.camera.UpdateScreenSettings()
-
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.currentLevel.tileSheetRows, self.currentLevel.tileSheetColumns, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.tileXPadding, self.currentLevel.tileYPadding)
-        self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.currentLevel.startXFacing, yFacing = self.currentLevel.startYFacing, xTile = self.currentLevel.startX, yTile = self.currentLevel.startY, deltaX = 0, deltaY = 0, gravity = True) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
-        self.userCharacter.InitializeScreenPosition(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight)
-        for i in xrange (4):
-            self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100), False))
+        self.userCharacter.InitializeScreenPosition(self.camera, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)
+        for i in range (4):
+            #self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, "Bounce", 5 ,16, 16, (i+1)/2, True, .000005))
+            self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, "Bounce", 4*(i+1) ,16, 16, (i+1)/2, False))
         self.characters = [self.userCharacter]
         for character in self.characters:
-            self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
+            self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, character.pictureXPadding, character.pictureYPadding)
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
-        
-        self.FPSLimit = 240
+
+        self.cameraController = CameraController(self.camera, self.world.activeLevel)
+        self.characterController = CharacterController(self.characters, self.camera, self.world.activeLevel)
+        self.View = View(self.gfx, self.camera, self.world.activeLevel, self.gameDisplay)
+        #self.levelController = LevelController()
+        self.FPSLimit = 120
+        self.gameController = GameController()
+        self.hardwareAccessLayer = Hardware()
+        self.particleController = ParticleController(self.particles, self.characters, self.world.activeLevel, self.gfx)
+        #self.worldController = WorldController(self.world)
         
     def ShowMenu(self, DisplayMenu, camera):
         menuSystem = MenuManager(DisplayMenu, self.camera.screenResSelection , self.difficultySelection, self.camera.DisplayType, self.gameDisplay)
@@ -1334,60 +487,43 @@ class Game(object):
     def Play(self):
         # GAME LOOP
         while not self.paused:
-            self.gfx.DrawStaticObjects("World Tiles", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.wallMap, self.gameDisplay)  #DRAW THE WORLD IN TILES BASED ON THE THE NUMBERS IN THE wallMap ARRAY
-            self.currentLevel.objectMap = self.gfx.DrawStaticObjects("World Objects", self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight, self.currentLevel.objectMap, self.gameDisplay, self.timeElapsedSinceLastFrame) #DRAW THE WORLD IN OBJECTS BASED ON THE THE NUMBERS IN THE self.objectMap ARRAY
-            self.paused, self.lost, self.characters[0], self.enterPressed = self.logic.HandleHeyPressAndGameEvents(self.paused, self.lost, self.characters[0]) #HANDLE KEY PRESSES AND PYGAME EVENTS
-            self.timeElapsedSinceLastFrame = self.logic.ManageTimeAndFrameRate(self.lastTick, self.clock, self.FPSLimit) #FIGURE OUT HOW MUCH TIME HAS ELAPSED SINCE LAST FRAME WAS DRAWN
-
-            #TODO: generateBadGuys()
-            #TODO: badGuysMoveOrAttack()
-            
-            for i in xrange(len(self.characters)):
-                self.characters[i] = self.logic.CorrectSpeed(self.timeElapsedSinceLastFrame, self.characters[i], "Character") #NOW THAT KEY PRESSES HAVE BEEN HANDLED, ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-                self.characters[i].DetermineCharPicBasedOnDirectionFacing() #Select the correct image for all characters based on direction facing
-                self.characters[i].DetermineCharPicBasedOnWalkOrMovement(self.timeElapsedSinceLastFrame) #Select the correct image for all characters based on what leg they are standing on
-                self.particles, self.characters[i] = self.logic.GenerateParticles(self.particles, self.characters[i], self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.gfx) #GENERATE PARTICLES (self.bullets, rain drops, snowflakes, etc...)
-                if self.currentLevel.gravity == True:
-                    self.characters[i].ApplyGravity()
-                    self.characters[i].gravityYDelta, self.characters[i].timeSpentFalling = self.characters[i].CalculateNextGravityVelocity(self.currentLevel.tileHeight)
-                self.camera.TestIfAtWorldEdgeCollision(self.currentLevel.wallMap, self.characters[i], self.currentLevel.tileWidth, self.currentLevel.tileHeight)
-                self.characters[i].UpdateDirectionBasedOnWallCollisionTest([self.currentLevel.wallMap], self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.gravity, self.currentLevel.stickToWallsOnCollision) #CHECK FOR CHARACTER-WALL COLLISIONS
-                self.characters[i] = self.camera.MoveBasedOnCharacterMovement(self.characters[i], self.currentLevel.tileHeight, self.currentLevel.tileWidth, self.currentLevel.levelWidth, self.currentLevel.levelHeight)#TEST IF USER CHARACTER MOVES OUTSIDE OF INNER NINTH OF SCREEN
-                self.characters[i].Move(self.camera, self.currentLevel.tileWidth, self.currentLevel.tileHeight) #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
-                self.gfx.DrawCharacter(self.characters[i], self.gameDisplay)
-
-            myDeletedParticles = []
-            for j in xrange(len(self.particles)):
-                self.particles[j] = self.logic.CorrectSpeed(self.timeElapsedSinceLastFrame, self.particles[j], "Particle") #ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE
-                if self.currentLevel.gravity == True and self.particles[j].gravityApplies == True: #HANDLE GRAVITY WHERE APPLICABLE
-                    self.particles[j].ApplyGravity()
-                    self.particles[j].gravityYDelta, self.particles[j].timeSpentFalling = self.particles[j].CalculateNextGravityVelocity(self.currentLevel.tileHeight)
-                if self.particles[j].MoveAndHandleCollision(self.currentLevel.wallMap) == "DELETE": #MOVE AND HANDLE DESTRUCTION
-                    myDeletedParticles.append(j)
-                else:
-                    self.gfx.DrawParticle(self.particles[j], self.gameDisplay, self.camera, self.currentLevel.tileHeight, self.currentLevel.tileWidth)
-
-            for k in xrange(len(myDeletedParticles)):
-                del self.particles[myDeletedParticles[k]]
+            timeElapsedSinceLastFrame = self.gameController.ManageTimeAndFrameRate(self.FPSLimit)
+            for calcIteration in range(self.calculationsPerFrame): #TODO: maybe have this be based on the user's framerate? That way if user is maxing out FPS, the game can perform more calculations, but not too much more so as to completely use up all CPU cycles?
+                self.hardwareAccessLayer.PollHardware()
+                self.gameController.HandleGameEvents(self.hardwareAccessLayer.gameEvents)
+                self.characterController.ApplyUserInputToCharacter(self.hardwareAccessLayer.characterEvents)
+                self.characterController.CalculateCharacterPlacement(timeElapsedSinceLastFrame/float(self.calculationsPerFrame))
+                self.cameraController.HandleWorldEdgeCollision()
+                self.characterController.MoveCharacters()
+                self.cameraController.MoveCamera()
+                self.particleController.CreateParticles()
+                self.particleController.CalculateParticlePlacement(timeElapsedSinceLastFrame/float(self.calculationsPerFrame))
+                self.particleController.MoveParticles()
+                self.particleController.HandleCollisions()
+                self.particleController.DeleteParticles()
+            self.View.RefreshScreen(timeElapsedSinceLastFrame, self.characters, self.particles)
             
             #DRAW GAME STATS
             #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.DisplayWidth)
             #self.gfx.DrawSmallMessage("Ammo: " + str(self.characters[i].ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Level: " + str(self.currentLevel), 2, self.gameDisplay, white, self.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Level: " + str(self.world.activeLevel), 2, self.gameDisplay, white, self.DisplayWidth)
             #self.gfx.DrawSmallMessage("Score: " + str(self.score), 3, self.gameDisplay, white, self.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocationInWorld()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocationInWorld()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player sX: " + str(self.characters[0].GetLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player sY: " + str(self.characters[0].GetLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.DisplayWidth)
 
-            ##self.gfx.DrawSmallMessage("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 6, self.gameDisplay, white, self.camera.DisplayWidth)
-            ##self.gfx.DrawSmallMessage("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 7, self.gameDisplay, white, self.camera.DisplayWidth)
-            
-            #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocationInWorld(self.tileWidth, self.tileHeight)[0]), 8, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocationInWorld(self.tileWidth, self.tileHeight)[1]), 9, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("person dx: " + str(self.characters[0].deltaX), 8, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("person dy: " + str(self.characters[0].deltaY), 9, self.gameDisplay, white, self.camera.DisplayWidth)
-            self.gfx.DrawSmallMessage("FPS: " + str(1000/max(1, self.timeElapsedSinceLastFrame)), 12, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("X Offset: " + str(self.camera.viewToScreenPxlOffsetX), 8, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Y Offset: " + str(self.camera.viewToScreenPxlOffsetY), 9, self.gameDisplay, white, self.camera.DisplayWidth)
+
+            #self.gfx.DrawSmallMessage("Player dxO: " + str(self.characters[0].deltaXScreenOffset), 8, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player dyO: " + str(self.characters[0].deltaYScreenOffset), 9, self.gameDisplay, white, self.camera.DisplayWidth)
+
+            #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocationInWorld(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[0]), 10, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocationInWorld(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[1]), 11, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("person dx: " + str(self.characters[0].deltaX), 12, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("person dy: " + str(self.characters[0].deltaY), 13, self.gameDisplay, white, self.camera.DisplayWidth)
+            self.gfx.DrawSmallMessage("FPS: " + str(int(1000/max(1, timeElapsedSinceLastFrame))), 14, self.gameDisplay, white, self.camera.DisplayWidth)
             pygame.display.update()
             if self.characters[0].health <= 0:
                 self.lost = True
@@ -1412,8 +548,9 @@ del allResolutionsAvail
 screenResChoices.sort()
 exiting = False
 while exiting == False:
-    myGame = Game(int(len(screenResChoices)/2), "Window")
-    exiting = myGame.ShowMenu("Main Menu", myGame.camera)
+    #myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0, 2)
+    myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0, 4)
+    #exiting = myGame.ShowMenu("Main Menu", myGame.camera)
     while myGame.exiting == False and myGame.lost == False:
         myGame.Play()
         myGame.ShowMenu("Paused", myGame.camera)

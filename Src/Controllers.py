@@ -82,7 +82,7 @@ class CharacterController(Controller):
             if self.activeLevel.gravity == True:
                 self.characters[i].ApplyGravity()
                 self.characters[i].CalculateNextGravityVelocity(self.activeLevel.tileHeight)
-            self.characters[i].TestWorldObjectCollision([self.activeLevel.wallMap], self.activeLevel.tileHeight, self.activeLevel.tileWidth, self.activeLevel.gravity, self.activeLevel.stickToWallsOnCollision) #CHECK FOR CHARACTER-WALL COLLISIONS
+            self.characters[i].TestWorldObjectCollision({"WallMap" : self.activeLevel.wallMap, "ObjectMap" : self.activeLevel.objectMap}, self.activeLevel.tileHeight, self.activeLevel.tileWidth, self.activeLevel.gravity, self.activeLevel.stickToWallsOnCollision) #CHECK FOR CHARACTER-WALL COLLISIONS
             self.characters[i].TestIfAtWorldEdgeCollision(self.activeLevel.wallMap, self.activeLevel.tileWidth, self.activeLevel.tileHeight)
             self.characters[i].HandleWorldObjectOrEdgeCollision(self.activeLevel.stickToWallsOnCollision, self.activeLevel.gravity) #Prevent character from moving through world objects or beyond boundaries of the level
 

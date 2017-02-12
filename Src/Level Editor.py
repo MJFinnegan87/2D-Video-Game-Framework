@@ -135,12 +135,13 @@ class GfxHandler(object):
         return int(coordinates[0]/float(tileWidth) - camera.viewToScreenPxlOffsetX/float(tileWidth) + float(camera.viewX) + 1), int(coordinates[1]/float(tileHeight) - camera.viewToScreenPxlOffsetY/float(tileHeight) + float(camera.viewY) + 1)
 
 class LevelEditorFrame(object):
-    def __init__(self, gfx, camera, tileHeight, tileWidth, objectType, resChangeOnly=False):
+    def __init__(self, gfx, camera, tileHeight, tileWidth, objectType, objectColumns, resChangeOnly=False):
         self.objectType = objectType
         self.paletteY = 3
         self.paletteX = 1
         self.frameHeight = int(camera.displayHeight/float(tileHeight))
         self.frameWidth = int(2 + math.ceil(len(gfx.gfxDictionary["World Tiles"])/float(self.frameHeight-self.paletteY)))
+        self.objectColumns = objectColumns
 
         if resChangeOnly == False:
             self.paletteSelectL = 0
@@ -159,21 +160,25 @@ class LevelEditorFrame(object):
         pass
 
     def DrawTileAndObjectPalette(self, camera, tileWidth, tileHeight, gfx, gameDisplay, objectType):
+        if self.objectType == "World Objects":
+            multiplier = self.objectColumns
+        else:
+            multiplier = 1
         for eachPaletteSelector in range(2): #FOR EACH LEFT AND RIGHT SELECTOR
             if eachPaletteSelector == 0:
                 thisPaletteSelector = self.paletteSelectL
             elif eachPaletteSelector == 1:
                 thisPaletteSelector = self.paletteSelectR
-            gfx.DrawImg(gfx.gfxDictionary[objectType][thisPaletteSelector],
+            gfx.DrawImg(gfx.gfxDictionary[objectType][thisPaletteSelector*multiplier],
                           ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + eachPaletteSelector)*tileWidth,
                           (1)*tileHeight,
                           (int(camera.displayWidth/float(tileWidth))-self.frameWidth + eachPaletteSelector)*tileWidth,
                           (2) * tileHeight), gameDisplay)
         j = 1
-        for i in range(len(gfx.gfxDictionary[objectType])):
+        for i in range(int(len(gfx.gfxDictionary[objectType])/multiplier)):
             if (int(i/float(j))+self.paletteY) >= self.frameHeight:
                 j = j + 1
-            gfx.DrawImg(gfx.gfxDictionary[objectType][i],
+            gfx.DrawImg(gfx.gfxDictionary[objectType][i*multiplier],
                           ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-1) + self.paletteX - 1)*tileWidth,
                           ((i%(self.frameHeight - self.paletteY))+self.paletteY)*tileHeight,
                           (int(camera.displayWidth/float(tileWidth))-self.frameWidth + (j-1) + self.paletteX - 1)*tileWidth,
@@ -806,21 +811,21 @@ class Weapon(GamePlayObject):
         self.generateBulletSpeed = generateBulletSpeed
 
 class WorldObject(GamePlayObject):
-    def __init__(self, PK, name = "", desc = "", columns = 0, activeImage = 0, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThroughPossible = False, timeElapsedSinceLastFrame = 0, isAnimated = True):
+    def __init__(self, PK, xTile = 0, yTile = 0, name = "", desc = "", columns = 0, activeImage = None, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, ID = 0, walkThroughPossible = False, timeElapsedSinceLastFrame = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
         self.PK = PK
-        self.deltaX = 0
-        self.deltaY = 0
-        self.xTile = 0
-        self.yTile = 0
-        self.speed = 0
-        self.defaultSpeed = 0
+        self.deltaX = deltaX
+        self.deltaY = deltaX
+        self.xTile = xTile
+        self.yTile = yTile
+        self.speed = speed
+        self.defaultSpeed = defaultSpeed
         self.name = name
         self.desc = desc
         self.columns = columns
         self.walkThroughPossible = walkThroughPossible
         self.actionOnTouch = actionOnTouch
         self.actionOnAttack = actionOnAttack
-        self.activeImage = ID*(columns - 1)
+        self.activeImage = int(ID)*(int(columns) - 1)
         self.timeBetweenAnimFrame = timeBetweenAnimFrame
         self.timeElapsedSinceLastFrame = 0
         self.ID = ID
@@ -828,10 +833,12 @@ class WorldObject(GamePlayObject):
         self.scoreChangeOnAttack = scoreChangeOnAttack
         self.healthChangeOnTouch = healthChangeOnTouch
         self.healthChangeOnAttack = healthChangeOnAttack
+        self.addsToCharacterInventoryOnTouch = addsToCharacterInventoryOnTouch
+        self.destroyOnTouch = destroyOnTouch
         self.timeElapsedSinceLastFrame = timeElapsedSinceLastFrame
-        self.deltaXScreenOffset = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
-        self.deltaYScreenOffset = 0 #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
-        self.isAnimated = True
+        self.deltaXScreenOffset = deltaXScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
+        self.deltaYScreenOffset = deltaYScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
+        self.isAnimated = isAnimated
     
 class Bullet(WorldObject):
     #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, physics actions remaining, particle width px, particle height px, frame speed, default speed, image, particlePhysicsLevel
@@ -1404,7 +1411,7 @@ class World(object):
             c.execute('CREATE TABLE WallObjects (PK INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, ID INT, activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT, actionOnAttack TEXT)')
 
             c.execute("DROP TABLE IF EXISTS WorldObjects")
-            c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, timeBetweenAnimFrame INT, ID TEXT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, timeElapsedSinceLastFrame INT)')
+            c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, timeBetweenAnimFrame INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, ID TEXT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, timeElapsedSinceLastFrame INT)')
 
         finally:
             connection.commit()
@@ -1605,11 +1612,12 @@ class World(object):
         c = connection.cursor()
         #c.execute('TRUNCATE TABLE WorldObjects')
         c.execute("DROP TABLE IF EXISTS WorldObjects")
-        c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, timeBetweenAnimFrame INT, ID TEXT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, timeElapsedSinceLastFrame INT)')
+        c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, timeBetweenAnimFrame INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, ID TEXT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, timeElapsedSinceLastFrame INT)')
 
         connection.commit()
         for i in WorldObjectData:
-            c.execute('INSERT INTO WorldObjects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+
+            c.execute('INSERT INTO WorldObjects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                       (
                         i.PK,
                         i.name,
@@ -1619,6 +1627,8 @@ class World(object):
                         i.actionOnTouch,
                         i.actionOnAttack,
                         i.timeBetweenAnimFrame,
+                        i.addsToCharacterInventoryOnTouch,
+                        i.destroyOnTouch,
                         i.ID,
                         i.scoreChangeOnTouch,
                         i.scoreChangeOnAttack,
@@ -1645,7 +1655,7 @@ class World(object):
         c = connection.cursor()
         c.execute('SELECT * FROM WorldObjects')
         for obj in c:
-            WorldObjectData.append(WorldObject(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13]))
+            WorldObjectData.append(WorldObject(obj[0], obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16]))
         connection.close()
         self.worldObjects = WorldObjectData
 
@@ -1658,8 +1668,10 @@ class Game(object):
         self.world.LoadWallObjects()
         self.world.LoadLevel(startingLevel)
         self.world.activeLevel.startX = 19
-        self.world.worldObjects = [WorldObject(PK = 0, name = "Diamond", desc = "Diamond Flicker Example", columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThroughPossible = True)]
-        print(self.world.worldObjects[0])
+        
+        self.world.worldObjects = [WorldObject(PK = 0, name = "Diamond", desc = "Diamond Flicker Example", columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, ID = 0, walkThroughPossible = True),
+                                   WorldObject(PK = 1, name = "Ball",    desc = "Red Ball Example",        columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, ID = 1, walkThroughPossible = False)]
+        
         self.world.wallObjects = [WallObject(PK = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 1,  activeImage = 0, walkThroughPossible = True, actionOnTouch = "", actionOnAttack = ""),
                  WallObject(PK = 1, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 2,  activeImage = 1, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
                  WallObject(PK = 2, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 3,  activeImage = 2, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
@@ -1956,7 +1968,7 @@ class Game(object):
 ##                            #music = "", loopMusic = False, startX = 0, startY = 0, startXFacing = 0, startYFacing = 0, levelWidth = 127, levelHeight = 127, gravity = False, stickToWallsOnCollision = False, tileSheetRows = 0, tileSheetColumns = 0, tileWidth = 0, tileHeight = 0, tileXPadding = 0, tileYPadding = 0
 ##
 ##        self.world.SaveActiveLevel()
-
+##
 
 
 
@@ -1997,9 +2009,9 @@ class Game(object):
         ###for character in self.characters:
             ###self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
-        self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
         self.gfx.LoadGfxDictionary("../Images/level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
-        self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.world.activeLevel.tileHeight, self.world.activeLevel.tileWidth, "World Tiles")
+        self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.world.activeLevel.tileHeight, self.world.activeLevel.tileWidth,  "World Tiles", 4)
         self.FPSLimit = 240
         
     def ShowMenu(self, displayMenu, camera):

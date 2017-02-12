@@ -105,15 +105,17 @@ class GfxHandler(object):
 
             #Otherwise, if it's a non-static world object (flame animation, water flowing animation, etc...)
             else:
-                wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
-                while wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > wallMap[j+viewY][i+viewX].timeBetweenAnimFrame:
-                    wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - wallMap[j+viewY][i+viewX].timeBetweenAnimFrame
-                    wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage + 1
-                    if wallMap[j+viewY][i+viewX].activeImage >= ((wallMap[j+viewY][i+viewX].ID + 1) * wallMap[j+viewY][i+viewX].columns - wallMap[j+viewY][i+viewX].ID):
-                        wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage - wallMap[j+viewY][i+viewX].columns
+                self.UpdateObjectAnimation(wallMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame)
                 imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX].activeImage + int(wallMap[j+viewY][i+viewX].ID)]
-
         return imgToDraw, wallMap
+
+    def UpdateObjectAnimation(self, wallMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
+        wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame + timeElapsedSinceLastFrame
+        while wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > wallMap[j+viewY][i+viewX].timeBetweenAnimFrame:
+            wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = wallMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - wallMap[j+viewY][i+viewX].timeBetweenAnimFrame
+            wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage + 1
+            if wallMap[j+viewY][i+viewX].activeImage >= ((wallMap[j+viewY][i+viewX].ID + 1) * wallMap[j+viewY][i+viewX].columns - wallMap[j+viewY][i+viewX].ID):
+                wallMap[j+viewY][i+viewX].activeImage = wallMap[j+viewY][i+viewX].activeImage - wallMap[j+viewY][i+viewX].columns
 
 class View(object):
     def __init__(self, gfx, camera, activeLevel, gameDisplay):

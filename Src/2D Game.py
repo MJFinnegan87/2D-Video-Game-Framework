@@ -30,7 +30,7 @@ class Menu(object):
         #self.HWController = Hardware()
 
     def DisplayMenu(self):
-        pass        
+        pass
 
 class MenuManager(object):
     def __init__(self, menuType, screenResSelection, difficultySelection, DisplayType, gameDisplay):
@@ -465,7 +465,7 @@ class Game(object):
         for character in self.characters:
             self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, character.pictureXPadding, character.pictureYPadding)
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
-        self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 16, 16, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
 
         self.cameraController = CameraController(self.camera, self.world.activeLevel)
         self.characterController = CharacterController(self.characters, self.camera, self.world.activeLevel)
@@ -518,7 +518,6 @@ class Game(object):
 
             #self.gfx.DrawSmallMessage("Player dxO: " + str(self.characters[0].deltaXScreenOffset), 8, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player dyO: " + str(self.characters[0].deltaYScreenOffset), 9, self.gameDisplay, white, self.camera.DisplayWidth)
-
             #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocationInWorld(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[0]), 10, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocationInWorld(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[1]), 11, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("person dx: " + str(self.characters[0].deltaX), 12, self.gameDisplay, white, self.camera.DisplayWidth)
@@ -549,7 +548,7 @@ screenResChoices.sort()
 exiting = False
 while exiting == False:
     #myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0, 2)
-    myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0, 4)
+    myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0, 2)
     #exiting = myGame.ShowMenu("Main Menu", myGame.camera)
     while myGame.exiting == False and myGame.lost == False:
         myGame.Play()

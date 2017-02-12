@@ -93,8 +93,8 @@ class GamePlayObject(object):
     def __init__(self):
         self.atWorldEdgeX = False
         self.atWorldEdgeY = False
-        self.xColliding = False
-        self.yColliding = False
+        self.xCollidingWall = False
+        self.yCollidingWall = False
         #Parent object that includes WorldObjects like Characters and Bullets, but also other objects not in-game, like the Camera
 
     def TestIfAtWorldEdgeCollision(self, wallMap, tileWidth, tileHeight):
@@ -110,7 +110,7 @@ class GamePlayObject(object):
         pass
 
 class WorldObject(GamePlayObject):
-    def __init__(self, PK, xTile, yTile, name = "", desc = "", columns = 0, activeImage = None, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 0, walkThroughPossible = False, timeElapsedSinceLastFrame = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, isAnimated = True):
+    def __init__(self, PK, xTile, yTile, name = "", desc = "", columns = 0, activeImage = None, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, walkThroughPossible = False, ID = 0, timeElapsedSinceLastFrame = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
         self.PK = PK
         self.deltaX = deltaX
         self.deltaY = deltaY
@@ -132,6 +132,8 @@ class WorldObject(GamePlayObject):
         self.scoreChangeOnAttack = scoreChangeOnAttack
         self.healthChangeOnTouch = healthChangeOnTouch
         self.healthChangeOnAttack = healthChangeOnAttack
+        self.addsToCharacterInventoryOnTouch = addsToCharacterInventoryOnTouch
+        self.destroyOnTouch = destroyOnTouch
         self.timeElapsedSinceLastFrame = timeElapsedSinceLastFrame
         self.deltaXScreenOffset = deltaXScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.deltaYScreenOffset = deltaYScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
@@ -163,7 +165,7 @@ class WorldObject(GamePlayObject):
             #This is even better because it doesn't rely on costly trig functions!
             self.SetDeltaXDeltaY( (self.speed * self.deltaX)/((abs(self.deltaX)**2) + (abs(self.deltaY)**2))**.5,
                                  (self.speed * self.deltaY)/((abs(self.deltaX)**2) + (abs(self.deltaY)**2))**.5)
-            
+
 
     def SetDeltaXDeltaY(self, deltaX, deltaY):
         self.deltaX = deltaX
@@ -229,14 +231,7 @@ class WorldObject(GamePlayObject):
         self.SetDeltaXDeltaY(tempDeltaX, tempDeltaY)
 
     def TestWorldObjectCollision(self, levelMap, tileHeight, tileWidth, gravity, stickToWallsOnCollision):
-        #This acts as a buffer to allow user to not get up against floor/ceiling
-        #because the distance the user will travel over the next frame cannot
-        #be known with absolute certainty because it is a function of the speed
-        #at which the next frame is drawn. This prevents clipping by making
-        #a judgement call that the next frame won't likely be drawn twice as slow as,
-        #or longer, than this frame was drawn.
-        
-        #CHARACTER<->WALL COLLISION DETECTION:
+        #CHARACTER<->WALL/EDGE/OBJECT COLLISION DETECTION:
         #COLLISION DETECTION ACTUALLY HAS TO CHECK 2 DIRECTIONS FOR EACH OF THE 4 CORNERS FOR 2D MOVEMENT:
         #EACH OF THESE 2x4 CHECKS ARE LABLED BELOW AND CODE IS MARKED INDICATING WHICH
         #CORNER CHECK IS OCCURRING. THIS WOULD BE GOOD ENOUGH IF WE JUST STOPPED THE self
@@ -256,26 +251,39 @@ class WorldObject(GamePlayObject):
         #        | / \ |
         #    G <-+-----+-> D
         #        |     |
-        #        V     V
+        #        v     v
         #        F     E
-        self.xColliding = False
-        self.yColliding = False
 
-        for wallMap in levelMap:
-            self.yok = 1
-            self.xok = 1
-            #self.deltaY = self.deltaY + self.gravityYDelta
-            #self.gravityYDelta = 0
-            #self.timeSpentFalling = 0
+        self.xCollidingWall = False
+        self.yCollidingWall = False
+        self.xCollidingObject = False
+        self.yCollidingObject = False
+        objectTouchActions = {
+            'scoreChangeOnTouch' : 0,
+            'scoreChangeOnAttack' : 0,
+            'healthChangeOnTouch' : 0,
+            'healthChangeOnAttack' : 0,
+            'addsToCharacterInventoryOnTouch' : 0,
+            'destroyOnTouch' : 0}
+        #TODO: Apply score, health, etc. changes to character who touches object
+        #TODO: Apply actions to bullets and affect the owner of the bullet
+
+        for thisMap in levelMap:
+            mapType = thisMap
+            wallMap = levelMap[thisMap]
             needToRevertX = 0
             needToRevertY = 0
+            self.yok = 1
+            self.xok = 1
+            
             try:
                 #COLLISION CHECK @ C or @ D or @ H or @ G
-                #1 + self.xTile + (self.deltaX/float(tileWidth))
-                #1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + (self.x/float(tileWidth))
-                #if ((self.deltaX)> 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
-                if (self.deltaX > 0 and (wallMap[int( self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)) or ((self.deltaX)< 0 and (wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)):
-
+                H, D, C, G = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                if (self.deltaX > 0 and (C == False or D == False)) or (self.deltaX < 0 and (H == False or G == False)):
+                    if mapType == 'WallMap':
+                        self.xCollidingWall = True
+                    elif mapType == 'ObjectMap':
+                        self.xCollidingObject = True
                     tempxok = self.xok #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
                     tempdeltaXScreenOffset = self.deltaXScreenOffset #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
                     temppersonXDelta = self.deltaX #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
@@ -285,14 +293,15 @@ class WorldObject(GamePlayObject):
                         self.deltaX = 0
                     needToRevertX = 1
 
-                #COLLISION CHECK @ A or @ B or @ F or @ E 
+                #COLLISION CHECK @ A or @ B or @ F or @ E REGARDLESS OF IF RESULTS ABOVE
                 #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
                 #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
-                
-                #PREVIOUS VERSION IN CASE OF ROLLBACK: if (self.deltaY < 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight)) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
-                #if (self.deltaY < 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y - (self.deltaYScreenOffset - self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaY > 0 and (wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + (-self.deltaYScreenOffset + self.deltaY) + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+self.deltaX + self.deltaXScreenOffset)/float(tileWidth)))])):
-                if (self.deltaY < 0 and (wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)) or (self.deltaY > 0 and (wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)):
-                    self.yColliding = True
+                A, E, B, F = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                if (self.deltaY < 0 and (A == False or B == False)) or (self.deltaY > 0 and (F == False or E == False)):
+                    if mapType == 'WallMap':
+                        self.yCollidingWall = True
+                    elif mapType == 'ObjectMap':
+                        self.yCollidingObject = True
 
                 #RESET 1ST COLLISION CHECK PARAMATERS B/C NOW,
                 #WE DON'T KNOW IF A COLLISION @ C or @ D or @ H or @ G WILL OCCUR
@@ -303,18 +312,7 @@ class WorldObject(GamePlayObject):
                     self.deltaXScreenOffset = tempdeltaXScreenOffset
                     self.deltaX = temppersonXDelta
 
-                #COLLISION CHECK @ C or @ D or @ H or @ G
-                #NOW TEST FOR COLLISION @ C, D, H, OR G NOW KNOWING THAT WE HANDLED MAY HAVE HANDLED A COLLISION @ C, D, H, OR G
-                #LIKEWISE, THIS FORMULA IS DEPENDENT ON VARS IN 2ND SECTION THAT CHANGED
-                #if ((self.deltaX)> 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
-
-
-                #PREVIOUS VERSION IN CASE OF ROLLBACK: if ((self.deltaX)> 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap [int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])):
-                #if (self.deltaX > 0 and (wallMap[int(1 + self.yTile + ((self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + self.xTile + ((self.deltaX - self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + self.yTile + ((self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + self.xTile + ((self.deltaX - self.deltaXScreenOffset)/float(tileWidth)))])) or (self.deltaX < 0 and (wallMap[int(1 + self.yTile + ((self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + self.xTile + ((self.deltaX - self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + self.yTile + ((self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + self.xTile +((self.deltaX - self.deltaXScreenOffset)/float(tileWidth)))])):
-                if (self.deltaX > 0 and (wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)) or ((self.deltaX)< 0 and (wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)):
-                    self.xColliding = True
-
-                if self.yColliding == True:
+                if self.yCollidingWall == True or self.yCollidingObject == True:
                     needToRevertY = 1
                     tempyok = self.yok #WE NEED TO REVERT BACK, STORE IN TEMPVAR
                     tempdeltaYScreenOffset = self.deltaYScreenOffset #WE MAY NEED TO REVERT BACK, STORE IN TEMPVAR
@@ -324,15 +322,18 @@ class WorldObject(GamePlayObject):
                     if stickToWallsOnCollision == False:
                         self.deltaY = 0
 
-                    #PREVIOUS VERSION IN CASE OF ROLLBACK: if not(((self.deltaX)> 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + (self.width/float(tileWidth)) + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))])) or ((self.deltaX)< 0 and (wallMap[int(1 + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))] or wallMap[int(1 + (self.height/float(tileHeight)) + camera.yTile + (-camera.viewToScreenPxlOffsetY/float(tileHeight)) + ((self.y + self.deltaY + self.deltaYScreenOffset)/float(tileHeight)))][int(1 + camera.xTile + (-camera.viewToScreenPxlOffsetX/float(tileWidth)) + ((self.x+(-self.deltaXScreenOffset + self.deltaX)+ self.deltaXScreenOffset)/float(tileWidth)))]))):
-                    if not((self.deltaX > 0 and (wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False)) or ((self.deltaX)< 0 and (wallMap[int(self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False or wallMap[int((self.height/float(tileHeight)) + self.yTile + (self.deltaY/float(tileHeight)))][int(self.xTile + (self.deltaX/float(tileWidth)))].walkThroughPossible == False))):
-                        self.xColliding = False
-
+                    #COLLISION CHECK @ C or @ D or @ H or @ G REGARDLESS OF RESULTS OF COLLISION CHECK @ A or @ B or @ F or @ E
+                    H, D, C, G = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                    if not((self.deltaX > 0 and (C == False or D == False)) or ((self.deltaX)< 0 and (H == False or G == False))):
+                        if mapType == 'WallMap':
+                            self.xCollidingWall = False
+                        elif mapType == 'ObjectMap':
+                            self.xCollidingObject = False                        
                     self.yok = tempyok
                     self.deltaYScreenOffset = tempdeltaYScreenOffset
                     self.deltaY = temppersonYDelta
 
-            except:
+            except: #This will happen when character or particle comes in contact with a part of the world that the dev forgot to design
                 if needToRevertX == 1:
                     self.xok = tempxok
                     self.deltaXScreenOffset = tempdeltaXScreenOffset
@@ -342,6 +343,30 @@ class WorldObject(GamePlayObject):
                     self.yok = tempyok
                     self.deltaYScreenOffset = tempdeltaYScreenOffset
                     self.deltaY = temppersonYDelta
+
+    def GetCollisions(self, wallMap, tileWidth, tileHeight):
+        NW = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int(self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
+        SE = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
+        NE = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
+        SW = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int(self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
+
+        if NW == None:
+            NW = True
+        else:
+            NW = NW.walkThroughPossible
+        if NE == None:
+            NE = True
+        else:
+            NE = NE.walkThroughPossible
+        if SE == None:
+            SE = True
+        else:
+            SE = SE.walkThroughPossible
+        if SW == None:
+            SW = True
+        else:
+            SW = SW.walkThroughPossible
+        return NW, SE, NE, SW
 
     #Abstract Method
     def HandleWorldObjectCollision(self, stickToWallsOnCollision, gravity):
@@ -418,13 +443,13 @@ class Bullet(WorldObject):
     def HandleWorldObjectCollision(self, stickToWallsOnCollision, gravity):
         tempDeltaX = self.deltaX
         tempDeltaY = self.deltaY
-        if self.xColliding == 1 or self.yColliding == 1:
+        if self.xCollidingWall == 1 or self.yCollidingWall == 1:
             if self.physicsIndicator == "Bounce":
                 self.physicsCounter = max(self.physicsCounter - 1, -2)
                 if self.physicsCounter != -1:
-                    if self.xColliding == 1:
+                    if self.xCollidingWall == 1:
                         tempDeltaX = -self.deltaX
-                    if self.yColliding == 1:
+                    if self.yCollidingWall == 1:
                         tempDeltaY = -self.deltaY
                     self.SetDeltaXDeltaY(tempDeltaX, tempDeltaY)
                 else:
@@ -534,17 +559,17 @@ class Character(WorldObject):
         self.yok = 1
         tempDeltaX = self.deltaX
         tempDeltaY = self.deltaY
-        if self.yColliding == True or self.atWorldEdgeY == 1:
+        #Walls/Objects/World Edge:
+        if self.yCollidingWall == True or self.atWorldEdgeY == 1 or self.yCollidingObject == 1:
             self.yok = 0
             self.deltaYScreenOffset = 0
             if stickToWallsOnCollision == False:
                 tempDeltaY = 0
-            #if gravity == True and self.gravityYDelta != 0 and self.deltaY + self.GetNextGravityApplicationToWorld(self.gravityYDelta, self.timeSpentFalling, tileHeight) > 0:
             if gravity == True and self.gravityYDelta != 0 and self.deltaY + self.gravityYDelta > 0:
                 self.gravityYDelta = 0
                 self.timeSpentFalling = 0
                 tempDeltaY = 0
-        if self.xColliding == True or self.atWorldEdgeX == 1:
+        if self.xCollidingWall == True or self.atWorldEdgeX == 1 or self.xCollidingObject == 1:
             self.xok = 0
             self.deltaXScreenOffset = 0
             if stickToWallsOnCollision == False:

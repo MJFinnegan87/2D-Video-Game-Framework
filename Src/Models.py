@@ -76,12 +76,16 @@ class World(object):
         #TODO: Save character data too!
 
 class WallObject(object):
-    def __init__(self, PK, scoreChangeOnTouch, scoreChangeOnAttack, healthChangeOnTouch, healthChangeOnAttack, ID,  activeImage, walkThroughPossible, actionOnTouch, actionOnAttack, isAnimated = False):
+    def __init__(self, PK, scoreChangeOnTouch, scoreChangeOnAttack, healthChangeOnTouch, healthChangeOnAttack, addsToCharacterInventoryOnTouch, destroyOnTouch, addsToCharacterInventoryOnAttack, destroyOnAttack, ID,  activeImage, walkThroughPossible, actionOnTouch, actionOnAttack, isAnimated = False):
         self.PK = PK
         self.scoreChangeOnTouch = scoreChangeOnTouch
         self.scoreChangeOnAttack = scoreChangeOnAttack
         self.healthChangeOnTouch = healthChangeOnTouch
         self.healthChangeOnAttack = healthChangeOnAttack
+        self.addsToCharacterInventoryOnTouch = addsToCharacterInventoryOnTouch
+        self.destroyOnTouch = destroyOnTouch
+        self.addsToCharacterInventoryOnAttack = addsToCharacterInventoryOnAttack
+        self.destroyOnAttack = destroyOnAttack
         self.ID = ID
         self.activeImage = activeImage
         self.walkThroughPossible = walkThroughPossible
@@ -110,7 +114,7 @@ class GamePlayObject(object):
         pass
 
 class WorldObject(GamePlayObject):
-    def __init__(self, PK, xTile, yTile, name = "", desc = "", columns = 0, activeImage = None, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, walkThroughPossible = False, ID = 0, timeElapsedSinceLastFrame = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
+    def __init__(self, PK, xTile, yTile, name = "", desc = "", columns = 0, activeImage = None, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, walkThroughPossible = False, ID = 0, timeElapsedSinceLastFrame = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
         self.PK = PK
         self.deltaX = deltaX
         self.deltaY = deltaY
@@ -134,6 +138,8 @@ class WorldObject(GamePlayObject):
         self.healthChangeOnAttack = healthChangeOnAttack
         self.addsToCharacterInventoryOnTouch = addsToCharacterInventoryOnTouch
         self.destroyOnTouch = destroyOnTouch
+        self.addsToCharacterInventoryOnAttack = addsToCharacterInventoryOnAttack
+        self.destroyOnAttack = destroyOnAttack
         self.timeElapsedSinceLastFrame = timeElapsedSinceLastFrame
         self.deltaXScreenOffset = deltaXScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.deltaYScreenOffset = deltaYScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
@@ -258,13 +264,15 @@ class WorldObject(GamePlayObject):
         self.yCollidingWall = False
         self.xCollidingObject = False
         self.yCollidingObject = False
-        objectTouchActions = {
+        self.objectCollisionEffectList = {
             'scoreChangeOnTouch' : 0,
             'scoreChangeOnAttack' : 0,
             'healthChangeOnTouch' : 0,
             'healthChangeOnAttack' : 0,
             'addsToCharacterInventoryOnTouch' : 0,
-            'destroyOnTouch' : 0}
+            'destroyOnTouch' : 0,
+            'addsToCharacterInventoryOnAttack' : 0,
+            'destroyOnAttack' : 0}
         #TODO: Apply score, health, etc. changes to character who touches object
         #TODO: Apply actions to bullets and affect the owner of the bullet
 
@@ -278,7 +286,15 @@ class WorldObject(GamePlayObject):
             
             try:
                 #COLLISION CHECK @ C or @ D or @ H or @ G
-                H, D, C, G = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                H, D, C, G, Hra, Dra, Cra, Gra = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                self.objectCollisionEffectList['scoreChangeOnTouch'] = self.objectCollisionEffectList['scoreChangeOnTouch'] + Hra['scoreChangeOnTouch'] + Dra['scoreChangeOnTouch'] + Cra['scoreChangeOnTouch'] + Gra['scoreChangeOnTouch']
+                self.objectCollisionEffectList['scoreChangeOnAttack'] = self.objectCollisionEffectList['scoreChangeOnAttack'] + Hra['scoreChangeOnAttack'] + Dra['scoreChangeOnAttack'] + Cra['scoreChangeOnAttack'] + Gra['scoreChangeOnAttack']
+                self.objectCollisionEffectList['healthChangeOnTouch'] = self.objectCollisionEffectList['healthChangeOnTouch'] + Hra['healthChangeOnTouch'] + Dra['healthChangeOnTouch'] + Cra['healthChangeOnTouch'] + Gra['healthChangeOnTouch']
+                self.objectCollisionEffectList['healthChangeOnAttack'] = self.objectCollisionEffectList['healthChangeOnAttack'] + Hra['healthChangeOnAttack'] + Dra['healthChangeOnAttack'] + Cra['healthChangeOnAttack'] + Gra['healthChangeOnAttack']
+                self.objectCollisionEffectList['addsToCharacterInventoryOnTouch'] = self.objectCollisionEffectList['addsToCharacterInventoryOnTouch'] + Hra['addsToCharacterInventoryOnTouch'] + Dra['addsToCharacterInventoryOnTouch'] + Cra['addsToCharacterInventoryOnTouch'] + Gra['addsToCharacterInventoryOnTouch']
+                self.objectCollisionEffectList['destroyOnTouch'] = self.objectCollisionEffectList['destroyOnTouch'] + Hra['destroyOnTouch'] + Dra['destroyOnTouch'] + Cra['destroyOnTouch'] + Gra['destroyOnTouch']
+                self.objectCollisionEffectList['addsToCharacterInventoryOnAttack'] = self.objectCollisionEffectList['addsToCharacterInventoryOnAttack'] + Hra['addsToCharacterInventoryOnAttack'] + Dra['addsToCharacterInventoryOnAttack'] + Cra['addsToCharacterInventoryOnAttack'] + Gra['addsToCharacterInventoryOnAttack']
+                self.objectCollisionEffectList['destroyOnAttack'] = self.objectCollisionEffectList['destroyOnAttack'] + Hra['destroyOnAttack'] + Dra['destroyOnAttack'] + Cra['destroyOnAttack'] + Gra['destroyOnAttack']
                 if (self.deltaX > 0 and (C == False or D == False)) or (self.deltaX < 0 and (H == False or G == False)):
                     if mapType == 'WallMap':
                         self.xCollidingWall = True
@@ -296,7 +312,15 @@ class WorldObject(GamePlayObject):
                 #COLLISION CHECK @ A or @ B or @ F or @ E REGARDLESS OF IF RESULTS ABOVE
                 #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
                 #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
-                A, E, B, F = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                A, E, B, F, Ara, Era, Bra, Fra = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                self.objectCollisionEffectList['scoreChangeOnTouch'] = self.objectCollisionEffectList['scoreChangeOnTouch'] + Ara['scoreChangeOnTouch'] + Era['scoreChangeOnTouch'] + Bra['scoreChangeOnTouch'] + Fra['scoreChangeOnTouch']
+                self.objectCollisionEffectList['scoreChangeOnAttack'] = self.objectCollisionEffectList['scoreChangeOnAttack'] + Ara['scoreChangeOnAttack'] + Era['scoreChangeOnAttack'] + Bra['scoreChangeOnAttack'] + Fra['scoreChangeOnAttack']
+                self.objectCollisionEffectList['healthChangeOnTouch'] = self.objectCollisionEffectList['healthChangeOnTouch'] + Ara['healthChangeOnTouch'] + Era['healthChangeOnTouch'] + Bra['healthChangeOnTouch'] + Fra['healthChangeOnTouch']
+                self.objectCollisionEffectList['healthChangeOnAttack'] = self.objectCollisionEffectList['healthChangeOnAttack'] + Ara['healthChangeOnAttack'] + Era['healthChangeOnAttack'] + Bra['healthChangeOnAttack'] + Fra['healthChangeOnAttack']
+                self.objectCollisionEffectList['addsToCharacterInventoryOnTouch'] = self.objectCollisionEffectList['addsToCharacterInventoryOnTouch'] + Ara['addsToCharacterInventoryOnTouch'] + Era['addsToCharacterInventoryOnTouch'] + Bra['addsToCharacterInventoryOnTouch'] + Fra['addsToCharacterInventoryOnTouch']
+                self.objectCollisionEffectList['destroyOnTouch'] = self.objectCollisionEffectList['destroyOnTouch'] + Ara['destroyOnTouch'] + Era['destroyOnTouch'] + Bra['destroyOnTouch'] + Fra['destroyOnTouch']
+                self.objectCollisionEffectList['addsToCharacterInventoryOnAttack'] = self.objectCollisionEffectList['addsToCharacterInventoryOnAttack'] + Ara['addsToCharacterInventoryOnAttack'] + Era['addsToCharacterInventoryOnAttack'] + Bra['addsToCharacterInventoryOnAttack'] + Fra['addsToCharacterInventoryOnAttack']
+                self.objectCollisionEffectList['destroyOnAttack'] = self.objectCollisionEffectList['destroyOnAttack'] + Ara['destroyOnAttack'] + Era['destroyOnAttack'] + Bra['destroyOnAttack'] + Fra['destroyOnAttack']
                 if (self.deltaY < 0 and (A == False or B == False)) or (self.deltaY > 0 and (F == False or E == False)):
                     if mapType == 'WallMap':
                         self.yCollidingWall = True
@@ -323,7 +347,7 @@ class WorldObject(GamePlayObject):
                         self.deltaY = 0
 
                     #COLLISION CHECK @ C or @ D or @ H or @ G REGARDLESS OF RESULTS OF COLLISION CHECK @ A or @ B or @ F or @ E
-                    H, D, C, G = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                    H, D, C, G, Hra, Dra, Cra, Gra = self.GetCollisions(wallMap, tileWidth, tileHeight)
                     if not((self.deltaX > 0 and (C == False or D == False)) or ((self.deltaX)< 0 and (H == False or G == False))):
                         if mapType == 'WallMap':
                             self.xCollidingWall = False
@@ -332,6 +356,7 @@ class WorldObject(GamePlayObject):
                     self.yok = tempyok
                     self.deltaYScreenOffset = tempdeltaYScreenOffset
                     self.deltaY = temppersonYDelta
+                    
 
             except: #This will happen when character or particle comes in contact with a part of the world that the dev forgot to design
                 if needToRevertX == 1:
@@ -345,6 +370,43 @@ class WorldObject(GamePlayObject):
                     self.deltaY = temppersonYDelta
 
     def GetCollisions(self, wallMap, tileWidth, tileHeight):
+        NWreturnActions = {
+            'scoreChangeOnTouch' : 0,
+            'scoreChangeOnAttack' : 0,
+            'healthChangeOnTouch' : 0,
+            'healthChangeOnAttack' : 0,
+            'addsToCharacterInventoryOnTouch' : 0,
+            'destroyOnTouch' : 0,
+            'addsToCharacterInventoryOnAttack' : 0,
+            'destroyOnAttack' : 0}
+        NEreturnActions = {
+            'scoreChangeOnTouch' : 0,
+            'scoreChangeOnAttack' : 0,
+            'healthChangeOnTouch' : 0,
+            'healthChangeOnAttack' : 0,
+            'addsToCharacterInventoryOnTouch' : 0,
+            'destroyOnTouch' : 0,
+            'addsToCharacterInventoryOnAttack' : 0,
+            'destroyOnAttack' : 0}
+        SEreturnActions = {
+            'scoreChangeOnTouch' : 0,
+            'scoreChangeOnAttack' : 0,
+            'healthChangeOnTouch' : 0,
+            'healthChangeOnAttack' : 0,
+            'addsToCharacterInventoryOnTouch' : 0,
+            'destroyOnTouch' : 0,
+            'addsToCharacterInventoryOnAttack' : 0,
+            'destroyOnAttack' : 0}
+        SWreturnActions = {
+            'scoreChangeOnTouch' : 0,
+            'scoreChangeOnAttack' : 0,
+            'healthChangeOnTouch' : 0,
+            'healthChangeOnAttack' : 0,
+            'addsToCharacterInventoryOnTouch' : 0,
+            'destroyOnTouch' : 0,
+            'addsToCharacterInventoryOnAttack' : 0,
+            'destroyOnAttack' : 0}
+
         NW = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int(self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         SE = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         NE = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
@@ -353,20 +415,52 @@ class WorldObject(GamePlayObject):
         if NW == None:
             NW = True
         else:
+            NWreturnActions['scoreChangeOnTouch'] = NWreturnActions['scoreChangeOnTouch'] + NW.scoreChangeOnTouch
+            NWreturnActions['scoreChangeOnAttack'] = NWreturnActions['scoreChangeOnAttack'] + NW.scoreChangeOnAttack
+            NWreturnActions['healthChangeOnTouch'] = NWreturnActions['healthChangeOnTouch'] + NW.healthChangeOnTouch
+            NWreturnActions['healthChangeOnAttack'] = NWreturnActions['healthChangeOnAttack'] + NW.healthChangeOnAttack
+            NWreturnActions['addsToCharacterInventoryOnTouch'] = NWreturnActions['addsToCharacterInventoryOnTouch'] + NW.addsToCharacterInventoryOnTouch
+            NWreturnActions['destroyOnTouch'] = NWreturnActions['destroyOnTouch'] + NW.destroyOnTouch
+            NWreturnActions['addsToCharacterInventoryOnAttack'] = NWreturnActions['addsToCharacterInventoryOnAttack'] + NW.addsToCharacterInventoryOnAttack
+            NWreturnActions['destroyOnAttack'] = NWreturnActions['destroyOnAttack'] + NW.destroyOnAttack
             NW = NW.walkThroughPossible
         if NE == None:
             NE = True
         else:
+            NEreturnActions['scoreChangeOnTouch'] = NEreturnActions['scoreChangeOnTouch'] + NE.scoreChangeOnTouch
+            NEreturnActions['scoreChangeOnAttack'] = NEreturnActions['scoreChangeOnAttack'] + NE.scoreChangeOnAttack
+            NEreturnActions['healthChangeOnTouch'] = NEreturnActions['healthChangeOnTouch'] + NE.healthChangeOnTouch
+            NEreturnActions['healthChangeOnAttack'] = NEreturnActions['healthChangeOnAttack'] + NE.healthChangeOnAttack
+            NEreturnActions['addsToCharacterInventoryOnTouch'] = NEreturnActions['addsToCharacterInventoryOnTouch'] + NE.addsToCharacterInventoryOnTouch
+            NEreturnActions['destroyOnTouch'] = NEreturnActions['destroyOnTouch'] + NE.destroyOnTouch
+            NEreturnActions['addsToCharacterInventoryOnAttack'] = NEreturnActions['addsToCharacterInventoryOnAttack'] + NE.addsToCharacterInventoryOnAttack
+            NEreturnActions['destroyOnAttack'] = NEreturnActions['destroyOnAttack'] + NE.destroyOnAttack
             NE = NE.walkThroughPossible
         if SE == None:
             SE = True
         else:
+            SEreturnActions['scoreChangeOnTouch'] = SEreturnActions['scoreChangeOnTouch'] + SE.scoreChangeOnTouch
+            SEreturnActions['scoreChangeOnAttack'] = SEreturnActions['scoreChangeOnAttack'] + SE.scoreChangeOnAttack
+            SEreturnActions['healthChangeOnTouch'] = SEreturnActions['healthChangeOnTouch'] + SE.healthChangeOnTouch
+            SEreturnActions['healthChangeOnAttack'] = SEreturnActions['healthChangeOnAttack'] + SE.healthChangeOnAttack
+            SEreturnActions['addsToCharacterInventoryOnTouch'] = SEreturnActions['addsToCharacterInventoryOnTouch'] + SE.addsToCharacterInventoryOnTouch
+            SEreturnActions['destroyOnTouch'] = SEreturnActions['destroyOnTouch'] + SE.destroyOnTouch
+            SEreturnActions['addsToCharacterInventoryOnAttack'] = SEreturnActions['addsToCharacterInventoryOnAttack'] + SE.addsToCharacterInventoryOnAttack
+            SEreturnActions['destroyOnAttack'] = SEreturnActions['destroyOnAttack'] + SE.destroyOnAttack
             SE = SE.walkThroughPossible
         if SW == None:
             SW = True
         else:
+            SWreturnActions['scoreChangeOnTouch'] = SWreturnActions['scoreChangeOnTouch'] + SW.scoreChangeOnTouch
+            SWreturnActions['scoreChangeOnAttack'] = SWreturnActions['scoreChangeOnAttack'] + SW.scoreChangeOnAttack
+            SWreturnActions['healthChangeOnTouch'] = SWreturnActions['healthChangeOnTouch'] + SW.healthChangeOnTouch
+            SWreturnActions['healthChangeOnAttack'] = SWreturnActions['healthChangeOnAttack'] + SW.healthChangeOnAttack
+            SWreturnActions['addsToCharacterInventoryOnTouch'] = SWreturnActions['addsToCharacterInventoryOnTouch'] + SW.addsToCharacterInventoryOnTouch
+            SWreturnActions['destroyOnTouch'] = SWreturnActions['destroyOnTouch'] + SW.destroyOnTouch
+            SWreturnActions['addsToCharacterInventoryOnAttack'] = SWreturnActions['addsToCharacterInventoryOnAttack'] + SW.addsToCharacterInventoryOnAttack
+            SWreturnActions['destroyOnAttack'] = SWreturnActions['destroyOnAttack'] + SW.destroyOnAttack
             SW = SW.walkThroughPossible
-        return NW, SE, NE, SW
+        return NW, SE, NE, SW, NWreturnActions, NEreturnActions, SEreturnActions, SWreturnActions
 
     #Abstract Method
     def HandleWorldObjectCollision(self, stickToWallsOnCollision, gravity):

@@ -162,7 +162,7 @@ class ParticleController(Controller):
     def HandleCollisions(self):
         for k in range(len(self.particles)):
             self.particles[k].TestIfAtWorldEdgeCollision(self.activeLevel.wallMap, self.activeLevel.tileWidth, self.activeLevel.tileHeight)
-            self.particles[k].TestWorldObjectCollision([self.activeLevel.wallMap], self.activeLevel.tileHeight, self.activeLevel.tileWidth, self.activeLevel.gravity, 0)
+            self.particles[k].TestWorldObjectCollision({"WallMap" : self.activeLevel.wallMap, "ObjectMap" : self.activeLevel.objectMap}, self.activeLevel.tileHeight, self.activeLevel.tileWidth, self.activeLevel.gravity, 0)
             self.particles[k].HandleWorldObjectCollision(0, self.activeLevel.gravity)
             if self.particles[k].atWorldEdgeX == 1 or self.particles[k].atWorldEdgeY == 1 or self.particles[k].needToDelete == True:
                 self.myDeletedParticles.append(k)

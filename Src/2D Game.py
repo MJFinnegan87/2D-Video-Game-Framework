@@ -15,339 +15,7 @@ white = (255,255,255)
 red = (255,0,0)
 PI = math.pi
 
-class Menu(object):
-    def __init__(self, name, titleText, titleFont, contentText, contentFont, itemMargin, unselectedTextColor, selectedTextColorLowPulsate, selectedTextColorHighPulsate, pulsateSpeed):
-        self.name = name
-        self.titleText = titleText
-        self.titleFont = titleFont
-        self.itemMargin = itemMargin
-        self.contentText = contentText
-        self.contentFont = contentFont
-        self.unselectedTextColor = unselectedTextColor
-        self.selectedTextColorLowPulsate = selectedTextColorLowPulsate
-        self.selectedTextColorHighPulsate = selectedTextColorHighPulsate
-        self.pulsateSpeed = pulsateSpeed
-        #self.HWController = Hardware()
 
-    def DisplayMenu(self):
-        pass
-
-class MenuManager(object):
-    def __init__(self, menuType, screenResSelection, difficultySelection, DisplayType, gameDisplay):
-        self.gameDisplay = gameDisplay
-        self.menuType = menuType
-        self.screenResSelection = screenResSelection
-        self.difficultySelection = difficultySelection
-        self.DisplayType = DisplayType
-        self.menuDirectory = "Main"
-        self.menuJustOpened = True
-        #self.score = 0
-        self.highScoreDifficulty = 0
-        #self.myHealth = 100
-        self.menuSelectionIndex = 6
-        #self.ammo = 0
-        self.DisplayWidth = screenResChoices[screenResSelection][0]
-        self.DisplayHeight = screenResChoices[screenResSelection][1]
-        if self.DisplayType == "Full Screen":
-            self.gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight), pygame.FULLSCREEN)
-        else:
-            self.gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight))
-        self.colorIntensity = 255
-        self.colorIntensityDirection = 5
-        self.startPlay = False
-        self.gfx = GfxHandler()
-        #self.HWController = Hardware()
-        self.exiting = False
-        self.lost = False
-        self.userCharacter = Character("User")
-        self.userCharacter.speed = 1
-        self.screenMoveCounter = 0
-        self.menuFPSLimit = 120
-        self.clock = pygame.time.Clock()
-        self.clock.tick()
-        self.enterPressed = False
-        self.personXDeltaWas = 0
-        self.personYDeltaWas = 0
-        self.myHighScoreDatabase = HighScoresDatabase()
-        self.myHighScores = self.myHighScoreDatabase.LoadHighScores()
-        self.difficultyChoices = self.myHighScoreDatabase.difficulties
-
-    def UpdateScreenAndLimitFPS(self, FPSLimit):
-        self.limit = FPSLimit
-        pygame.display.update()
-        self.clock.tick(FPSLimit)
-        
-    def DisplayMenuAndHandleUserInput(self):
-        while self.exiting == False and self.startPlay == False:
-            self.DisplayTitle()
-            self.PulsateSelection()
-            self.HandleMenuBackground()
-            self.GetKeyPress()
-
-            if self.menuDirectory == "Main":
-                self.DisplayMainMenu()
-                if self.menuJustOpened == False:
-                    self.HandleUserInputMainMenu()
-                self.menuJustOpened = False
-            elif self.menuDirectory == "Settings":
-                self.DisplaySettingsMenu()
-                self.HandleUserInputSettingsMenu()
-            elif self.menuDirectory == "Credits":
-                self.DisplayCreditsMenu()
-                self.HandleUserInputCreditsMenu()
-            elif self.menuDirectory == "How To Play":
-                self.DisplayHowToMenu()
-                self.HandleUserInputHowToMenu()
-            elif self.menuDirectory == "High Scores":
-                self.DisplayHighScoresMenu()
-                self.HandleUserInputHighScoresMenu()
-
-            if self.upKey == True:
-                self.personYDeltaWas = self.userCharacter.deltaY
-            self.personXDeltaWas = self.userCharacter.deltaX
-            self.UpdateScreenAndLimitFPS(self.menuFPSLimit)
-            self.gameDisplay.fill(black)
-        del self.clock
-        return self.difficultySelection, self.screenResSelection, self.DisplayType, self.exiting
-    
-    def DisplayTitle(self):
-        gameTitle = "2d Game Framework"
-        self.smallText = pygame.font.Font("freesansbold.ttf", 24)
-        self.largeText = pygame.font.Font("freesansbold.ttf", 48)
-        self.textSurf, self.textRect = self.gfx.CreateTextObject(gameTitle, self.largeText, white)
-        self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 25))
-        self.gameDisplay.blit(self.textSurf, self.textRect)
-        if self.menuType == "Paused":
-            self.textSurf, self.textRect = self.gfx.CreateTextObject("-Paused-", self.smallText, white)
-            self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 60))
-            self.gameDisplay.blit(self.textSurf, self.textRect)
-
-    def PulsateSelection(self):
-        if self.colorIntensity + self.colorIntensityDirection > 255:
-            self.colorIntensityDirection = -5
-        elif self.colorIntensity + self.colorIntensityDirection < 65:
-            self.colorIntensityDirection = 5
-        self.colorIntensity = self.colorIntensity + self.colorIntensityDirection
-
-    def HandleMenuBackground(self):
-        pass
-        #self.world.activeLevel, self.activeWeapon, self.enemiesAlive, self.myEnemies, self.myProjectiles = self.menuGameEventHandler.addGameObjects(
-            #self.enemiesAlive, self.world.activeLevel, self.activeWeapon, self.myEnemies, self.starProbabilitySpace, self.starDensity, self.starMoveSpeed, self.myProjectiles, self.DisplayWidth)
-        #self.starMoveSpeed = self.menuGameEventHandler.adjustStarMoveSpeed(self.maximumStarMoveSpeed, self.numberOfStarSpeeds)
-        #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.y, self.ammo = self.menuGameEventHandler.moveAndDrawProjectilesAndEnemies(
-            #self.myProjectiles, self.myEnemies, self.myHealth, self.score, self.enemiesAlive, self.x, self.y, self.rocketWidth, self.rocketHeight, self.difficultySelection, self.DisplayWidth, self.DisplayHeight, self.ammo, self.starMoveSpeed)
-        #self.menuGameEventHandler.drawObject(myCharacter, self.x, self.y)
-
-    def DisplayMainMenu(self):
-        self.mainMenuItemMargin = 25
-        for self.i in range(7):
-            self.rgb = (255, 255, 255)
-            if self.i == self.menuSelectionIndex:
-                self.rgb = (self.colorIntensity, 0, 0)
-            if self.i == 6:
-                if self.menuType == "Paused":
-                    self.text = "Resume"
-                else:
-                    self.text = "Play"
-            if self.i == 5:
-                self.text = "Difficulty: " + self.difficultyChoices[self.difficultySelection]
-                if self.menuType == "Paused":
-                    self.tempRGB = (self.rgb[0]*.25, self.rgb[1]*.25, self.rgb[2]*.25)
-                    self.rgb = self.tempRGB
-            if self.i == 4:
-                self.text = "High Scores"
-            if self.i == 3:
-                self.text = "How To Play"
-            if self.i == 2:
-                self.text = "Settings"
-            if self.i == 1:
-                self.text = "Credits"
-            if self.i == 0:
-                self.text = "Quit"
-            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-            self.textRect.center = ((self.DisplayWidth/2.0), (self.DisplayHeight/2.0 - self.i*(self.mainMenuItemMargin) + self.screenMoveCounter))
-            self.gameDisplay.blit(self.textSurf, self.textRect)
-
-    def DisplaySettingsMenu(self):
-        self.fullScreenWindowChanged = False
-        for self.i in range(5):
-            self.rgb = (255, 255, 255)
-            if self.i == 4:
-                self.text = "Screen Size: " + str(screenResChoices[self.screenResSelection][0]) + "x" + str(screenResChoices[self.screenResSelection][1])
-            if self.i == 3:
-                self.text = "Screen: " + self.DisplayType
-            if self.i == 2:
-                self.text = "Music Volume: 100"
-            if self.i == 1:
-                self.text = "SFX Volume: 100"
-            if self.i == 0:
-                self.text = "Go Back"
-            if self.i == self.menuSelectionIndex:
-                self.rgb = (self.colorIntensity, 0, 0)
-            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-            self.textRect.center = ((self.DisplayWidth/2.0), (self.DisplayHeight/2.0 - self.i*(self.mainMenuItemMargin)))
-            self.gameDisplay.blit(self.textSurf, self.textRect)
-
-    def DisplayCreditsMenu(self):
-        creditsMoveSpeed = 5
-        if self.screenMoveCounter < self.DisplayHeight:
-            self.screenMoveCounter = self.screenMoveCounter + creditsMoveSpeed
-            self.DisplayTitle()
-            self.DisplayMainMenu()
-        for self.i in range(3):
-            self.rgb = (255, 255, 255)
-            if self.i == 2:
-                self.text = "Programming by Mike Finnegan"
-            if self.i == 1:
-                self.text = "Art by Mike Finnegan"
-            if self.i == 0:
-                self.text = "Music/SFX by Mike Finnegan"
-            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-            #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
-            self.textRect.center = ((self.DisplayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.DisplayHeight/2.0))
-            self.gameDisplay.blit(self.textSurf, self.textRect)
-
-    def DisplayHowToMenu(self):
-        howToSpeed = 5
-        if self.screenMoveCounter < self.DisplayHeight:
-            self.screenMoveCounter = self.screenMoveCounter + howToSpeed
-            self.DisplayTitle()
-            self.DisplayMainMenu()
-        for self.i in range(3):
-            self.rgb = (255, 255, 255)
-            if self.i == 2:
-                self.text = "Escape key: pause game"
-            if self.i == 1:
-                self.text = "Space bar: shoot aliens"
-            if self.i == 0:
-                self.text = "Arrow keys Up, Down, Left, Right: fly spacecraft"
-            self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-            #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
-            self.textRect.center = ((self.DisplayWidth/2.0), ((self.i * self.mainMenuItemMargin) + self.screenMoveCounter - self.DisplayHeight/2.0))
-            self.gameDisplay.blit(self.textSurf, self.textRect)
-
-    def DisplayHighScoresMenu(self):
-        if self.menuSelectionIndex == 0:
-            self.rgb = (self.colorIntensity, 0, 0)
-        else:
-            self.rgb = (255, 255, 255)
-        self.textSurf, self.textRect = self.gfx.CreateTextObject("<<  " + self.difficultyChoices[self.highScoreDifficulty] + " High Scores  >>", self.smallText, self.rgb)
-        self.textRect.center = ((self.DisplayWidth/2.0), (self.screenMoveCounter + 90))
-        self.gameDisplay.blit(self.textSurf, self.textRect)
-        for self.i in range(-1, 11):
-            for self.j in range(5):
-                if self.i == -1:
-                    self.rgb = (255, 255, 255)
-                    if self.j == 0:
-                        self.text = "Rank"
-                    elif self.j == 1:
-                        self.text = "Name"
-                    elif self.j == 2:
-                        self.text = "Score"
-                    elif self.j == 3:
-                        self.text = "State"
-                    elif self.j == 4:
-                        self.text = "Country"
-                    self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-                    #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
-                    self.textRect.center = ((self.DisplayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.DisplayHeight/2.0))
-                elif self.i == self.myHighScoreDatabase.numberOfRecordsPerDifficulty:
-                    if self.menuSelectionIndex == 1:
-                        self.rgb = (self.colorIntensity, 0, 0)
-                    else:
-                        self.rgb = (255, 255, 255)
-                    self.text = "Go Back"
-                    self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-                    self.textRect.center = ((self.DisplayWidth*.8), (self.DisplayHeight * .95))
-                else:
-                    self.rgb = (255, 255, 255)
-                    #print str(self.highScoreDifficulty)
-                    self.text = str(self.myHighScores[self.highScoreDifficulty][self.i][self.j])
-                    self.textSurf, self.textRect = self.gfx.CreateTextObject(self.text, self.smallText, self.rgb)
-                    #self.textRect.center = ((self.DisplayWidth/2), (self.DisplayHeight/2 - self.i*(self.character.speed)))
-                    self.textRect.center = ((self.DisplayWidth*((self.j+1)/6.0)), ((self.i * self.mainMenuItemMargin) + self.DisplayHeight/2.0))
-                self.gameDisplay.blit(self.textSurf, self.textRect)
-
-    def HandleUserInputMainMenu(self):
-        if self.userCharacter.deltaY == self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
-            self.menuSelectionIndex = self.menuSelectionIndex - 1
-            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
-                self.menuSelectionIndex = self.menuSelectionIndex - 1
-        if self.userCharacter.deltaY == -self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 6:
-            self.menuSelectionIndex = self.menuSelectionIndex + 1
-            if self.menuSelectionIndex == 5 and self.menuType == "Paused":
-                self.menuSelectionIndex = self.menuSelectionIndex + 1    
-        if ((self.userCharacter.deltaX == self.userCharacter.speed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 5:
-            self.difficultySelection = (self.difficultySelection + 1) %len(self.difficultyChoices)
-        if (self.userCharacter.deltaX == -self.userCharacter.speed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 5:
-            self.difficultySelection = (self.difficultySelection - 1) %len(self.difficultyChoices)
-        if self.enterPressed == True and self.menuSelectionIndex == 1:
-            self.menuDirectory = "Credits"
-        if self.enterPressed == True and self.menuSelectionIndex == 3:
-            self.menuDirectory = "How To Play"
-        if self.enterPressed == True and self.menuSelectionIndex == 6:
-            self.startPlay = True
-            del self.myHighScoreDatabase
-        if self.enterPressed == True and self.menuSelectionIndex == 0:
-            self.exiting = True
-        if self.enterPressed == True and self.menuSelectionIndex == 4:
-            self.menuDirectory = "High Scores"
-            self.menuSelectionIndex = 0
-        if self.enterPressed == True and self.menuSelectionIndex == 2:
-            self.menuDirectory = "Settings"
-            self.menuSelectionIndex = 4
-
-    def HandleUserInputSettingsMenu(self):
-        if self.userCharacter.deltaY == self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex >0:
-            self.menuSelectionIndex = self.menuSelectionIndex - 1
-        if self.userCharacter.deltaY == -self.userCharacter.speed and self.personYDeltaWas == 0 and self.menuSelectionIndex < 4:
-            self.menuSelectionIndex = self.menuSelectionIndex + 1
-        if ((self.userCharacter.deltaX == self.userCharacter.speed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 4:
-            self.screenResSelection = (self.screenResSelection + 1) %len(screenResChoices)
-        if (self.userCharacter.deltaX == -self.userCharacter.speed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 4:
-            self.screenResSelection = (self.screenResSelection - 1) %len(screenResChoices)
-        if (self.enterPressed == True or (abs(self.userCharacter.deltaX) == self.userCharacter.speed and self.personXDeltaWas == 0))and self.menuSelectionIndex == 3:
-            if self.DisplayType == "Window":
-                self.DisplayType = "Full Screen"
-            else:
-                self.DisplayType = "Window"
-            self.fullScreenWindowChanged = True
-        if ((((self.userCharacter.deltaX == self.userCharacter.speed and self.personXDeltaWas == 0) or (self.enterPressed == True)) and self.menuSelectionIndex == 4) or ((self.userCharacter.deltaX == -self.userCharacter.speed and self.personXDeltaWas == 0) and self.menuSelectionIndex == 4)) or self.fullScreenWindowChanged == True:
-            self.DisplayWidth = screenResChoices[self.screenResSelection][0]
-            self.DisplayHeight = screenResChoices[self.screenResSelection][1]
-            if self.DisplayType == "Window":
-                gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight))
-            else:
-                gameDisplay = pygame.display.set_mode((self.DisplayWidth, self.DisplayHeight), pygame.FULLSCREEN)
-            self.myProjectiles = []
-            self.fullScreenWindowChanged = False
-        if self.enterPressed == True and self.menuSelectionIndex == 0:
-            self.menuDirectory = "Main"
-            self.menuSelectionIndex = 2
-
-    def HandleUserInputCreditsMenu(self):
-        if self.enterPressed == True:
-            self.screenMoveCounter = 0
-            self.menuDirectory = "Main"
-
-    def HandleUserInputHowToMenu(self):
-        if self.enterPressed == True:
-            self.screenMoveCounter = 0
-            self.menuDirectory = "Main"
-
-    def HandleUserInputHighScoresMenu(self):
-        if (self.userCharacter.deltaY == self.userCharacter.speed and self.personYDeltaWas == 0):
-            self.menuSelectionIndex = (self.menuSelectionIndex + 1) % 2
-        if (self.userCharacter.deltaY == -self.userCharacter.speed and self.personYDeltaWas == 0):
-            self.menuSelectionIndex = (self.menuSelectionIndex - 1) % 2
-        if (self.menuSelectionIndex == 0 and self.userCharacter.deltaX == self.userCharacter.speed and self.personXDeltaWas == 0):
-            self.highScoreDifficulty = (self.highScoreDifficulty + 1) % len(self.difficultyChoices)
-        if (self.menuSelectionIndex == 0 and self.userCharacter.deltaX == -self.userCharacter.speed and self.personXDeltaWas == 0):
-            self.highScoreDifficulty = (self.highScoreDifficulty - 1) % len(self.difficultyChoices)
-        if self.menuSelectionIndex == 1 and self.enterPressed == True:
-            self.screenMoveCounter = 0
-            self.menuDirectory = "Main"
-            self.menuSelectionIndex = 4
 
 class HighScoresDatabase(object):
     def __init__(self):
@@ -452,10 +120,13 @@ class Game(object):
 
 
         self.particles = []
-
+        print(self.world.activeLevel.tileWidth)
         self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.world.activeLevel.tileSheetRows, self.world.activeLevel.tileSheetColumns, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
-        self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer TEST.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 42, height = 43, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
+        #self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer TEST.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 41, height = 42, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
+        self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer 64.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 41, height = 42, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
         self.camera = Camera(screenResSelection, fullScreen, 14, 0, self.userCharacter, 1/2.0, 1/2.0)
+        #self.camera.SetLocation(0, 0, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)
+        self.camera.InitializeLocation(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.levelWidth, self.world.activeLevel.levelHeight)
         self.gameDisplay = self.camera.UpdateScreenSettings()
         self.userCharacter.InitializeScreenPosition(self.camera, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)
         for i in range (4):
@@ -463,7 +134,7 @@ class Game(object):
             self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, "Bounce", 4*(i+1) ,16, 16, (i+1)/2, False))
         self.characters = [self.userCharacter]
         for character in self.characters:
-            self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, character.pictureXPadding, character.pictureYPadding)
+            self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, character.pictureXPadding, character.pictureYPadding, 1, 1)
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
 
@@ -504,12 +175,12 @@ class Game(object):
             self.View.RefreshScreen(timeElapsedSinceLastFrame, self.characters, self.particles)
             
             #DRAW GAME STATS
-            #self.gfx.DrawSmallMessage("Health: " + str(self.myHealth), 0, self.gameDisplay, white, self.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Ammo: " + str(self.characters[i].ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Health: " + str(self.characters[0].myHealth), 0, self.gameDisplay, white, self.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Ammo: " + str(self.characters[0].ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Level: " + str(self.world.activeLevel), 2, self.gameDisplay, white, self.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Score: " + str(self.score), 3, self.gameDisplay, white, self.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocationInWorld()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocationInWorld()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Score: " + str(self.characters[0].score), 3, self.gameDisplay, white, self.DisplayWidth)
+            self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocation()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
+            self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocation()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player sX: " + str(self.characters[0].GetLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player sY: " + str(self.characters[0].GetLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.DisplayWidth)
 
@@ -518,8 +189,8 @@ class Game(object):
 
             #self.gfx.DrawSmallMessage("Player dxO: " + str(self.characters[0].deltaXScreenOffset), 8, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player dyO: " + str(self.characters[0].deltaYScreenOffset), 9, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocationInWorld(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[0]), 10, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocationInWorld(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[1]), 11, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Cam X: " + str(self.camera.GetLocation(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[0]), 10, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Cam Y: " + str(self.camera.GetLocation(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)[1]), 11, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("person dx: " + str(self.characters[0].deltaX), 12, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("person dy: " + str(self.characters[0].deltaY), 13, self.gameDisplay, white, self.camera.DisplayWidth)
             self.gfx.DrawSmallMessage("FPS: " + str(int(1000/max(1, timeElapsedSinceLastFrame))), 14, self.gameDisplay, white, self.camera.DisplayWidth)

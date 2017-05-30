@@ -9,7 +9,7 @@ class GfxHandler(object):
     def __init__(self):
         self.gfxDictionary = {}
 
-    def LoadGfxDictionary(self, file_name="", imageIndicator="", rows=0, columns=0, width=0, height=0, pictureXPadding=0, pictureYPadding=0):
+    def LoadGfxDictionary(self, file_name="", imageIndicator="", rows=0, columns=0, width=0, height=0, pictureXPadding=0, pictureYPadding=0, sheetXOffset = 0, sheetYOffset = 0):
         #Load collection of images into dictionary
         self.spriteSheet = pygame.image.load(file_name)
         imgTransparency = True
@@ -24,7 +24,7 @@ class GfxHandler(object):
                     {(j*columns) + k:
                      self.GetImageFromSpritesheet(
                          self.GetImageCoordsInSpritesheet(
-                             (j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns), imgTransparency
+                             (j*columns) + k, width, height, pictureXPadding, pictureYPadding, rows, columns, sheetXOffset, sheetYOffset), imgTransparency
                          )
                      }
                 )
@@ -38,9 +38,9 @@ class GfxHandler(object):
             image.set_colorkey((0,0,0))
         return image
 
-    def GetImageCoordsInSpritesheet(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, spritesheetRows, spritesheetColumns):
+    def GetImageCoordsInSpritesheet(self, tileRequested, tileWidth, tileHeight, pictureXPadding, pictureYPadding, spritesheetRows, spritesheetColumns, sheetXOffset, sheetYOffset):
         #Gets coordinates of requested image's location within the spritesheet
-        return (tileRequested - (int(tileRequested/spritesheetColumns) * spritesheetColumns)) * tileWidth, int(tileRequested/spritesheetColumns) * tileHeight,  tileWidth, tileHeight
+        return (tileRequested - (int(tileRequested/spritesheetColumns) * spritesheetColumns)) * (tileWidth + pictureXPadding) + sheetXOffset, int(tileRequested/spritesheetColumns) * (tileHeight + pictureYPadding) + sheetYOffset,  tileWidth, tileHeight
 
     def CreateTextObject(self, text, font, color):
         textSurface = font.render(text, True, color)

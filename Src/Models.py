@@ -76,7 +76,7 @@ class World(object):
         #TODO: Save character data too!
 
 class WallObject(object):
-    def __init__(self, PK, scoreChangeOnTouch, scoreChangeOnAttack, healthChangeOnTouch, healthChangeOnAttack, addsToCharacterInventoryOnTouch, destroyOnTouch, addsToCharacterInventoryOnAttack, destroyOnAttack, ID,  activeImage, walkThroughPossible, actionOnTouch, actionOnAttack, isAnimated = False):
+    def __init__(self, PK, scoreChangeOnTouch, scoreChangeOnAttack, healthChangeOnTouch, healthChangeOnAttack, ID,  activeImage, walkThroughPossible, actionOnTouch, actionOnAttack, isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0):
         self.PK = PK
         self.scoreChangeOnTouch = scoreChangeOnTouch
         self.scoreChangeOnAttack = scoreChangeOnAttack
@@ -273,8 +273,7 @@ class WorldObject(GamePlayObject):
             'destroyOnTouch' : 0,
             'addsToCharacterInventoryOnAttack' : 0,
             'destroyOnAttack' : 0}
-        #TODO: Apply score, health, etc. changes to character who touches object
-        #TODO: Apply actions to bullets and affect the owner of the bullet
+        #TODO: Apply object deletion on touch or attack.
 
         for thisMap in levelMap:
             mapType = thisMap
@@ -472,6 +471,7 @@ class WorldObject(GamePlayObject):
     def HandleCharacterCollision(self):
         pass
 
+
 class Weapon(WorldObject):
     def __init__(self, name, damage, ammo, physIndic, physicsCount, generateBulletWidth, generateBulletHeight, generateBulletSpeed, gravity, gravityCoefficient = .00005):
         self.name = name
@@ -548,18 +548,23 @@ class Bullet(WorldObject):
                     self.SetDeltaXDeltaY(tempDeltaX, tempDeltaY)
                 else:
                     self.needToDelete = True
-
             if self.physicsIndicator == "Absorb":
                 self.needToDelete = True
 
             if self.physicsIndicator == "Pass Through":
                 pass
 
+    #Overrides inherited method
+    def ApplyCollisionEffects(self):
+        self.cameFromCharacter.score += self.objectCollisionEffectList['scoreChangeOnAttack']
+        self.cameFromCharacter.health += self.objectCollisionEffectList['healthChangeOnAttack']
+        #TODO: add to inventory self.cameFromCharacter.health += self.objectCollisionEffectList['addsToCharacterInventoryOnAttack']
+
 class AI(object):
     pass
 
 class Character(WorldObject):
-    def __init__(self, name = "", imagesGFXName = "../Images/userPlayer.png", boundToCamera = False, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, pictureXPadding = 0, pictureYPadding = 0, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False, gravity = False, gravityCoefficient = .00005, ID = 0):
+    def __init__(self, name = "", imagesGFXName = "../Images/userPlayer.png", boundToCamera = False, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, pictureXPadding = 0, pictureYPadding = 0, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False, gravity = False, gravityCoefficient = .00005, ID = 0, isUser = 1, defaultAggression = .25):
         #GENERAL
         self.name = name
         self.numberOfFramesAnimPerWalk = numberOfFramesAnimPerWalk #3
@@ -638,7 +643,7 @@ class Character(WorldObject):
         else:
             self.fireAngle = self.angle
 
-    def GetLocationInWorld(self):
+    def GetLocation(self):
         return [self.xTile + 1, self.yTile + 1] #UNITS IN WORLD TILES
 
     def GetLocationOnScreen(self):
@@ -669,6 +674,12 @@ class Character(WorldObject):
             if stickToWallsOnCollision == False:
                 tempDeltaX = 0
         self.SetDeltaXDeltaY(tempDeltaX, tempDeltaY)
+
+    #Overrides inherited method
+    def ApplyCollisionEffects(self):
+        self.score += self.objectCollisionEffectList['scoreChangeOnTouch']
+        self.health += self.objectCollisionEffectList['healthChangeOnTouch']
+        #TODO: self.inventory.append( the object that was touched )        
 
     def DetermineCharPicBasedOnDirectionFacing(self, levelGravity):
         if levelGravity == True and self.gravityApplies == True:
@@ -706,7 +717,8 @@ class Camera(GamePlayObject):
         self.boundCharacter = bindingCharacter
         self.screenResChoices = pygame.display.list_modes()
         bindingCharacter.boundToCamera = True
-
+        self.UpdateScreenSettings()
+    
     def UpdateScreenSettings(self):
         self.DisplayWidth = self.screenResChoices[self.screenResSelection][0]
         self.DisplayHeight = self.screenResChoices[self.screenResSelection][1]
@@ -746,8 +758,8 @@ class Camera(GamePlayObject):
             self.atWorldEdgeY = True
 
     def Move(self, tileWidth, tileHeight, deltaX = 0, deltaY = 0):#, deltaZ = 0, deltaZoom = 0):
-        self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY - deltaY #MOVE CAMERA ALONG Y AXIS
-        self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX - deltaX #MOVE CAMERA ALONG X AXIS
+        self.viewToScreenPxlOffsetY -= deltaY #MOVE CAMERA ALONG Y AXIS
+        self.viewToScreenPxlOffsetX -= deltaX #MOVE CAMERA ALONG X AXIS
         self.RefreshViewCoords(tileWidth, tileHeight)
 
     def MoveBasedOnBoundCharacterMovement(self, tileHeight, tileWidth, levelWidth, levelHeight):
@@ -811,32 +823,42 @@ class Camera(GamePlayObject):
         #cameraViewToScreenPxlOffsetX/Y, AND CONSIDER THAT THE CAMERA HAS MOVED
         #1 TILE IN DISTANCE IN THE WORLD. THIS IS IMPORTANT IN
         #ACCURATELY TRACKING THE CAMERA'S LOCATION COORDINATES.
-        if self.viewToScreenPxlOffsetX >= tileWidth:
+        while self.viewToScreenPxlOffsetX >= tileWidth:
             self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX - tileWidth
             self.xTile = self.xTile - 1
             
-        elif self.viewToScreenPxlOffsetX <0:
+        while self.viewToScreenPxlOffsetX <0:
             self.viewToScreenPxlOffsetX = self.viewToScreenPxlOffsetX + tileWidth
             self.xTile = self.xTile + 1
 
-        if self.viewToScreenPxlOffsetY >= tileHeight:
+        while self.viewToScreenPxlOffsetY >= tileHeight:
             self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY - tileHeight
             self.yTile = self.yTile - 1
 
-        elif self.viewToScreenPxlOffsetY <0:
+        while self.viewToScreenPxlOffsetY <0:
             self.viewToScreenPxlOffsetY = self.viewToScreenPxlOffsetY + tileHeight
             self.yTile = self.yTile + 1
 
-    def GetLocationInWorld(self, tileHeight, tileWidth):
+    def GetLocation(self, tileHeight, tileWidth):
         return [1 + self.xTile - (self.viewToScreenPxlOffsetX/float(tileWidth)), 1 + self.yTile - (self.viewToScreenPxlOffsetY/float(tileHeight))]
 
-    def SetLocationInWorld(self, x, y, tileHeight, tileWidth):
-        pass
-        #self.xTile = (self.viewToScreenPxlOffsetX/float(tileWidth)) + x - 1
-        #self.yTile = (self.viewToScreenPxlOffsetY/float(tileHeight)) + y - 1
+    def SetLocation(self, xTile, yTile, tileWidth, tileHeight):#, deltaZ = 0, deltaZoom = 0):
+        self.viewToScreenPxlOffsetX = tileWidth * ((self.xTile - xTile) + 1)
+        self.viewToScreenPxlOffsetY = tileHeight * ((self.yTile - yTile) + 1)
+        self.xTile = 0
+        self.yTile = 0
+        self.RefreshViewCoords(tileWidth, tileHeight)
 
     def ValidatePosition(self, gameDisplay):
         #CAN'T BE BEYOND WORLD EDGES
-            #WHAT IF CAMERA VIEW IS LARGER THAN WORLD SIZE?
+            #TODO: WHAT IF CAMERA VIEW IS LARGER THAN WORLD SIZE?
         #CAN'T PUT USER CHARACTER OUTSIDE OF INNER NINTH IF CAMERA CAN MOVE CLOSER TO WORLD EDGE
         pass
+
+    def InitializeLocation(self, tileWidth, tileHeight, levelWidth, levelHeight):
+        if self.boundCharacter != None:
+            self.xTile = 0
+            self.yTile = 0
+            setXTile = min(max(0, self.boundCharacter.xTile - ((self.DisplayWidth/2.0)/tileWidth)), levelWidth - ((self.DisplayWidth/2.0)/tileWidth))
+            setYTile = min(max(0, self.boundCharacter.yTile - ((self.DisplayHeight/2.0)/tileHeight)), levelHeight - ((self.DisplayHeight/2.0)/tileHeight))
+            self.SetLocation(setXTile, setYTile, tileWidth, tileHeight)

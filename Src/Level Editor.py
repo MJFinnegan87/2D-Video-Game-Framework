@@ -15,6 +15,13 @@ white = (255,255,255)
 red = (255,0,0)
 PI = math.pi
 
+pygame.init()
+allResolutionsAvail = pygame.display.list_modes()
+#ADD IN GAME-SPECIFIC LOGIC IF CERTAIN RESOLUTIONS ARE TO BE EXCLUDED FROM USER SELECTION
+screenResChoices = allResolutionsAvail
+del allResolutionsAvail
+screenResChoices.sort()
+
 class JSONConverter(json.JSONEncoder):
     def toJSON(self, data):
         return json.dumps(data, default = lambda o: o.__dict__, sort_keys=True, indent = 4)
@@ -60,7 +67,7 @@ class GfxHandler(object):
         #        int((tileRequested/gfxHandlerColumns)*tileHeight)+(int(tileRequested/gfxHandlerColumns))*pictureYPadding,
         #        tileWidth,
         #        tileHeight)
-        return (tileRequested - (int(tileRequested/gfxHandlerColumns) * gfxHandlerColumns)) * tileWidth, int(tileRequested/gfxHandlerColumns) * tileHeight,  tileWidth, tileHeight
+        return (tileRequested - (int(tileRequested/gfxHandlerColumns) * gfxHandlerColumns)) * (tileWidth + pictureXPadding), int(tileRequested/gfxHandlerColumns) * (tileHeight + pictureYPadding),  tileWidth, tileHeight
 
     def CreateTextObjects(self, text, font, color):
         textSurface = font.render(text, True, color)
@@ -504,7 +511,7 @@ class MenuScreen(object):
                 if self.menuType == "Paused":
                     self.text = "Resume"
                 else:
-                    self.text = "Play"
+                    self.text = "Begin Level Editor"
             if self.i == 5:
                 self.text = "Difficulty: " + self.difficultyChoices[self.difficultySelection]
                 if self.menuType == "Paused":
@@ -784,7 +791,7 @@ class HighScoresDatabase(object):
         self.connection.close()
 
 class WallObject(object):
-    def __init__(self, PK, scoreChangeOnTouch, scoreChangeOnAttack, healthChangeOnTouch, healthChangeOnAttack, ID,  activeImage, walkThroughPossible, actionOnTouch, actionOnAttack, isAnimated = False):
+    def __init__(self, PK, scoreChangeOnTouch, scoreChangeOnAttack, healthChangeOnTouch, healthChangeOnAttack, ID,  activeImage, walkThroughPossible, actionOnTouch, actionOnAttack, isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0):
         self.PK = PK
         self.scoreChangeOnTouch = scoreChangeOnTouch
         self.scoreChangeOnAttack = scoreChangeOnAttack
@@ -858,7 +865,7 @@ class Bullet(WorldObject):
 
     #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, bounces remaining, bullet width px, bullet height px, frame speed, default speed, image
     
-    def __init__(self, name, weapon, xTile, yTile, dx, dy, damage, physicsIndicator, physicsCounter, width, height, speed = .01, defaultSpeed = .01, img=None):
+    def __init__(self, name, weapon, xTile, yTile, deltaX, deltaY, damage, physicsIndicator, physicsCounter, width, height, character, speed = .01, defaultSpeed = .01, img=None, gravity = False, gravityCoefficient = .00005, boundToCamera = False):
         self.name = name
         self.defaultSpeed = defaultSpeed
         self.speed = speed
@@ -884,7 +891,7 @@ class AI(object):
     pass
 
 class Character(WorldObject):
-    def __init__(self, name = "", imagesGFXName = "../Images/userPlayer.png", boundToCamera = False, xFacing = 0, yFacing = 0, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, pictureXPadding = 0, pictureYPadding = 0, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False, gravity = False):
+    def __init__(self, name = "", imagesGFXName = "../Images/userPlayer.png", boundToCamera = False, xTile = 18, yTile = 18, deltaX = 0, deltaY = 0, timeSpentFalling = 0, gravityYDelta = 0, imgDirectionIndex = 0, imgLegIndex = 0, millisecondsOnEachLeg = 250, numberOfFramesAnimPerWalk = 3, pictureXPadding = 0, pictureYPadding = 0, defaultSpeed = .5, ammo = 1000, activeWeapon = 0, score = 0, weapons = [], inventory = [], width = 32, height = 32, shotsFiredFromMe = False, gravity = False, gravityCoefficient = .00005, ID = 0, isUser = 1, defaultAggression = .25):
         #GENERAL
         self.name = name
         self.numberOfFramesAnimPerWalk = numberOfFramesAnimPerWalk #3
@@ -895,8 +902,8 @@ class Character(WorldObject):
         self.imagesGFXColumns = self.numberOfFramesAnimPerWalk
 
         #LOCATION/APPEARANCE
-        self.xFacing = xFacing
-        self.yFacing = yFacing
+        self.xFacing = 1
+        self.yFacing = 1
         self.xTile = xTile
         self.yTile = yTile - 1
         self.x = 0 #NEEDS TO BE CALCULATED
@@ -1368,6 +1375,152 @@ class World(object):
         except:
             self.Reset()
 
+    def SaveCharacters(self, characters):
+        connection = sqlite3.connect(self.fileName)
+        c = connection.cursor()
+        c.execute("DROP TABLE IF EXISTS Characters")
+        c.execute('CREATE TABLE Characters (PK INT, name TEXT, boundToCamera BOOL, xTile INT, yTile INT, deltaX INT, deltaY INT, millisecondsOnEachLeg INT, imgDirectionIndex INT, numberOfFramesAnimPerWalk INT, defaultSpeed REAL, ammo INT, activeWeapon INT, score INT, weapons BLOB, inventory BLOB, width INT, height INT, gravity BOOL, gravityCoefficient REAL, ID INT, isUser BOOL, defaultAggression REAL)')
+        connection.commit()
+        i = 0
+        for obj in particles:
+            c.execute("INSERT INTO Particles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                      (i,
+                       PK,
+                       name,
+                       boundToCamera,
+                       xTile,
+                       yTile,
+                       deltaX,
+                       deltaY,
+                       millisecondsOnEachLeg,
+                       imgDirectionIndex,
+                       numberOfFramesAnimPerWalk,
+                       defaultSpeed,
+                       ammo,
+                       activeWeapon,
+                       score,
+                       weapons,
+                       inventory,
+                       width,
+                       height,
+                       gravity,
+                       gravityCoefficient,
+                       ID,
+                       isUser,
+                       defaultAggression))
+            i = i + 1
+
+    def LoadCharacters(self):
+        characters = []
+        c = connection.cursor()
+        c.execute('SELECT * FROM Characters')
+        for character in c:
+            characters.append({character[0] : [character[1], character[2], character[3], character[4], character[5], character[6], character[7], character[8], character[9], character[10], character[12], character[13], character[14], character[15], character[16], character[17], character[18], character[19], character[20], character[21], character[22], character[23]]})
+        connection.close()
+        return characters
+        
+
+    def SaveParticles(self, particles):
+        connection = sqlite3.connect(self.fileName)
+        c = connection.cursor()
+        c.execute("DROP TABLE IF EXISTS Particles")
+        c.execute('CREATE TABLE Particles (PK INT, name TEXT, weaponFK INT, xTile INT, yTile INT, deltaX REAL, deltaY REAL, damage REAL, physicsIndicator TEXT, physicsCounter INT, width INT, height INT, character INT, speed REAL, defaultSpeed REAL, img INT, gravity BOOL, gravityCoefficient REAL, boundToCamera BOOL)')
+        connection.commit()
+        i = 0
+        for obj in particles:
+            c.execute("INSERT INTO Particles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                      (i,
+                       name,
+                       weaponFK,
+                       xTile,
+                       yTile,
+                       deltaX,
+                       deltaY,
+                       damage,
+                       physicsIndicator,
+                       physicsCounter,
+                       width,
+                       height,
+                       character,
+                       speed,
+                       defaultSpeed,
+                       img,
+                       gravity,
+                       gravityCoefficient,
+                       boundToCamera))
+            i = i + 1
+
+    def LoadParticles(self):
+        particles = []
+        c = connection.cursor()
+        c.execute('SELECT * FROM Particles')
+        for particle in c:
+            particles.append({particles[0] : [particle[1], particle[2], particle[3], particle[4], particle[5], particle[6], particle[7], particle[8], particle[9], particle[10], particle[11], particle[12], particle[13], particle[14], particle[15], particle[16], particle[17], particle[18], particle[19]]})
+        connection.close()
+        return particles
+
+    def SaveSpritesheetSettings(self, spriteSheet):
+        #TODO: Save spritesheets as blobs in db
+        connection = sqlite3.connect(self.fileName)
+        c = connection.cursor()
+        c.execute("DROP TABLE IF EXISTS Spritesheets")
+        c.execute('CREATE TABLE Spritesheets (PK INT, Caption TEXT, FilePath TEXT, Blob BLOB, tileWidth INT, tileHeight INT, tileXPadding INT, tileYPadding INT)')
+
+        connection.commit()
+        c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                  (1,
+                   "WallObjects",
+                   spriteSheet["WallObjects"][0],
+                   None,
+                   spriteSheet["WallObjects"][1],
+                   spriteSheet["WallObjects"][2],
+                   spriteSheet["WallObjects"][3],
+                   spriteSheet["WallObjects"][4] ))
+
+        c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                  (2,
+                   "WorldObjects",
+                   spriteSheet["WorldObjects"][0],
+                   None,
+                   spriteSheet["WorldObjects"][1],
+                   spriteSheet["WorldObjects"][2],
+                   spriteSheet["WorldObjects"][3],
+                   spriteSheet["WorldObjects"][4] ))
+
+        c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                  (3,
+                   "Particles",
+                   spriteSheet["Particles"][0],
+                   None,
+                   spriteSheet["Particles"][1],
+                   spriteSheet["Particles"][2],
+                   spriteSheet["Particles"][3],
+                   spriteSheet["Particles"][4] ))
+
+        c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                  (4,
+                   "Characters",
+                   spriteSheet["Characters"][0],
+                   None,
+                   spriteSheet["Characters"][1],
+                   spriteSheet["Characters"][2],
+                   spriteSheet["Characters"][3],
+                   spriteSheet["Characters"][4] ))
+        connection.commit()
+        connection.close()
+
+    def LoadSpritesheetSettings(self):
+        Spritesheets = {}
+        connection = sqlite3.connect(self.fileName)
+        c = connection.cursor()
+        
+        c.execute('SELECT * FROM Spritesheets')
+        for Spritesheet in c:
+            Spritesheets[Spritesheet[0]] = [Spritesheet[1], Spritesheet[2], Spritesheet[3], Spritesheet[4], Spritesheet[5], Spritesheet[6], Spritesheet[7]]
+        connection.close()
+        return Spritesheets
+
+
     def AddLevel(self):
         prevLevel = self.activeLevel
         self.activeLevel = Level(index = self.GetNumberOfLevels())
@@ -1415,10 +1568,59 @@ class World(object):
             c.execute("CREATE TABLE Levels (IndexPK INT, Name TEXT, Description TEXT, Weather TEXT, SideScroller BOOL, WallMap BLOB, ObjectMap BLOB, music TEXT, loopMusic BOOL, startX INT, startY INT, startXFacing INT, startYFacing INT, gravity BOOL, stickToWallsOnCollision BOOL, levelHeight INT, levelWidth INT, tileSheetRows INT, tileSheetColumns INT, tileWidth INT, tileHeight INT, tileXPadding INT, tileYPadding INT)")
             #print "reset 5"
             c.execute("DROP TABLE IF EXISTS WallObjects")
-            c.execute('CREATE TABLE WallObjects (PK INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, addsToCharacterInventoryOnAttack INT, destroyOnAttack INT, ID INT, activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT, actionOnAttack TEXT)')
+            c.execute('CREATE TABLE WallObjects (PK INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, ID INT,  activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT, actionOnAttack TEXT, isAnimated BOOL, addsToCharacterInventoryOnTouch BOOL, destroyOnTouch BOOL, addsToCharacterInventoryOnAttack BOOL, destroyOnAttack BOOL)')
             
             c.execute("DROP TABLE IF EXISTS WorldObjects")
             c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, timeBetweenAnimFrame INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, addsToCharacterInventoryOnAttack INT, destroyOnAttack INT, ID TEXT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, timeElapsedSinceLastFrame INT)')
+
+            c.execute("DROP TABLE IF EXISTS Spritesheets")
+            c.execute('CREATE TABLE Spritesheets (PK INT, Caption TEXT, FilePath TEXT, Blob BLOB, tileWidth INT, tileHeight INT, tileXPadding INT, tileYPadding INT)')
+
+
+            c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                      (1,
+                       "WallObjects",
+                       spriteSheet["WallObjects"][1],
+                       spriteSheet["WallObjects"][2],
+                       spriteSheet["WallObjects"][3],
+                       spriteSheet["WallObjects"][4],
+                       spriteSheet["WallObjects"][5],
+                       spriteSheet["WallObjects"][6] ))
+
+            c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                      (2,
+                       "WorldObjects",
+                       spriteSheet["WorldObjects"][1],
+                       spriteSheet["WorldObjects"][2],
+                       spriteSheet["WorldObjects"][3],
+                       spriteSheet["WorldObjects"][4],
+                       spriteSheet["WorldObjects"][5],
+                       spriteSheet["WorldObjects"][6] ))
+
+            c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                      (3,
+                       "Particles",
+                       spriteSheet["Particles"][1],
+                       spriteSheet["Particles"][2],
+                       spriteSheet["Particles"][3],
+                       spriteSheet["Particles"][4],
+                       spriteSheet["Particles"][5],
+                       spriteSheet["Particles"][6] ))
+
+            c.execute("INSERT INTO SpriteSheets VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                      (4,
+                       "Characters",
+                       spriteSheet["Characters"][1],
+                       spriteSheet["Characters"][2],
+                       spriteSheet["Characters"][3],
+                       spriteSheet["Characters"][4],
+                       spriteSheet["Characters"][5],
+                       spriteSheet["Characters"][6] ))
+            connection.commit()
+            connection.close()
+
+            connection.commit()
+            connection.close()
 
         finally:
             connection.commit()
@@ -1555,7 +1757,6 @@ class World(object):
                       self.activeLevel.tileXPadding,
                       self.activeLevel.tileYPadding,
                       self.activeLevel.index))
-            print("Saving Index: " + str(self.activeLevel.index) + 'No it is really ' + str(self.activeLevel.index))
             print("Saving tileWidth: " + str(self.activeLevel.tileWidth))
         else:
             connection = sqlite3.connect(self.fileName)
@@ -1584,7 +1785,6 @@ class World(object):
                       self.activeLevel.tileHeight,
                       self.activeLevel.tileXPadding,
                       self.activeLevel.tileYPadding))
-            print("Saving Index: " + str(self.activeLevel.index) + 'No it is really ' + str(self.activeLevel.index))
             print("Saving tileWidth: " + str(self.activeLevel.tileWidth))
         connection.commit()
         connection.close()
@@ -1594,26 +1794,28 @@ class World(object):
         c = connection.cursor()
         #c.execute('TRUNCATE TABLE WallObjects')
         c.execute("DROP TABLE IF EXISTS WallObjects")
-        c.execute('CREATE TABLE WallObjects (PK INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, addsToCharacterInventoryOnAttack INT, destroyOnAttack INT, ID INT, activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT, actionOnAttack TEXT)')
+        
+        c.execute('CREATE TABLE WallObjects (PK INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, ID INT,  activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT, actionOnAttack TEXT, isAnimated BOOL, addsToCharacterInventoryOnTouch BOOL, destroyOnTouch BOOL, addsToCharacterInventoryOnAttack BOOL, destroyOnAttack BOOL)')
 
         connection.commit()
         for i in WallObjectData:
-            c.execute('INSERT INTO WallObjects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            c.execute('INSERT INTO WallObjects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                       (
                         i.PK,
                         i.scoreChangeOnTouch,
                         i.scoreChangeOnAttack,
                         i.healthChangeOnTouch,
                         i.healthChangeOnAttack,
-                        i.addsToCharacterInventoryOnTouch,
-                        i.destroyOnTouch,
-                        i.addsToCharacterInventoryOnAttack,
-                        i.destroyOnAttack,
                         i.ID,
                         i.activeImage,
                         i.walkThroughPossible,
                         i.actionOnTouch,
-                        i.actionOnAttack
+                        i.actionOnAttack,
+                        i.isAnimated,
+                        i.addsToCharacterInventoryOnTouch,
+                        i.destroyOnTouch,
+                        i.addsToCharacterInventoryOnAttack,
+                        i.destroyOnAttack
                       ))
             connection.commit()
         connection.close()
@@ -1658,9 +1860,10 @@ class World(object):
         c = connection.cursor()
         c.execute('SELECT * FROM WallObjects')
         for wall in c:
-            WallObjectData.append(WallObject(wall[0], wall[1], wall[2], wall[3], wall[4], wall[5], wall[6], wall[7], wall[8], wall[9]))
+            WallObjectData.append(WallObject(wall[0], wall[1], wall[2], wall[3], wall[4], wall[5], wall[6], wall[7], wall[8], wall[9], wall[10], wall[11], wall[12], wall[13], wall[14]))
         connection.close()
         self.wallObjects = WallObjectData
+        return self.wallObjects
 
     def LoadWorldObjects(self):
         WorldObjectData = []
@@ -1671,6 +1874,7 @@ class World(object):
             WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16], obj[17]))
         connection.close()
         self.worldObjects = WorldObjectData
+        return self.worldObjects
 
 class Game(object):
     def __init__(self, screenResSelection, fullScreen, worldDB, worldDBFilePath, startingLevel):
@@ -1681,19 +1885,69 @@ class Game(object):
         self.world.LoadWallObjects()
         self.world.LoadLevel(startingLevel)
         self.world.activeLevel.startX = 19
+        self.world.activeLevel.tileHeight = 64
+        self.world.activeLevel.tileWidth = 64
         
-        self.world.worldObjects = [WorldObject(PK = 0, name = "Diamond", desc = "Diamond Flicker Example", columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 0, walkThroughPossible = True),
-                                   WorldObject(PK = 1, name = "Ball",    desc = "Red Ball Example",        columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 1, walkThroughPossible = False)]
+##
+##        self.world.worldObjects = [WorldObject(PK = 0, name = "Diamond", desc = "Diamond Flicker Example", columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 0, walkThroughPossible = True),
+##                                   WorldObject(PK = 1, name = "Ball",    desc = "Red Ball Example",        columns = 4, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 250, timeElapsedSinceLastFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 1, walkThroughPossible = False)]
+##        
+##        self.world.wallObjects = [WallObject(PK = 1, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID =1,  activeImage = 0, walkThroughPossible = True, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 1, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 2,  activeImage = 1, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 2, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 3,  activeImage = 2, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 3, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 4,  activeImage = 3, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 4, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 5,  activeImage = 4, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 5, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 6,  activeImage = 5, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 6, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 7,  activeImage = 6, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 7, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 8,  activeImage = 7, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 8, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 9,  activeImage = 8, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 9, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 10,  activeImage = 9, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 10, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 11,  activeImage = 10, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 11, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 12,  activeImage = 11, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 12, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 13,  activeImage = 12, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 13, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 14,  activeImage = 13, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 14, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 15,  activeImage = 14, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 15, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 16,  activeImage = 15, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 16, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 17,  activeImage = 16, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 17, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 18,  activeImage = 17, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 18, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 19,  activeImage = 18, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 19, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 20,  activeImage = 19, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 20, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 21,  activeImage = 20, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 21, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 22,  activeImage = 21, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 22, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 23,  activeImage = 22, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 23, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 24,  activeImage = 23, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 24, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 25,  activeImage = 24, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 25, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 26,  activeImage = 25, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 26, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 27,  activeImage = 26, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 27, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 28,  activeImage = 27, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 28, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 29,  activeImage = 28, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 29, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 30,  activeImage = 29, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 31, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 31,  activeImage = 30, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 32, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 32,  activeImage = 31, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 33, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 33,  activeImage = 32, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 34, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 34,  activeImage = 33, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 35, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 35,  activeImage = 34, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 36, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 36,  activeImage = 35, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 37, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 37,  activeImage = 36, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 38, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 38,  activeImage = 37, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 39, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 39,  activeImage = 38, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 40, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 40,  activeImage = 39, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 41, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 41,  activeImage = 40, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 42, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 42,  activeImage = 41, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 43, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 43,  activeImage = 42, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 44, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 44,  activeImage = 43, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 45, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 45,  activeImage = 44, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 46, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 46,  activeImage = 45, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 47, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 47,  activeImage = 46, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 48, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 48,  activeImage = 47, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 49, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 49,  activeImage = 48, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 50, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 50,  activeImage = 49, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 51, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 51,  activeImage = 50, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##                WallObject(PK = 52, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 52,  activeImage = 51, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0),
+##
+##                WallObject(PK = 52, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 53,  activeImage = 52, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "", isAnimated = False, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0)]
         
-        self.world.wallObjects = [WallObject(PK = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 1,  activeImage = 0, walkThroughPossible = True, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 1, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 2,  activeImage = 1, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 2, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 3,  activeImage = 2, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 3, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 4,  activeImage = 3, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 4, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 5,  activeImage = 4, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 5, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 6,  activeImage = 5, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 6, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 7,  activeImage = 6, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 7, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 8,  activeImage = 7, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = ""),
-                 WallObject(PK = 8, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, ID = 9,  activeImage = 8, walkThroughPossible = False, actionOnTouch = "", actionOnAttack = "")]
+                                  
 ##        self.world.activeLevel = Level(0, "Demo", "This is a demonstration level", "Clear", 0,
 ##                        [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ##                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1],
@@ -1977,7 +2231,7 @@ class Game(object):
 ##                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
 ##                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]],
 ##                            [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]],
-##                            "", True, 2, 2, 1, 0, 127, 127, False, False, 9, 1, 64, 64, 0, 0)
+##                            "", True, 2, 2, 1, 0, 127, 127, False, False, 8, 1, 64, 64, 0, 0)
 ##                            #music = "", loopMusic = False, startX = 0, startY = 0, startXFacing = 0, startYFacing = 0, levelWidth = 127, levelHeight = 127, gravity = False, stickToWallsOnCollision = False, tileSheetRows = 0, tileSheetColumns = 0, tileWidth = 0, tileHeight = 0, tileXPadding = 0, tileYPadding = 0
 ##
 ##        self.world.SaveActiveLevel()
@@ -2013,14 +2267,16 @@ class Game(object):
         
         self.mouseWidth = self.world.activeLevel.tileWidth
         self.personHeight = self.world.activeLevel.tileHeight
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.world.activeLevel.tileSheetRows, self.world.activeLevel.tileSheetColumns, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
-        self.userCharacter = Character(name = "User", boundToCamera = True, xFacing = self.world.activeLevel.startXFacing, yFacing = self.world.activeLevel.startYFacing, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
+
+        #xFacing = self.world.activeLevel.startXFacing, yFacing = self.world.activeLevel.startYFacing, 
+        self.userCharacter = Character(name = "User", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0) #particles: [NAME, X1, Y1, DX, DY, R, G, B, SPEED, 0])
         self.userCharacter.InitializeScreenPosition(self.camera, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)
         for i in range (4):
             self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, 2, 16, 16, (i+1)/float(100)))
         self.characters = [self.userCharacter]
         ###for character in self.characters:
             ###self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.world.activeLevel.tileSheetRows, self.world.activeLevel.tileSheetColumns, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
         self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
         self.gfx.LoadGfxDictionary("../Images/level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
@@ -2120,57 +2376,318 @@ class Game(object):
             pass
 
 class WorldEditorWindow(wx.Frame):
-    def __init__(self, parent, title, windowWidth, windowHeight):
-        super(Frame, self).__init__(parent, title=title, 
-            size=(windowWidth, windowHeight), style=wx.NO_BORDER)# | wx.STAY_ON_TOP)
+    def __init__(self, title, windowWidth, windowHeight, context):
+        wx.Frame.__init__(self, None, title=title, size=(windowWidth, windowHeight))#, style=wx.NO_BORDER)# | wx.STAY_ON_TOP)
+        self.world = context
         self.windowWidth = windowWidth
         self.windowHeight = windowHeight
-        #Create a menu bar
-        self.menuBar = wx.MenuBar()
-        
-        #Create a File submenu
-        self.fileButton = wx.Menu()
 
-        #Create submenu items
-        self.openItem = wx.MenuItem(self.fileButton, wx.ID_OPEN, "Open\tCtrl+O")
-        self.saveItem = wx.MenuItem(self.fileButton, wx.ID_SAVE, "Save\tCtrl+S")
-        self.exitItem = wx.MenuItem(self.fileButton, wx.ID_EXIT, "Save\tCtrl+Q")
-        #attach submenu items to the submenu
-        self.fileButton.AppendItem(self.openItem)
-        self.fileButton.AppendItem(self.saveItem)
-        self.fileButton.AppendItem(self.exitItem)
-        #Attach the submenu to the menu bar
-        self.menuBar.Append(self.fileButton, "&File")
+        p = wx.Panel(self)
+        nb = wx.Notebook(p)
 
-        #Create a Global Options submenu
-        self.globalOptionsButton = wx.Menu()
+        tab1 = GameTab(nb)
+        tab2 = SpriteSheetTab(nb, self.world)
+        tab3 = WallObjectsTab(nb)
+        tab4 = WorldObjectsTab(nb)
+        tab5 = ParticlesTab(nb)
+        tab6 = CharactersTab(nb)
+        tab7 = WorldTab(nb)
+        tab8 = LevelsTab(nb)
+        tab9 = SoundsTab(nb)
+ 
+        # Add the windows to tabs and name them.
+        nb.AddPage(tab1, tab1.caption)
+        nb.AddPage(tab2, tab2.caption)
+        nb.AddPage(tab3, tab3.caption)
+        nb.AddPage(tab4, tab4.caption)
+        nb.AddPage(tab5, tab5.caption)
+        nb.AddPage(tab6, tab6.caption)
+        nb.AddPage(tab7, tab7.caption)
+        nb.AddPage(tab8, tab8.caption)
+        nb.AddPage(tab9, tab9.caption)
+ 
+        # Set noteboook in a sizer to create the layout
+        sizer = wx.BoxSizer()
+        sizer.Add(nb, 1, wx.EXPAND)
+        p.SetSizer(sizer)
+
+class GameTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        #TODO: License settings, main menu settings,
+        self.caption = "Game Settings"
+
+class SpriteSheetTab(wx.Panel):
+    def __init__(self, parent, context):
+        wx.Panel.__init__(self, parent)
+        self.context = context
+        #self.context.SaveSpritesheetSettings({"WallObjects" : ['', 0, 0, 0, 0], "WorldObjects" : ['', 0, 0, 0, 0], "Particles" : ['', 0, 0, 0, 0], "Characters" : ['', 0, 0, 0, 0]})
+        spritesheets = self.context.LoadSpritesheetSettings()
+        t = wx.StaticText(self, -1, "Wall Objects Spritesheet:", (20,20))
+        t = wx.StaticText(self, -1, "Filepath: ", (40,40))
+        t = wx.StaticText(self, -1, "tileWidth: ", (40,70))
+        t = wx.StaticText(self, -1, "tileHeight: ", (40,100))
+        t = wx.StaticText(self, -1, "tileXPadding: ", (40,130))
+        t = wx.StaticText(self, -1, "tileYPadding: ", (40,160))
+
+        t = wx.StaticText(self, -1, "World Objects Spritesheet:", (20,200))
+        t = wx.StaticText(self, -1, "Filepath: ", (40,230))
+        t = wx.StaticText(self, -1, "tileWidth: ", (40,260))
+        t = wx.StaticText(self, -1, "tileHeight: ", (40,290))
+        t = wx.StaticText(self, -1, "tileXPadding: ", (40,320))
+        t = wx.StaticText(self, -1, "tileYPadding: ", (40,350))
+
+        t = wx.StaticText(self, -1, "Particles Spritesheet:", (20,390))
+        t = wx.StaticText(self, -1, "Filepath: ", (40,420))
+        t = wx.StaticText(self, -1, "tileWidth: ", (40,450))
+        t = wx.StaticText(self, -1, "tileHeight: ", (40,480))
+        t = wx.StaticText(self, -1, "tileXPadding: ", (40,510))
+        t = wx.StaticText(self, -1, "tileYPadding: ", (40,540))
+
+        t = wx.StaticText(self, -1, "Characters Spritesheet:", (20,580))
+        t = wx.StaticText(self, -1, "Filepath: ", (40,610))
+        t = wx.StaticText(self, -1, "tileWidth: ", (40,640))
+        t = wx.StaticText(self, -1, "tileHeight: ", (40,670))
+        t = wx.StaticText(self, -1, "tileXPadding: ", (40,700))
+        t = wx.StaticText(self, -1, "tileYPadding: ", (40,730))
+
+        self.wallObjectFilePathTC = wx.TextCtrl(self, -1, pos=(160, 40), size=(320, 20))
+        self.wallObjectTileWidthTC = wx.TextCtrl(self, -1, pos=(160, 70), size=(320, 20))
+        self.wallObjectTileHeightTC = wx.TextCtrl(self, -1, pos=(160, 100), size=(320, 20))
+        self.wallObjectTileXPaddingTC = wx.TextCtrl(self, -1, pos=(160, 130), size=(320, 20))
+        self.wallObjectTileYPaddingTC = wx.TextCtrl(self, -1, pos=(160, 160), size=(320, 20))
+
+        self.worldObjectFilePathTC = wx.TextCtrl(self, -1, pos=(160, 230), size=(320, 20))
+        self.worldObjectTileWidthTC = wx.TextCtrl(self, -1, pos=(160, 260), size=(320, 20))
+        self.worldObjectTileHeightTC = wx.TextCtrl(self, -1, pos=(160, 290), size=(320, 20))
+        self.worldObjectTileXPaddingTC = wx.TextCtrl(self, -1, pos=(160, 320), size=(320, 20))
+        self.worldObjectTileYPaddingTC = wx.TextCtrl(self, -1, pos=(160, 350), size=(320, 20))
+
+        self.particleFilePathTC = wx.TextCtrl(self, -1, pos=(160, 420), size=(320, 20))
+        self.particleTileWidthTC = wx.TextCtrl(self, -1, pos=(160, 450), size=(320, 20))
+        self.particleTileHeightTC = wx.TextCtrl(self, -1, pos=(160, 480), size=(320, 20))
+        self.particleTileXPaddingTC = wx.TextCtrl(self, -1, pos=(160, 510), size=(320, 20))
+        self.particleTileYPaddingTC = wx.TextCtrl(self, -1, pos=(160, 540), size=(320, 20))
+
+        self.characterFilePathTC = wx.TextCtrl(self, -1, pos=(160, 610), size=(320, 20))
+        self.characterTileWidthTC = wx.TextCtrl(self, -1, pos=(160, 640), size=(320, 20))
+        self.characterTileHeightTC = wx.TextCtrl(self, -1, pos=(160, 670), size=(320, 20))
+        self.characterTileXPaddingTC = wx.TextCtrl(self, -1, pos=(160, 700), size=(320, 20))
+        self.characterTileYPaddingTC = wx.TextCtrl(self, -1, pos=(160, 730), size=(320, 20))
+
         
-        #Create submenu items
-        #self.menuItem = wx.MenuItem(self.globalOptionsButton, wx.ID_XXXXX, "Menu Item Text")
         
-        #attach submenu items to the submenu
-        #self.globalOptionsButton.AppendItem(self.menuItem)
+        self.wallObjectFilePathTC.SetValue(str(spritesheets[1][1]))
+        self.wallObjectTileWidthTC.SetValue(str(spritesheets[1][3]))
+        self.wallObjectTileHeightTC.SetValue(str(spritesheets[1][4]))
+        self.wallObjectTileXPaddingTC.SetValue(str(spritesheets[1][5]))
+        self.wallObjectTileYPaddingTC.SetValue(str(spritesheets[1][6]))
+
+        self.worldObjectFilePathTC.SetValue(str(spritesheets[2][1]))
+        self.worldObjectTileWidthTC.SetValue(str(spritesheets[2][3]))
+        self.worldObjectTileHeightTC.SetValue(str(spritesheets[2][4]))
+        self.worldObjectTileXPaddingTC.SetValue(str(spritesheets[2][5]))
+        self.worldObjectTileYPaddingTC.SetValue(str(spritesheets[2][6]))
+
+        self.particleFilePathTC.SetValue(str(spritesheets[3][1]))
+        self.particleTileWidthTC.SetValue(str(spritesheets[3][3]))
+        self.particleTileHeightTC.SetValue(str(spritesheets[3][4]))
+        self.particleTileXPaddingTC.SetValue(str(spritesheets[3][5]))
+        self.particleTileYPaddingTC.SetValue(str(spritesheets[3][6]))
+
+        self.characterFilePathTC.SetValue(str(spritesheets[4][1]))
+        self.characterTileWidthTC.SetValue(str(spritesheets[4][3]))
+        self.characterTileHeightTC.SetValue(str(spritesheets[4][4]))
+        self.characterTileXPaddingTC.SetValue(str(spritesheets[4][5]))
+        self.characterTileYPaddingTC.SetValue(str(spritesheets[4][6]))
+
         
-        #Attach the submenu to the menu bar
-        self.menuBar.Append(self.globalOptionsButton, "&Global Game Options")
+                
+        saveButton = wx.Button(self, -1, "Save", (700, 20))
+        saveButton.Bind(wx.EVT_BUTTON, self.Save)
+        
+        self.caption = "Spritesheet Settings"
+
+    def Save(self, e):
+        self.context.SaveSpritesheetSettings({"WallObjects" : [self.wallObjectFilePathTC.GetValue(), self.wallObjectTileWidthTC.GetValue(), self.wallObjectTileHeightTC.GetValue(), self.wallObjectTileXPaddingTC.GetValue(), self.wallObjectTileYPaddingTC.GetValue()],
+                                       "WorldObjects" : [self.worldObjectFilePathTC.GetValue(), self.worldObjectTileWidthTC.GetValue(), self.worldObjectTileHeightTC.GetValue(), self.worldObjectTileXPaddingTC.GetValue(), self.worldObjectTileYPaddingTC.GetValue()],
+                                       "Particles" : [self.particleFilePathTC.GetValue(), self.particleTileWidthTC.GetValue(), self.particleTileHeightTC.GetValue(), self.particleTileXPaddingTC.GetValue(), self.particleTileYPaddingTC.GetValue()],
+                                       "Characters" : [self.characterFilePathTC.GetValue(), self.characterTileWidthTC.GetValue(), self.characterTileHeightTC.GetValue(), self.characterTileXPaddingTC.GetValue(), self.characterTileYPaddingTC.GetValue()]})
+
+class WallObjectsTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        t = wx.StaticText(self, -1, "Wall Objects: ", (20,20))
+        t = wx.StaticText(self, -1, "Index: ", (40,40))
+        t = wx.StaticText(self, -1, "Score Change On Touch: ", (40,70))
+        t = wx.StaticText(self, -1, "Score Change On Attack: ", (40,100))
+        t = wx.StaticText(self, -1, "Health Change On Touch: ", (40,130))
+        t = wx.StaticText(self, -1, "Health Change On Attack: ", (40,160))
+        t = wx.StaticText(self, -1, "ID: ", (40,190))
+        t = wx.StaticText(self, -1, "Image: ", (40,220))
+        t = wx.StaticText(self, -1, "Walk-through Possible: ", (40,250))
+        t = wx.StaticText(self, -1, "Action On Touch: ", (40,280))
+        t = wx.StaticText(self, -1, "Action On Attack: ", (40,310))
+        t = wx.StaticText(self, -1, "Is Animated: ", (40,340))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Touch: ", (40,370))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Attack: ", (40,400))
+        t = wx.StaticText(self, -1, "Destroy On Touch: ", (40,430))
+        t = wx.StaticText(self, -1, "Destroy On Attack: ", (40,460))
+
+        self.indexTC = wx.TextCtrl(self, -1, pos=(260, 40), size=(320, 20))
+        self.scoreChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 70), size=(320, 20))
+        self.scoreChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 100), size=(320, 20))
+        self.healthChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 130), size=(320, 20))
+        self.healthChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 160), size=(320, 20))
+
+        self.IDTC = wx.TextCtrl(self, -1, pos=(260, 190), size=(320, 20))
+        self.imageTC = wx.TextCtrl(self, -1, pos=(260, 220), size=(320, 20))
+        self.walkThroughPossibleTC = wx.TextCtrl(self, -1, pos=(260, 250), size=(320, 20))
+        self.actionOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 280), size=(320, 20))
+        self.actionOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 310), size=(320, 20))
+
+        self.isAnimatedTC = wx.TextCtrl(self, -1, pos=(260, 340), size=(320, 20))
+        self.addsToCharacterInventoryOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 370), size=(320, 20))
+        self.addsToCharacterInventoryOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 400), size=(320, 20))
+        self.DestroyOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 430), size=(320, 20))
+        self.DestroyOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 460), size=(320, 20))
+
+        saveButton = wx.Button(self, -1, "Save", (700, 20))
+        saveButton.Bind(wx.EVT_BUTTON, self.Save)
+        
+        self.caption = "Wall Objects Settings"
+
+    def Save(self, e):
+        pass
+ 
+class WorldObjectsTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.caption = "World Objects Settings"
+        t = wx.StaticText(self, -1, "World Objects: ", (20,20))
+        t = wx.StaticText(self, -1, "Index: ", (40,40))
+        t = wx.StaticText(self, -1, "Name: ", (40,60))
+        t = wx.StaticText(self, -1, "Description: ", (40,80))
+        t = wx.StaticText(self, -1, "Image: ", (40,100))
+        t = wx.StaticText(self, -1, "Action On Touch: ", (40,120))
+        t = wx.StaticText(self, -1, "Action On Attack: ", (40,140))
+        t = wx.StaticText(self, -1, "Time Between Animation Frames: ", (40,160))
+        t = wx.StaticText(self, -1, "Score Change On Touch: ", (40,180))
+        t = wx.StaticText(self, -1, "Score Change On Attack: ", (40,200))
+        t = wx.StaticText(self, -1, "Health Change On Touch: ", (40,220))
+        t = wx.StaticText(self, -1, "Health Change On Attack: ", (40,240))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Touch: ", (40,260))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Attack: ", (40,280))
+        t = wx.StaticText(self, -1, "Destroy On Touch: ", (40,300))
+        t = wx.StaticText(self, -1, "Destroy On Attack: ", (40,320))
+        t = wx.StaticText(self, -1, "Walk Through Possible: ", (40,300))
+        t = wx.StaticText(self, -1, "ID: ", (40,320))
+        t = wx.StaticText(self, -1, "Default Speed: ", (40,340))
+        t = wx.StaticText(self, -1, "Is Animated: ", (40,360))
+        
+
+class ParticlesTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.caption = "Particles Settings"
+        t = wx.StaticText(self, -1, "Particles: ", (20,20))
+        t = wx.StaticText(self, -1, "Index: ", (40,40))
+        t = wx.StaticText(self, -1, "Name: ", (40,60))
+        t = wx.StaticText(self, -1, "Weapon: ", (40,80))
+        t = wx.StaticText(self, -1, "Damage: ", (40,100))
+        t = wx.StaticText(self, -1, "Physics Indicator: ", (40,120))
+        t = wx.StaticText(self, -1, "Physics Counter: ", (40,140))
+        t = wx.StaticText(self, -1, "Width: ", (40,160))
+        t = wx.StaticText(self, -1, "Height: ", (40,180))
+        t = wx.StaticText(self, -1, "Default Speed: ", (40,200))
+        t = wx.StaticText(self, -1, "Image: ", (40,220))
+        t = wx.StaticText(self, -1, "Affected By Gravity: ", (40,240))
+        t = wx.StaticText(self, -1, "Gravity Coefficient: ", (40,260))
+        t = wx.StaticText(self, -1, "Bound To Camera: ", (40,280))        
+
+class CharactersTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.caption = "Characters Settings"
+        t = wx.StaticText(self, -1, "Characters: ", (20,20))
+        t = wx.StaticText(self, -1, "Index: ", (40,40))
+        t = wx.StaticText(self, -1, "Name: ", (40,60))
+        t = wx.StaticText(self, -1, "Spritesheet: ", (40,80))
+        t = wx.StaticText(self, -1, "Bound To Camera: ", (40,100))
+        t = wx.StaticText(self, -1, "Milliseconds On Each Leg: ", (40,120))
+        t = wx.StaticText(self, -1, "Number Of Animation Frames Per Walk: ", (40,140))
+        t = wx.StaticText(self, -1, "Default Speed: ", (40,160))
+        t = wx.StaticText(self, -1, "Ammo: ", (40,180))
+        t = wx.StaticText(self, -1, "Active Weapon: ", (40,200))
+        t = wx.StaticText(self, -1, "Score: ", (40,220))
+        t = wx.StaticText(self, -1, "Weapons: ", (40,240))
+        t = wx.StaticText(self, -1, "Inventory: ", (40,260))
+        t = wx.StaticText(self, -1, "Width: ", (40,280))
+        t = wx.StaticText(self, -1, "Height: ", (40,300))
+        t = wx.StaticText(self, -1, "Affected By Gravity: ", (40,320))
+        t = wx.StaticText(self, -1, "Gravity Coefficient: ", (40,300))
+        t = wx.StaticText(self, -1, "ID: ", (40,320))
+        t = wx.StaticText(self, -1, "Is User: ", (40,340))
+        t = wx.StaticText(self, -1, "Default Aggression: ", (40,360))
+
+class WorldTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        t = wx.StaticText(self, -1, "World Settings:", (20,20))
+        self.caption = "World Settings"
+
+class LevelsTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        t = wx.StaticText(self, -1, "Levels Settings:", (20,20))
+        t = wx.StaticText(self, -1, "Level Selection: ", (40,40))
+        t = wx.StaticText(self, -1, "Index: ", (40,60))
+        t = wx.StaticText(self, -1, "Name: ", (40,80))
+        t = wx.StaticText(self, -1, "Description: ", (40,100))
+        t = wx.StaticText(self, -1, "Weather: ", (40,120))
+        t = wx.StaticText(self, -1, "Sidescroller: ", (40,140))
+        t = wx.StaticText(self, -1, "Music: ", (40,160))
+        t = wx.StaticText(self, -1, "Loop Music: ", (40,180))
+        t = wx.StaticText(self, -1, "Player Start X: ", (40,200))
+        t = wx.StaticText(self, -1, "Player Start Y: ", (40,240))
+        t = wx.StaticText(self, -1, "Start Facing X-Axis: ", (40,260))
+        t = wx.StaticText(self, -1, "Start Facing Y-Axis: ", (40,280))
+        t = wx.StaticText(self, -1, "Gravity: ", (40,300))
+        t = wx.StaticText(self, -1, "Stick To Walls On Collision: ", (40,320))
+        t = wx.StaticText(self, -1, "Width (Tiles): ", (40,340))
+        t = wx.StaticText(self, -1, "Height (Tiles): ", (40,360))
+        btn = wx.Button(self, -1, "Level Editor", (700, 20))
+        btn.Bind(wx.EVT_BUTTON, self.OpenLevelEditor)
+        self.caption = "Level Settings"
+
+        
+    def OpenLevelEditor(self, parent):
+        pygame.init()
+        exiting = False
+        while exiting == False:
+            #myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "C:\Tech Academy\General Dev\Python\2D Game Engine\2D-Game-Engine\Src", 0)
+            myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0)
+            exiting = myGame.ShowMenu("Main Menu", myGame.camera)
+            while myGame.exiting == False and myGame.lost == False:
+                myGame.Play()
+                myGame.ShowMenu("Paused", myGame.camera)
+                #menuSystem = menuScreen("Main Menu", screenResSelection, difficultySelection, displayType)
+                #del menuSystem
+        del myGame
+        pygame.quit()
+        #quit()
+
+class SoundsTab(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        #TODO: License settings, main menu settings,
+        self.caption = "Sound Settings"
 
 
-pygame.init()
-allResolutionsAvail = pygame.display.list_modes()
-#ADD IN GAME-SPECIFIC LOGIC IF CERTAIN RESOLUTIONS ARE TO BE EXCLUDED FROM USER SELECTION
-screenResChoices = allResolutionsAvail
-del allResolutionsAvail
-screenResChoices.sort()
-exiting = False
-while exiting == False:
-    #myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "C:\Tech Academy\General Dev\Python\2D Game Engine\2D-Game-Engine\Src", 0)
-    myGame = Game(int(len(screenResChoices)/2), "Window", "world.db", "", 0)
-    exiting = myGame.ShowMenu("Main Menu", myGame.camera)
-    while myGame.exiting == False and myGame.lost == False:
-        myGame.Play()
-        myGame.ShowMenu("Paused", myGame.camera)
-        #menuSystem = menuScreen("Main Menu", screenResSelection, difficultySelection, displayType)
-        #del menuSystem
-del myGame
-pygame.quit()
-quit()
+if __name__ == "__main__":
+    app = wx.App()
+    WorldEditorWindow("Game Studio", 980, 852, World("", "world.db") ).Show()
+    app.MainLoop()
+
+
+

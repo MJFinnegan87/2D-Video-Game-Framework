@@ -15,8 +15,6 @@ white = (255,255,255)
 red = (255,0,0)
 PI = math.pi
 
-
-
 class HighScoresDatabase(object):
     def __init__(self):
         self.numberOfRecordsPerDifficulty = 10
@@ -120,8 +118,7 @@ class Game(object):
 
 
         self.particles = []
-        print(self.world.activeLevel.tileWidth)
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", self.world.activeLevel.tileSheetRows, self.world.activeLevel.tileSheetColumns, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.tileXPadding, self.world.activeLevel.tileYPadding)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", 8, 1, 64, 64, 0, 0)
         #self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer TEST.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 41, height = 42, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
         self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer 64.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 41, height = 42, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
         self.camera = Camera(screenResSelection, fullScreen, 14, 0, self.userCharacter, 1/2.0, 1/2.0)
@@ -131,7 +128,7 @@ class Game(object):
         self.userCharacter.InitializeScreenPosition(self.camera, self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight)
         for i in range (4):
             #self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, "Bounce", 5 ,16, 16, (i+1)/2, True, .000005))
-            self.userCharacter.weapons.append(Weapon(str(i), (i+1) * 10, 1000, "Bounce", 4*(i+1) ,16, 16, (i+1)/2, False))
+            self.userCharacter.weapons.append(Weapon(i, str(i), (i+1) * 10, 1000, "Bounce", 4*(i+1) ,16, 16, (i+1)/2, False))
         self.characters = [self.userCharacter]
         for character in self.characters:
             self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, character.pictureXPadding, character.pictureYPadding, 1, 1)
@@ -177,7 +174,7 @@ class Game(object):
             #DRAW GAME STATS
             #self.gfx.DrawSmallMessage("Health: " + str(self.characters[0].myHealth), 0, self.gameDisplay, white, self.DisplayWidth)
             #self.gfx.DrawSmallMessage("Ammo: " + str(self.characters[0].ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
-            #self.gfx.DrawSmallMessage("Level: " + str(self.world.activeLevel), 2, self.gameDisplay, white, self.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Level: " + str(self.world.activeLevel.index), 2, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Score: " + str(self.characters[0].score), 3, self.gameDisplay, white, self.DisplayWidth)
             self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocation()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
             self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocation()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)

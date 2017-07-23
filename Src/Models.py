@@ -114,7 +114,7 @@ class GamePlayObject(object):
         pass
 
 class WorldObject(GamePlayObject):
-    def __init__(self, PK, xTile, yTile, name = "", desc = "", columns = 0, activeImage = None, actionOnTouch = 0, actionOnAttack = 0, timeBetweenAnimFrame = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, walkThroughPossible = False, ID = 0, timeElapsedSinceLastFrame = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
+    def __init__(self, PK = 1, xTile = 0, yTile = 0, name = "", desc = "", columns = 0, activeImage = None,  walkThroughPossible = False, actionOnTouch = 0,  actionOnAttack = 0, timeBetweenAnimFrame = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, timeElapsedSinceLastFrame = 0, maxColumns = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
         self.PK = PK
         self.deltaX = deltaX
         self.deltaY = deltaY
@@ -144,6 +144,7 @@ class WorldObject(GamePlayObject):
         self.deltaXScreenOffset = deltaXScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.deltaYScreenOffset = deltaYScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.isAnimated = isAnimated
+        self.maxColumns = maxColumns
 
     def FixDiagSpeed(self):
         #REDUCE PARTICLE SPEED SO IT DOESN'T TRAVEL FASTER WHEN DIAGONAL
@@ -410,7 +411,7 @@ class WorldObject(GamePlayObject):
         SE = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         NE = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         SW = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int(self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
-
+        
         if NW == None:
             NW = True
         else:
@@ -418,7 +419,7 @@ class WorldObject(GamePlayObject):
             NWreturnActions['scoreChangeOnAttack'] = NWreturnActions['scoreChangeOnAttack'] + NW.scoreChangeOnAttack
             NWreturnActions['healthChangeOnTouch'] = NWreturnActions['healthChangeOnTouch'] + NW.healthChangeOnTouch
             NWreturnActions['healthChangeOnAttack'] = NWreturnActions['healthChangeOnAttack'] + NW.healthChangeOnAttack
-            NWreturnActions['addsToCharacterInventoryOnTouch'] = NWreturnActions['addsToCharacterInventoryOnTouch'] + NW.addsToCharacterInventoryOnTouch
+            #NWreturnActions['addsToCharacterInventoryOnTouch'] = NWreturnActions['addsToCharacterInventoryOnTouch'] + NW.addsToCharacterInventoryOnTouch
             NWreturnActions['destroyOnTouch'] = NWreturnActions['destroyOnTouch'] + NW.destroyOnTouch
             NWreturnActions['addsToCharacterInventoryOnAttack'] = NWreturnActions['addsToCharacterInventoryOnAttack'] + NW.addsToCharacterInventoryOnAttack
             NWreturnActions['destroyOnAttack'] = NWreturnActions['destroyOnAttack'] + NW.destroyOnAttack
@@ -430,7 +431,7 @@ class WorldObject(GamePlayObject):
             NEreturnActions['scoreChangeOnAttack'] = NEreturnActions['scoreChangeOnAttack'] + NE.scoreChangeOnAttack
             NEreturnActions['healthChangeOnTouch'] = NEreturnActions['healthChangeOnTouch'] + NE.healthChangeOnTouch
             NEreturnActions['healthChangeOnAttack'] = NEreturnActions['healthChangeOnAttack'] + NE.healthChangeOnAttack
-            NEreturnActions['addsToCharacterInventoryOnTouch'] = NEreturnActions['addsToCharacterInventoryOnTouch'] + NE.addsToCharacterInventoryOnTouch
+            #NEreturnActions['addsToCharacterInventoryOnTouch'] = NEreturnActions['addsToCharacterInventoryOnTouch'] + NE.addsToCharacterInventoryOnTouch
             NEreturnActions['destroyOnTouch'] = NEreturnActions['destroyOnTouch'] + NE.destroyOnTouch
             NEreturnActions['addsToCharacterInventoryOnAttack'] = NEreturnActions['addsToCharacterInventoryOnAttack'] + NE.addsToCharacterInventoryOnAttack
             NEreturnActions['destroyOnAttack'] = NEreturnActions['destroyOnAttack'] + NE.destroyOnAttack
@@ -442,7 +443,7 @@ class WorldObject(GamePlayObject):
             SEreturnActions['scoreChangeOnAttack'] = SEreturnActions['scoreChangeOnAttack'] + SE.scoreChangeOnAttack
             SEreturnActions['healthChangeOnTouch'] = SEreturnActions['healthChangeOnTouch'] + SE.healthChangeOnTouch
             SEreturnActions['healthChangeOnAttack'] = SEreturnActions['healthChangeOnAttack'] + SE.healthChangeOnAttack
-            SEreturnActions['addsToCharacterInventoryOnTouch'] = SEreturnActions['addsToCharacterInventoryOnTouch'] + SE.addsToCharacterInventoryOnTouch
+            #SEreturnActions['addsToCharacterInventoryOnTouch'] = SEreturnActions['addsToCharacterInventoryOnTouch'] + SE.addsToCharacterInventoryOnTouch
             SEreturnActions['destroyOnTouch'] = SEreturnActions['destroyOnTouch'] + SE.destroyOnTouch
             SEreturnActions['addsToCharacterInventoryOnAttack'] = SEreturnActions['addsToCharacterInventoryOnAttack'] + SE.addsToCharacterInventoryOnAttack
             SEreturnActions['destroyOnAttack'] = SEreturnActions['destroyOnAttack'] + SE.destroyOnAttack
@@ -454,7 +455,7 @@ class WorldObject(GamePlayObject):
             SWreturnActions['scoreChangeOnAttack'] = SWreturnActions['scoreChangeOnAttack'] + SW.scoreChangeOnAttack
             SWreturnActions['healthChangeOnTouch'] = SWreturnActions['healthChangeOnTouch'] + SW.healthChangeOnTouch
             SWreturnActions['healthChangeOnAttack'] = SWreturnActions['healthChangeOnAttack'] + SW.healthChangeOnAttack
-            SWreturnActions['addsToCharacterInventoryOnTouch'] = SWreturnActions['addsToCharacterInventoryOnTouch'] + SW.addsToCharacterInventoryOnTouch
+            #SWreturnActions['addsToCharacterInventoryOnTouch'] = SWreturnActions['addsToCharacterInventoryOnTouch'] + SW.addsToCharacterInventoryOnTouch
             SWreturnActions['destroyOnTouch'] = SWreturnActions['destroyOnTouch'] + SW.destroyOnTouch
             SWreturnActions['addsToCharacterInventoryOnAttack'] = SWreturnActions['addsToCharacterInventoryOnAttack'] + SW.addsToCharacterInventoryOnAttack
             SWreturnActions['destroyOnAttack'] = SWreturnActions['destroyOnAttack'] + SW.destroyOnAttack
@@ -473,7 +474,7 @@ class WorldObject(GamePlayObject):
 
 
 class Weapon(WorldObject):
-    def __init__(self, name, damage, ammo, physIndic, physicsCount, generateBulletWidth, generateBulletHeight, generateBulletSpeed, gravity, gravityCoefficient = .00005):
+    def __init__(self, PK, name, damage, ammo, physIndic, physicsCount, generateBulletWidth, generateBulletHeight, generateBulletSpeed, gravity, gravityCoefficient = .00005, generateParticleIndex = 0, inventoryImageIndex = '', worldImageIndex = ''):
         self.name = name
         self.damage = damage
         self.ammo = ammo

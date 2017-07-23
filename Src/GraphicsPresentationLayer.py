@@ -96,13 +96,10 @@ class GfxHandler(object):
 
     def GetImageForLevelLocation(self, wallMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame):
         imgToDraw = ""
-        #print(wallMap[j+viewY][i+viewX])
         if wallMap[j+viewY][i+viewX] != None:
-            #If it's a static world object
+            #If it's a static wall object
             if wallMap[j+viewY][i+viewX].isAnimated == False:
-                #imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX]]
                 imgToDraw = self.gfxDictionary[tileSet][wallMap[j+viewY][i+viewX].activeImage]
-
             #Otherwise, if it's a non-static world object (flame animation, water flowing animation, etc...)
             else:
                 self.UpdateObjectAnimation(wallMap, i, j, viewX, viewY, tileSet, timeElapsedSinceLastFrame)

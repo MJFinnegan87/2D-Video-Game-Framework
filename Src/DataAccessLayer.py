@@ -57,11 +57,11 @@ class DataAccessLayer(object):
             for j in range(len(objectMap[0])):
                 objectMapWithSerializedObjects[i][j] = Marshaller.toJSON(objectMap[i][j])
         objectMapJSON = Marshaller.toJSON(objectMapWithSerializedObjects)
-        return 
+        return
 
     def ConvertJSONToMaps(self, JSONWallData, JSONObjectData):
+        ### Python 3.6+ ###
         Marshaller = self.JSONConverter()
-        #print Marshaller.fromJSON(JSONWallData)
         wallMapJSON = copy.deepcopy(Marshaller.fromJSON(JSONWallData, "WallData"))
         objectMapJSON = copy.deepcopy(Marshaller.fromJSON(JSONObjectData, "ObjectData"))
         
@@ -73,8 +73,22 @@ class DataAccessLayer(object):
             for j in range(len(objectMapJSON[0])):
                 objectMapJSON[i][j] = Marshaller.fromJSON(str(objectMapJSON[i][j]), "ObjectData")
 
+##        ### Python 3.5.2 ###
+##        Marshaller = self.JSONConverter()
+##        wallMapJSON = copy.deepcopy(Marshaller.fromJSON(JSONWallData, "WallData"))
+##        objectMapJSON = copy.deepcopy(Marshaller.fromJSON(JSONObjectData, "ObjectData"))
+##
+##        for i in range(len(wallMapJSON)):
+##            for j in range(len(wallMapJSON[0])):
+##                wallMapJSON[i][j] = Marshaller.fromJSON(str(wallMapJSON[i][j]), "WallData")
+##        
+##        for i in range(len(objectMapJSON)):
+##            for j in range(len(objectMapJSON[0])):
+##                objectMapJSON[i][j] = Marshaller.fromJSON(str(objectMapJSON[i][j]), "ObjectData")
+
         wallMap = copy.deepcopy(wallMapJSON)
         objectMap = copy.deepcopy(objectMapJSON)
+
         return wallMap, objectMap
 
     def LoadWallObjects(self):
@@ -83,7 +97,7 @@ class DataAccessLayer(object):
         c = connection.cursor()
         c.execute('SELECT * FROM WallObjects')
         for wall in c:
-            WallObjectData.append(WallObject(wall[0], wall[1], wall[2], wall[3], wall[4], wall[5], wall[6], wall[7], wall[8], wall[9], wall[10], wall[11], wall[12], wall[13]))
+            WallObjectData.append(WallObject(wall[0], wall[1], wall[2], wall[3], wall[4], wall[5], wall[6], wall[7], wall[8], wall[9], wall[10], wall[11], wall[12], wall[13], wall[14]))
         connection.close()
         return WallObjectData
 
@@ -93,7 +107,7 @@ class DataAccessLayer(object):
         c = connection.cursor()
         c.execute('SELECT * FROM WorldObjects')
         for obj in c:
-            WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15] , obj[16], obj[17]))
+            WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16], obj[17], obj[18], obj[19]))
         connection.close()
         return WorldObjectData
 
@@ -157,8 +171,10 @@ class DataAccessLayer(object):
                       self.activeLevel.description,
                       self.activeLevel.weather,
                       self.activeLevel.sideScroller,
-                      sqlite3.Binary(self.activeLevel.wallMapJSON),
-                      sqlite3.Binary(self.activeLevel.objectMapJSON),
+                       str(self.activeLevel.wallMapJSON),
+                       str(self.activeLevel.objectMapJSON),
+                      #sqlite3.Binary(self.activeLevel.wallMapJSON),
+                      #sqlite3.Binary(self.activeLevel.objectMapJSON),
                       self.activeLevel.music,
                       self.activeLevel.loopMusic,
                       self.activeLevel.startX,
@@ -185,8 +201,10 @@ class DataAccessLayer(object):
                       self.activeLevel.description,
                       self.activeLevel.weather,
                       self.activeLevel.sideScroller,
-                      sqlite3.Binary(self.activeLevel.wallMapJSON),
-                      sqlite3.Binary(self.activeLevel.objectMapJSON),
+                       str(self.activeLevel.wallMapJSON),
+                       str(self.activeLevel.objectMapJSON),
+                      #sqlite3.Binary(self.activeLevel.wallMapJSON),
+                      #sqlite3.Binary(self.activeLevel.objectMapJSON),
                       self.activeLevel.music,
                       self.activeLevel.loopMusic,
                       self.activeLevel.startX,
@@ -216,7 +234,7 @@ class DataAccessLayer(object):
             #print "reset 3"
             c.execute("DROP TABLE IF EXISTS Levels")
             #print "reset 4"
-            c.execute("CREATE TABLE Levels (IndexPK INT, Name TEXT, Description TEXT, Weather TEXT, SideScroller BOOL, WallMap BLOB, ObjectMap BLOB, music TEXT, loopMusic BOOL, startX INT, startY INT, startXFacing INT, startYFacing INT, gravity BOOL, stickToWallsOnCollision BOOL, levelHeight INT, levelWidth INT, tileSheetRows INT, tileSheetColumns INT, tileWidth INT, tileHeight INT, tileXPadding INT, tileYPadding INT)")
+            c.execute("CREATE TABLE Levels (IndexPK INT, Name TEXT, Description TEXT, Weather TEXT, SideScroller BOOL, WallMap TEXT, ObjectMap BLOB, music TEXT, loopMusic BOOL, startX INT, startY INT, startXFacing INT, startYFacing INT, gravity BOOL, stickToWallsOnCollision BOOL, levelHeight INT, levelWidth INT, tileSheetRows INT, tileSheetColumns INT, tileWidth INT, tileHeight INT, tileXPadding INT, tileYPadding INT)")
             #print "reset 5"
         finally:
             connection.commit()

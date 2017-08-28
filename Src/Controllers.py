@@ -8,6 +8,9 @@ class Controller(object):
     def __init__(self):
         pass
 
+    def SetActiveLevel(self, activeLevel):
+        self.activeLevel = activeLevel
+
 class GameController(Controller):
     def __init__(self): #, cameraController, characterController, View, levelController, particleController, Hardware, worldController):
         self.clock = pygame.time.Clock()
@@ -42,7 +45,9 @@ class CharacterController(Controller):
 
     def CreateCharacters(self):
         pass
-        #TODO: generateBadGuys()
+        #TODO:
+        #Load NPC's based on level definintion,
+        #generate bad guys based on level definition, difficulty settings, time, character location.
 
     def ApplyUserInputToCharacter(self, characterEvents):        
         tempDeltaX = 0
@@ -85,19 +90,31 @@ class CharacterController(Controller):
             self.characters[i].TestWorldObjectCollision({"WallMap" : self.activeLevel.wallMap, "ObjectMap" : self.activeLevel.objectMap}, self.activeLevel.tileHeight, self.activeLevel.tileWidth, self.activeLevel.gravity, self.activeLevel.stickToWallsOnCollision) #CHECK FOR CHARACTER-WALL COLLISIONS
             self.characters[i].TestIfAtWorldEdgeCollision(self.activeLevel.wallMap, self.activeLevel.tileWidth, self.activeLevel.tileHeight)
             self.characters[i].HandleWorldObjectOrEdgeCollision(self.activeLevel.stickToWallsOnCollision, self.activeLevel.gravity) #Prevent character from moving through world objects or beyond boundaries of the level
+            self.characters[i].ApplyCollisionEffects()
+            #TODO: add logic to put characters on a delete list based on health <= 0
 
     def MoveCharacters(self):
         #TODO: badGuysMoveOrAttack()
+        levelChange = -1
         for i in range(len(self.characters)):
             self.characters[i].Move(self.camera, self.activeLevel.tileWidth, self.activeLevel.tileHeight) #MOVE THE USER CHARACTER IN THE WORLD, AND ON THE SCREEN
             self.characters[i].UpdateFireAngle(self.activeLevel.gravity)
+            if self.characters[i].objectCollisionEffectList['teleportToLevelOnTouch'] >= 0:
+                if self.characters[i].objectCollisionEffectList['teleportToLevelOnTouch'] != self.activeLevel and self.characters[i].boundToCamera == True:
+                    levelChange = self.characters[i].objectCollisionEffectList['teleportToLevelOnTouch']
+                self.characters[i].xTile = self.characters[i].objectCollisionEffectList['teleportToXOnTouch']
+                self.characters[i].yTile = self.characters[i].objectCollisionEffectList['teleportToYOnTouch']
+        return levelChange
 
-    def DeleteCharacters(self):
-        pass
+    def DeleteCharacters(self, allFlag = 0):
+        if allFlag == 1:
+            pass
+            #TODO: Delete all characters
 
 class LevelController(Controller):
-    def __init__(self, character):
+    def __init__(self, character, dataAccessLayer):
         self.character = character
+        self.dataAccessLayer = dataAccessLayer
 
 class ParticleController(Controller):
     def __init__(self, particles, characters, activeLevel, gfx):
@@ -151,7 +168,6 @@ class ParticleController(Controller):
             self.particles[j].AdjustSpeedBasedOnFrameRate(timeElapsedSinceLastFrame) #ADJUST THE SPEED OF EVERYTHING BASED ON HOW MUCH TIME ELAPSED SINCE LAST FRAME DRAW, AND PREVENT DIAGONAL SPEED UP ISSUE        
             self.particles[j].FixDiagSpeed()
             if self.activeLevel.gravity == True and self.particles[j].gravityApplies == True: #HANDLE GRAVITY WHERE APPLICABLE
-                print("Applying gravity to this particle")
                 self.particles[j].ApplyGravity()
                 self.particles[j].CalculateNextGravityVelocity(self.activeLevel.tileHeight)
 
@@ -164,12 +180,16 @@ class ParticleController(Controller):
             self.particles[k].TestIfAtWorldEdgeCollision(self.activeLevel.wallMap, self.activeLevel.tileWidth, self.activeLevel.tileHeight)
             self.particles[k].TestWorldObjectCollision({"WallMap" : self.activeLevel.wallMap, "ObjectMap" : self.activeLevel.objectMap}, self.activeLevel.tileHeight, self.activeLevel.tileWidth, self.activeLevel.gravity, 0)
             self.particles[k].HandleWorldObjectCollision(0, self.activeLevel.gravity)
+            #self.particles[k].ApplyCollisionEffects()
             if self.particles[k].atWorldEdgeX == 1 or self.particles[k].atWorldEdgeY == 1 or self.particles[k].needToDelete == True:
                 self.myDeletedParticles.append(k)
             self.particles[k].img = self.GetParticleImage(self.gfx.gfxDictionary["Particles"][int(self.particles[k].weapon)], self.particles[k].angle)
 
-    def DeleteParticles(self):
+    def DeleteParticles(self, allFlag = 0):
         numberDeleted = 0
+        if allFlag == 1:
+            self.myDeletedParticles = range(len(self.particles))
+            #self.myDeletedParticles = self.particles
         for k in range(len(self.myDeletedParticles)):
             del self.particles[self.myDeletedParticles[k] - numberDeleted]
             numberDeleted = numberDeleted + 1

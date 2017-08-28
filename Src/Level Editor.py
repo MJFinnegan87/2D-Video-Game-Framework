@@ -9,7 +9,7 @@ import json
 import copy
 from io import StringIO as StringIO
 
-#Python 2.7
+#Python 3.52
 black = (0,0,0)
 white = (255,255,255)
 red = (255,0,0)
@@ -132,10 +132,9 @@ class GfxHandler(object):
                 while thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame > thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame:
                     thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame = thisLevelMap[j+viewY][i+viewX].timeElapsedSinceLastFrame - thisLevelMap[j+viewY][i+viewX].timeBetweenAnimFrame
                     thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage + 1
-                    if thisLevelMap[j+viewY][i+viewX].activeImage >= ((thisLevelMap[j+viewY][i+viewX].ID + 1) * thisLevelMap[j+viewY][i+viewX].columns - thisLevelMap[j+viewY][i+viewX].ID):
-                        thisLevelMap[j+viewY][i+viewX].activeImage = thisLevelMap[j+viewY][i+viewX].activeImage - thisLevelMap[j+viewY][i+viewX].columns
-                #print thisLevelMap[j+viewY][i+viewX].activeImage
-                imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX].activeImage + int(thisLevelMap[j+viewY][i+viewX].ID)]
+                    if thisLevelMap[j+viewY][i+viewX].activeImage >= thisLevelMap[j+viewY][i+viewX].ID * thisLevelMap[j+viewY][i+viewX].maxColumns + thisLevelMap[j+viewY][i+viewX].columns:
+                        thisLevelMap[j+viewY][i+viewX].activeImage = int(thisLevelMap[j+viewY][i+viewX].ID)*(int(thisLevelMap[j+viewY][i+viewX].maxColumns))
+                imgToDraw = self.gfxDictionary[tileSet][thisLevelMap[j+viewY][i+viewX].activeImage]
         return imgToDraw, thisLevelMap
 
     def ConvertScreenCoordsToTileCoords(self, coordinates, camera, tileWidth, tileHeight):
@@ -178,8 +177,8 @@ class LevelEditorFrame(object):
                 thisPaletteSelector = self.paletteSelectL
             elif eachPaletteSelector == 1:
                 thisPaletteSelector = self.paletteSelectR
-            #gfx.DrawImg(gfx.gfxDictionary[objectType][thisPaletteSelector], #PALLET STATIC
-            gfx.DrawImg(gfx.gfxDictionary[objectType][self.objects[objectType][thisPaletteSelector].activeImage], #PALLET ANIMATED
+            #gfx.DrawImg(gfx.gfxDictionary[objectType][thisPaletteSelector],
+            gfx.DrawImg(gfx.gfxDictionary[objectType][self.objects[objectType][thisPaletteSelector].activeImage],
                           ((int(camera.displayWidth/float(tileWidth))-self.frameWidth + eachPaletteSelector)*tileWidth,
                           (1)*tileHeight,
                           (int(camera.displayWidth/float(tileWidth))-self.frameWidth + eachPaletteSelector)*tileWidth,
@@ -233,11 +232,10 @@ class LogicHandler(object):
                 wallMap[userMouse.yTile][userMouse.xTile] = copy.deepcopy(wallObjects[paletteSelectL])
             elif objectType == "World Objects":
                 objectMap[userMouse.yTile][userMouse.xTile] = copy.deepcopy(worldObjects[paletteSelectL])
-        #print(str(wallObjects[paletteSelectL].PK))
-        #print(str(wallObjects[paletteSelectL].ID))
-        #print(str(wallObjects[paletteSelectL].activeImage))
-        #print(str(wallObjects[paletteSelectL].walkThroughPossible))
-        #print('LEVEL EDITED: ' + str(paletteSelectL))
+                print(paletteSelectL)
+                print(str(worldObjects[0].__dict__))
+                print(str(worldObjects[paletteSelectL].__dict__))
+                print(str(objectMap[userMouse.yTile][userMouse.xTile].__dict__))
         return wallMap, objectMap
     
     def HandleHeyPressAndGameEvents(self, exiting, lost, character, world, objectType):
@@ -263,7 +261,7 @@ class LogicHandler(object):
                     world.SaveActiveLevel()
                     world.SaveWallObjects(world.wallObjects)
                     world.SaveWorldObjects(world.worldObjects)
-                                          
+
                 if event.key == 280 and world != None:
                     world.LoadLevel(world.activeLevel.index + 1)
                 if event.key == 281 and world != None:
@@ -838,7 +836,11 @@ class Weapon(GamePlayObject):
         self.worldImageIndex = worldImageIndex
 
 class WorldObject(GamePlayObject):
-    def __init__(self, PK = 1, xTile = 0, yTile = 0, name = "", desc = "", columns = 0, activeImage = None,  walkThroughPossible = False, actionOnTouch = 0,  actionOnAttack = 0, timeBetweenAnimFrame = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, timeElapsedSinceLastFrame = 0, maxColumns = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
+    def __init__(self, PK = 1, xTile = 0, yTile = 0, name = '', desc = '', columns = 0, activeImage = 0, walkThroughPossible = False, actionOnTouch = '', actionOnAttack = '',
+                 actionOnAct = '', changeToOnTouch = 0, changeToOnAttack = 0, changeToOnAct = 0, timeBetweenAnimFrame = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0,
+                 addsToCharacterInventoryOnAttack = 0, addsToCharacterInventoryOnAct = 0, destroyOnAttack = 0, destroyOnAct = 0, ID = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0,
+                 scoreChangeOnAct = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, healthChangeOnAct = 0, teleportToLevelOnTouch = 0, teleportToXOnTouch = 0, teleportToYOnTouch = 0,
+                 timeElapsedSinceLastFrame = 0, maxColumns = 0, isAnimated = False, defaultDeltaX = 0, defaultDeltaY = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0):
         self.PK = PK
         self.deltaX = deltaX
         self.deltaY = deltaX
@@ -850,10 +852,13 @@ class WorldObject(GamePlayObject):
         self.desc = desc
         self.columns = columns
         self.walkThroughPossible = walkThroughPossible
+        print('Walkthrough possible: ' + str(walkThroughPossible))
         self.actionOnTouch = actionOnTouch
         self.actionOnAttack = actionOnAttack
-        self.activeImage = int(ID)*(int(columns))
+        self.activeImage = int(ID)*(int(maxColumns))
         self.timeBetweenAnimFrame = timeBetweenAnimFrame
+        print("THIS:")
+        print(self.timeBetweenAnimFrame)
         self.timeElapsedSinceLastFrame = 0
         self.ID = ID
         self.scoreChangeOnTouch = scoreChangeOnTouch
@@ -869,7 +874,22 @@ class WorldObject(GamePlayObject):
         self.deltaYScreenOffset = deltaYScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.isAnimated = isAnimated
         self.maxColumns = maxColumns
-    
+        self.defaultDeltaX = defaultDeltaX
+        self.defaultDeltaY = defaultDeltaY
+        print(str(self.isAnimated))
+
+        self.actionOnAct = actionOnAct
+        self.changeToOnAct = changeToOnAct
+        self.changeToOnTouch = changeToOnTouch
+        self.changeToOnAttack = changeToOnAttack
+        self.addsToCharacterInventoryOnAct = addsToCharacterInventoryOnAct
+        self.scoreChangeOnAct = scoreChangeOnAct
+        self.destroyOnAct = destroyOnAct
+        self.healthChangeOnAct = healthChangeOnAct
+        self.teleportToLevelOnTouch = teleportToLevelOnTouch
+        self.teleportToXOnTouch = teleportToXOnTouch
+        self.teleportToYOnTouch = teleportToYOnTouch
+
 class Bullet(WorldObject):
     #Name, weapon, world X Loc, world Y Loc,  dx,    dy, damage, physics actions remaining, particle width px, particle height px, frame speed, default speed, image, particlePhysicsLevel
     #if particlePhysicsLevel >= wallPhysicsLevel + 3 then particle pushes the wall
@@ -1585,7 +1605,6 @@ class World(object):
             Spritesheets[Spritesheet[0]] = [Spritesheet[1], Spritesheet[2], Spritesheet[3], Spritesheet[4], Spritesheet[5], Spritesheet[6], Spritesheet[7]]
         connection.close()
         self.sprintesheetSettings = Spritesheets
-        print(str(Spritesheets))
         return Spritesheets
 
 
@@ -1593,8 +1612,6 @@ class World(object):
         prevLevel = self.activeLevel
         self.activeLevel = Level(index = self.GetNumberOfLevels())
         self.activeLevel.mapsToJSON()
-        print(prevLevel.tileWidth)
-        print(prevLevel.tileHeight)
         connection = sqlite3.connect(self.fileName)
         c = connection.cursor()
         c.execute("INSERT INTO Levels VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1903,12 +1920,13 @@ class World(object):
         connection = sqlite3.connect(self.fileName)
         c = connection.cursor()
         #c.execute('TRUNCATE TABLE WorldObjects')
+        
         c.execute("DROP TABLE IF EXISTS WorldObjects")
-        c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, timeBetweenAnimFrame INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, addsToCharacterInventoryOnAttack INT, destroyOnAttack INT, ID INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, healthChangeOnTouch INT, healthChangeOnAttack INT, timeElapsedSinceLastFrame INT, maxColumns INT)')
+        c.execute('CREATE TABLE WorldObjects (PK INT, name TEXT, desc TEXT, columns INT, activeImage INT, walkThroughPossible BOOL, actionOnTouch TEXT , actionOnAttack TEXT, actionOnAct TEXT, changeToOnTouch INT, changeToOnAttack INT, changeToOnAct INT, timeBetweenAnimFrame INT, addsToCharacterInventoryOnTouch INT, destroyOnTouch INT, addsToCharacterInventoryOnAttack INT, addsToCharacterInventoryOnAct INT, destroyOnAttack INT, destroyOnAct INT, ID INT, scoreChangeOnTouch INT, scoreChangeOnAttack INT, scoreChangeOnAct INT, healthChangeOnTouch INT, healthChangeOnAttack INT, healthChangeOnAct INT, teleportToLevelOnTouch INT, teleportToXOnTouch INT, teleportToYOnTouch INT, timeElapsedSinceLastFrame INT, maxColumns INT, isAnimated BOOL, defaultDeltaX REAL, defaultDeltaY REAL)')
 
         connection.commit()
         for i in WorldObjectData:
-            c.execute('INSERT INTO WorldObjects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            c.execute('INSERT INTO WorldObjects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                       (
                         i.PK,
                         i.name,
@@ -1918,27 +1936,42 @@ class World(object):
                         i.walkThroughPossible,
                         i.actionOnTouch,
                         i.actionOnAttack,
+                        i.actionOnAct,
+                        i.changeToOnTouch,
+                        i.changeToOnAttack,
+                        i.changeToOnAct,
                         i.timeBetweenAnimFrame,
                         i.addsToCharacterInventoryOnTouch,
                         i.destroyOnTouch,
                         i.addsToCharacterInventoryOnAttack,
+                        i.addsToCharacterInventoryOnAct,
                         i.destroyOnAttack,
+                        i.destroyOnAct,
                         i.ID,
                         i.scoreChangeOnTouch,
                         i.scoreChangeOnAttack,
+                        i.scoreChangeOnAct,
                         i.healthChangeOnTouch,
                         i.healthChangeOnAttack,
+                        i.healthChangeOnAct,
+                        i.teleportToLevelOnTouch,
+                        i.teleportToXOnTouch,
+                        i.teleportToYOnTouch,
                         i.timeElapsedSinceLastFrame,
-                        i.maxColumns
+                        i.maxColumns,
+                        i.isAnimated,
+                        i.defaultDeltaX,
+                        i.defaultDeltaY
                       ))
             connection.commit()
-        c.execute('SELECT * FROM WorldObjects')
+        #c.execute('SELECT * FROM WorldObjects')
         connection.close()
 
     def LoadWallObjects(self):
         WallObjectData = []
         connection = sqlite3.connect(self.fileName)
         c = connection.cursor()
+        
         c.execute('SELECT * FROM WallObjects')
         for wall in c:
             WallObjectData.append(WallObject(wall[0], wall[1], wall[2], wall[3], wall[4], wall[5], wall[6], wall[7], wall[8], wall[9], wall[10], wall[11], wall[12], wall[13], wall[14]))
@@ -1954,7 +1987,7 @@ class World(object):
         c = connection.cursor()
         c.execute('SELECT * FROM WorldObjects')
         for obj in c:
-            WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16], obj[17], obj[18], obj[19]))
+            WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16], obj[17], obj[18], obj[19], obj[20], obj[21], obj[22], obj[23], obj[24], obj[25], obj[26], obj[27], obj[28], obj[29], obj[30], obj[31], obj[32], obj[33]))
         connection.close()
         self.worldObjects = WorldObjectData
         if self.worldObjects == []:
@@ -1969,7 +2002,8 @@ class Game(object):
         self.world.LoadWorldObjects()
         self.world.LoadWallObjects()
         self.world.LoadLevel(startingLevel)
-        self.world.activeLevel.startX = 19
+        self.world.activeLevel.startX = 8
+        self.world.activeLevel.startY = 4
         self.world.activeLevel.tileHeight = 64
         self.world.activeLevel.tileWidth = 64
         
@@ -2361,8 +2395,8 @@ class Game(object):
         self.characters = [self.userCharacter]
         ###for character in self.characters:
             ###self.gfx.LoadGfxDictionary(character.imagesGFXName, character.imagesGFXNameDesc, character.numberOfDirectionsFacingToDisplay, character.numberOfFramesAnimPerWalk, character.width, character.height, 0, 0)
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", 8, 1, 64, 64, 0, 0)
-        self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 4, 1, 16, 16, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", 9, 1, 64, 64, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/bullets.png", "Particles", 16, 8, 64, 64, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/world objects.png", "World Objects", 4, 4, 64, 64, 0, 0)
         self.gfx.LoadGfxDictionary("../Images/level editor frame.png", "Level Editor Frame", 2, 4, self.mouseWidth, self.personHeight, 0, 0)
         self.displayFrame = LevelEditorFrame(self.gfx, self.camera, self.world.activeLevel.tileHeight, self.world.activeLevel.tileWidth, "World Tiles", 4, {'World Tiles' : self.world.wallObjects, 'World Objects': self.world.worldObjects})
@@ -2377,6 +2411,12 @@ class Game(object):
 
     def Play(self):
         # GAME LOOP
+        
+        #for i in range(len(self.world.activeLevel.objectMap)):
+        #    for j in range(len(self.world.activeLevel.objectMap[i])):
+        #        if self.world.activeLevel.objectMap[i][j] != None:
+        #            print(str(self.world.activeLevel.objectMap[i][j].__dict__))
+
         while not self.paused:
             #HANDLE KEY PRESSES AND PYGAME EVENTS
             self.paused, self.lost, self.userCharacter, self.enterPressed, self.userMouse.coords, self.userMouse.btn, self.savePressed, self.displayFrame.objectType = self.logic.HandleHeyPressAndGameEvents(self.paused, self.lost, self.userCharacter, self.world, self.displayFrame.objectType)
@@ -2637,7 +2677,7 @@ class WallObjectsTab(wx.Panel):
         self.healthChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 130), size=(320, 20))
         self.healthChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 160), size=(320, 20))
 
-        self.IDTC = wx.TextCtrl(self, -1, pos=(260, 190), size=(320, 20))
+        #self.IDTC = wx.TextCtrl(self, -1, pos=(260, 190), size=(320, 20))
         self.imageTC = wx.TextCtrl(self, -1, pos=(260, 220), size=(320, 20))
         self.walkThroughPossibleTC = wx.TextCtrl(self, -1, pos=(260, 250), size=(320, 20))
         self.actionOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 280), size=(320, 20))
@@ -2660,11 +2700,27 @@ class WallObjectsTab(wx.Panel):
 
         addObjectButton = wx.Button(self, -1, "+", pos=(816, 20), size=(30, 26))
         addObjectButton.Bind(wx.EVT_BUTTON, self.Add)
+
+        deleteObjectButton = wx.Button(self, -1, "-", pos=(644, 20), size=(30, 26))
+        deleteObjectButton.Bind(wx.EVT_BUTTON, self.Delete)
         
         self.sampleImage = self.WallImage(self, self.context, self.activeWallObject)
         
         self.caption = "Wall Objects Settings"
         self.Load()
+
+    def Delete(self, e):
+        for i in range(len(self.wallObjects)):
+            if self.wallObjects[i].PK == int(self.PKTC.GetValue()):
+                print(i)
+                del self.wallObjects[i]
+                if i != 0:
+                    self.Prev(e)
+                else:
+                    self.Next(e)
+                self.Save(e)
+                self.wallObjects = self.context.LoadWallObjects()
+                self.Load()
 
     def Save(self, e):
         self.wallObjects[self.activeWallObject].PK = self.PKTC.GetValue()
@@ -2673,7 +2729,7 @@ class WallObjectsTab(wx.Panel):
         self.wallObjects[self.activeWallObject].healthChangeOnTouch = self.healthChangeOnTouchTC.GetValue()
         self.wallObjects[self.activeWallObject].healthChangeOnAttack = self.healthChangeOnAttackTC.GetValue()
 
-        self.wallObjects[self.activeWallObject].ID = self.IDTC.GetValue()
+        #self.wallObjects[self.activeWallObject].ID = self.IDTC.GetValue()
         self.wallObjects[self.activeWallObject].activeImage = self.imageTC.GetValue()
         self.wallObjects[self.activeWallObject].walkThroughPossible = self.walkThroughPossibleTC.GetValue()
         self.wallObjects[self.activeWallObject].actionOnTouch = self.actionOnTouchTC.GetValue()
@@ -2695,7 +2751,7 @@ class WallObjectsTab(wx.Panel):
             self.healthChangeOnTouchTC.SetValue(str(self.wallObjects[self.activeWallObject].healthChangeOnTouch))
             self.healthChangeOnAttackTC.SetValue(str(self.wallObjects[self.activeWallObject].healthChangeOnAttack))
 
-            self.IDTC.SetValue(str(self.wallObjects[self.activeWallObject].ID))
+            #self.IDTC.SetValue(str(self.wallObjects[self.activeWallObject].ID))
             self.imageTC.SetValue(str(self.wallObjects[self.activeWallObject].activeImage))
             self.walkThroughPossibleTC.SetValue(str(self.wallObjects[self.activeWallObject].walkThroughPossible))
             self.actionOnTouchTC.SetValue(str(self.wallObjects[self.activeWallObject].actionOnTouch))
@@ -2718,6 +2774,7 @@ class WallObjectsTab(wx.Panel):
     def Add(self, e):
         add = copy.deepcopy(self.wallObjects[self.activeWallObject])
         add.PK = str(int(add.PK) + 1)
+        add.activeImage = str(int(add.activeImage) + 1)
         self.wallObjects.append(add)
         self.Next(e)
 
@@ -2732,6 +2789,7 @@ class WallObjectsTab(wx.Panel):
             self.wallObjects = self.context.LoadWallObjects()
             self.gfx = GfxHandler()
             self.spritesheets = self.context.LoadSpritesheetSettings()
+            self.tempLoc = '..\Images\wallObjectTemp.bmp'
             try:
                 self.gfx.LoadGfxDictionary(file_name=str(self.spritesheets[1][1]), imageIndicator="Wall Objects", rows=8, columns=1, width=self.spritesheets[1][3], height=self.spritesheets[1][4], pictureXPadding=self.spritesheets[1][5], pictureYPadding=self.spritesheets[1][6])
             except:
@@ -2742,13 +2800,11 @@ class WallObjectsTab(wx.Panel):
             self.activeWallObject = activeWallObject
             try:
                 surf = self.gfx.GetImage(self.gfx.GetCoords(self.wallObjects[self.activeWallObject].activeImage, self.spritesheets[1][3], self.spritesheets[1][4], self.spritesheets[1][5], self.spritesheets[1][6], 8, 1), False)
-                data = pygame.image.tostring(surf, 'RGBA')
-                #png = self.gfx.GetImage(self.gfx.GetCoords(self.wallObjects[self.activeWallObject].activeImage, spritesheets[1][3], spritesheets[1][4], spritesheets[1][5], spritesheets[1][6], 8, 1), False)
-                wx.StaticBitmap(parent, -1, wx.Bitmap(wx.Image(self.spritesheets[1][3], self.spritesheets[1][4], data)), (650, 50))
+                pygame.image.save(surf, self.tempLoc)
+                wx.StaticBitmap(parent, -1, wx.Bitmap(self.tempLoc), (711, 50))
             except:
                 pass
-            
- 
+
 class WorldObjectsTab(wx.Panel):
     def __init__(self, parent, context):
         wx.Panel.__init__(self, parent)
@@ -2762,66 +2818,106 @@ class WorldObjectsTab(wx.Panel):
         t = wx.StaticText(self, -1, "Name: ", (40,70))
         t = wx.StaticText(self, -1, "Description: ", (40,100))
         t = wx.StaticText(self, -1, "Image: ", (40,130))
-        t = wx.StaticText(self, -1, "Action On Touch: ", (40,160))
-        t = wx.StaticText(self, -1, "Action On Attack: ", (40,190))
-        t = wx.StaticText(self, -1, "Time Between Animation Frames: ", (40,220))
-        t = wx.StaticText(self, -1, "Score Change On Touch: ", (40,250))
-        t = wx.StaticText(self, -1, "Score Change On Attack: ", (40,280))
-        t = wx.StaticText(self, -1, "Health Change On Touch: ", (40,310))
-        t = wx.StaticText(self, -1, "Health Change On Attack: ", (40,340))
-        t = wx.StaticText(self, -1, "Adds To Character Inventory On Touch: ", (40,370))
-        t = wx.StaticText(self, -1, "Adds To Character Inventory On Attack: ", (40,400))
-        t = wx.StaticText(self, -1, "Destroy On Touch: ", (40,430))
-        t = wx.StaticText(self, -1, "Destroy On Attack: ", (40,460))
-        t = wx.StaticText(self, -1, "Walk Through Possible: ", (40,490))
-        t = wx.StaticText(self, -1, "ID: ", (40,520))
-        t = wx.StaticText(self, -1, "Default Speed: ", (40,550))
-        t = wx.StaticText(self, -1, "Is Animated: ", (40,580))
-        t = wx.StaticText(self, -1, "Animation Frames\n(columns on spritesheet): ", (40,610))
-        t = wx.StaticText(self, -1, "Max Columns: ", (40,640))
+        t = wx.StaticText(self, -1, "Time Between Animation Frames: ", (40,160))
+        t = wx.StaticText(self, -1, "Action On Touch: ", (40,190))
+        t = wx.StaticText(self, -1, "Action On Attack: ", (40,220))
+        t = wx.StaticText(self, -1, "Action On Act: ", (40,250))
+        t = wx.StaticText(self, -1, "Score Change On Touch: ", (40,280))
+        t = wx.StaticText(self, -1, "Score Change On Attack: ", (40,310))
+        t = wx.StaticText(self, -1, "Score Change On Act: ", (40,340))
+        t = wx.StaticText(self, -1, "Health Change On Touch: ", (40,370))
+        t = wx.StaticText(self, -1, "Health Change On Attack: ", (40,400))
+        t = wx.StaticText(self, -1, "Health Change On Act: ", (40,430))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Touch: ", (40,460))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Attack: ", (40,490))
+        t = wx.StaticText(self, -1, "Adds To Character Inventory On Act: ", (40,520))
+        t = wx.StaticText(self, -1, "Destroy On Touch: ", (40,550))
+        t = wx.StaticText(self, -1, "Destroy On Attack: ", (40,580))
+        t = wx.StaticText(self, -1, "Destroy On Act: ", (40,610))
+        t = wx.StaticText(self, -1, "Change To Object Index On Touch: ", (40,640))
+        t = wx.StaticText(self, -1, "Change To Object Index On Attack: ", (40,670))
+        t = wx.StaticText(self, -1, "Change To Object Index On Act: ", (40,700))
+        t = wx.StaticText(self, -1, "Teleport To On Touch: ", (40,730))
+        t = wx.StaticText(self, -1, "Level: ", (260,730))
+        t = wx.StaticText(self, -1, "X: ", (375,730))
+        t = wx.StaticText(self, -1, "Y: ", (475,730))
+        t = wx.StaticText(self, -1, "Walk Through Possible: ", (40,760))
+        t = wx.StaticText(self, -1, "Image ID: ", (40,790))
+        t = wx.StaticText(self, -1, "Default Speed: ", (40,820))
+        t = wx.StaticText(self, -1, "Is Animated: ", (40,850))
+        t = wx.StaticText(self, -1, "Animation Frames\n(columns on spritesheet): ", (40,880))
+        t = wx.StaticText(self, -1, "Max Columns: ", (40,920))
+        t = wx.StaticText(self, -1, "Default DeltaX: ", (40,950))
+        t = wx.StaticText(self, -1, "Default DeltaY: ", (40,980))
         
         
         self.indexTC = wx.TextCtrl(self, -1, pos=(260, 40), size=(320, 20))
         self.nameTC = wx.TextCtrl(self, -1, pos=(260, 70), size=(320, 20))
         self.descriptionTC = wx.TextCtrl(self, -1, pos=(260, 100), size=(320, 20))
         #self.imageTC = wx.TextCtrl(self, -1, pos=(260, 130), size=(320, 20))
-        self.actionOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 160), size=(320, 20))
-        self.actionOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 190), size=(320, 20))
-        self.timeBetweenAnimFramesTC = wx.TextCtrl(self, -1, pos=(260, 220), size=(320, 20))
+        self.timeBetweenAnimFramesTC = wx.TextCtrl(self, -1, pos=(260, 160), size=(320, 20))
 
-        self.scoreChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 250), size=(320, 20))
-        self.scoreChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 280), size=(320, 20))
-        self.healthChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 310), size=(320, 20))
-        self.healthChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 340), size=(320, 20))        
+        self.actionOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 190), size=(320, 20))
+        self.actionOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 220), size=(320, 20))
+        self.actionOnActTC = wx.TextCtrl(self, -1, pos=(260, 250), size=(320, 20))
+        self.scoreChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 280), size=(320, 20))
+        self.scoreChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 310), size=(320, 20))
+        self.scoreChangeOnActTC = wx.TextCtrl(self, -1, pos=(260, 340), size=(320, 20))
+        self.healthChangeOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 370), size=(320, 20))
+        self.healthChangeOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 400), size=(320, 20))
+        self.healthChangeOnActTC = wx.TextCtrl(self, -1, pos=(260, 430), size=(320, 20))
+        self.addsToCharacterInventoryOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 460), size=(320, 20))
+        self.addsToCharacterInventoryOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 490), size=(320, 20))
+        self.addsToCharacterInventoryOnActTC = wx.TextCtrl(self, -1, pos=(260, 520), size=(320, 20))
+        self.DestroyOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 550), size=(320, 20))
+        self.DestroyOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 580), size=(320, 20))
+        self.DestroyOnActTC = wx.TextCtrl(self, -1, pos=(260, 610), size=(320, 20))
+        self.changeToOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 640), size=(320, 20))
+        self.changeToOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 670), size=(320, 20))
+        self.changeToOnActTC = wx.TextCtrl(self, -1, pos=(260, 700), size=(320, 20))
+        self.teleportToLevelOnTouchTC = wx.TextCtrl(self, -1, pos=(300, 730), size=(60, 20))
+        self.teleportToXOnTouchTC = wx.TextCtrl(self, -1, pos=(400, 730), size=(60, 20))
+        self.teleportToYOnTouchTC = wx.TextCtrl(self, -1, pos=(500, 730), size=(60, 20))
 
+        self.walkThroughPossibleTC = wx.TextCtrl(self, -1, pos=(260, 760), size=(320, 20))
+        self.IDTC = wx.TextCtrl(self, -1, pos=(260, 790), size=(320, 20))
+
+        self.defaultSpeedTC = wx.TextCtrl(self, -1, pos=(260, 820), size=(320, 20))
+
+        self.isAnimatedTC = wx.TextCtrl(self, -1, pos=(260, 850), size=(320, 20))
+        self.isAnimatedDD = wx.ComboBox(self, -1, pos=(660, 850), size=(320, 20))
         
-        self.addsToCharacterInventoryOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 370), size=(320, 20))
-        self.addsToCharacterInventoryOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 400), size=(320, 20))
-        self.DestroyOnTouchTC = wx.TextCtrl(self, -1, pos=(260, 430), size=(320, 20))
-        self.DestroyOnAttackTC = wx.TextCtrl(self, -1, pos=(260, 460), size=(320, 20))
-        
-        self.walkThroughPossibleTC = wx.TextCtrl(self, -1, pos=(260, 490), size=(320, 20))
-        self.IDTC = wx.TextCtrl(self, -1, pos=(260, 520), size=(320, 20))
+        self.animationFramesTC = wx.TextCtrl(self, -1, pos=(260, 880), size=(320, 20))
+        self.maxColumnsTC = wx.TextCtrl(self, -1, pos=(260, 920), size=(320, 20))
+        self.defaultDeltaXTC = wx.TextCtrl(self, -1, pos=(260, 950), size=(320, 20))
+        self.defaultDeltaYTC = wx.TextCtrl(self, -1, pos=(260, 980), size=(320, 20))
 
-
-        self.defaultSpeedTC = wx.TextCtrl(self, -1, pos=(260, 550), size=(320, 20))
-
-        self.isAnimatedTC = wx.TextCtrl(self, -1, pos=(260, 580), size=(320, 20))
-        self.animationFramesTC = wx.TextCtrl(self, -1, pos=(260, 610), size=(320, 20))
-        self.maxColumnsTC = wx.TextCtrl(self, -1, pos=(260, 640), size=(320, 20))
         prevObjectButton = wx.Button(self, -1, "<", pos=(672, 20), size=(30, 26))
         prevObjectButton.Bind(wx.EVT_BUTTON, self.Prev)
-
         saveButton = wx.Button(self, -1, "Save", pos=(700, 20))
         saveButton.Bind(wx.EVT_BUTTON, self.Save)
-
         nextObjectButton = wx.Button(self, -1, ">", pos=(786, 20), size=(30, 26))
         nextObjectButton.Bind(wx.EVT_BUTTON, self.Next)
         self.sampleImage = self.WorldImage(self, self.context, self.activeWorldObject)
-        
         addObjectButton = wx.Button(self, -1, "+", pos=(816, 20), size=(30, 26))
         addObjectButton.Bind(wx.EVT_BUTTON, self.Add)
+        deleteObjectButton = wx.Button(self, -1, "-", pos=(644, 20), size=(30, 26))
+        deleteObjectButton.Bind(wx.EVT_BUTTON, self.Delete)
+        
         self.Load()
+
+    def Delete(self, e):
+        for i in range(len(self.worldObjects)):
+            if self.worldObjects[i].PK == int(self.indexTC.GetValue()):
+                print(i)
+                del self.worldObjects[i]
+                if i != 0:
+                    self.Prev(e)
+                else:
+                    self.Next(e)
+                self.Save(e)
+                self.worldObjects = self.context.LoadWorldObjects()
+                self.Load()
 
     def Save(self, e):
         self.worldObjects[self.activeWorldObject].PK = self.indexTC.GetValue()
@@ -2843,14 +2939,26 @@ class WorldObjectsTab(wx.Panel):
         self.worldObjects[self.activeWorldObject].destroyOnAttack = self.DestroyOnAttackTC.GetValue()
         self.worldObjects[self.activeWorldObject].walkThroughPossible = self.walkThroughPossibleTC.GetValue()
 
+        self.worldObjects[self.activeWorldObject].actionOnAct = self.actionOnActTC.GetValue()
+        self.worldObjects[self.activeWorldObject].scoreChangeOnAct = self.scoreChangeOnActTC.GetValue()
+        self.worldObjects[self.activeWorldObject].healthChangeOnAct = self.healthChangeOnActTC.GetValue()
+        self.worldObjects[self.activeWorldObject].addsToCharacterInventoryOnAct = self.addsToCharacterInventoryOnActTC.GetValue()
+        self.worldObjects[self.activeWorldObject].destroyOnAct = self.DestroyOnActTC.GetValue()
+        
+        self.worldObjects[self.activeWorldObject].changeToOnTouch = self.changeToOnTouchTC.GetValue()
+        self.worldObjects[self.activeWorldObject].changeToOnAttack = self.changeToOnAttackTC.GetValue()
+        self.worldObjects[self.activeWorldObject].changeToOnAct = self.changeToOnActTC.GetValue()
+        self.worldObjects[self.activeWorldObject].teleportToLevelOnTouch = self.teleportToLevelOnTouchTC.GetValue()
+        self.worldObjects[self.activeWorldObject].teleportToXOnTouch = self.teleportToXOnTouchTC.GetValue()
+        self.worldObjects[self.activeWorldObject].teleportToYOnTouch = self.teleportToYOnTouchTC.GetValue()
 
         self.worldObjects[self.activeWorldObject].ID = self.IDTC.GetValue()
-        print("ID " + str(self.IDTC.GetValue()))
         self.worldObjects[self.activeWorldObject].defaultSpeed = self.defaultSpeedTC.GetValue()        
         self.worldObjects[self.activeWorldObject].isAnimated = self.isAnimatedTC.GetValue()
         self.worldObjects[self.activeWorldObject].columns = self.animationFramesTC.GetValue()
         self.worldObjects[self.activeWorldObject].maxColumns = self.maxColumnsTC.GetValue()
-        print("MAX COLUMNS: " + str(self.maxColumnsTC.GetValue()))
+        self.worldObjects[self.activeWorldObject].defaultDeltaX = self.defaultDeltaXTC.GetValue()
+        self.worldObjects[self.activeWorldObject].defaultDeltaY = self.defaultDeltaYTC.GetValue()
 
         self.context.SaveWorldObjects(self.worldObjects)
         self.Load()
@@ -2875,12 +2983,26 @@ class WorldObjectsTab(wx.Panel):
         self.DestroyOnAttackTC.SetValue(str(self.worldObjects[self.activeWorldObject].destroyOnAttack))
         self.walkThroughPossibleTC.SetValue(str(self.worldObjects[self.activeWorldObject].walkThroughPossible))
 
+        self.actionOnActTC.SetValue(str(self.worldObjects[self.activeWorldObject].actionOnAct))
+        self.scoreChangeOnActTC.SetValue(str(self.worldObjects[self.activeWorldObject].scoreChangeOnAct))
+        self.healthChangeOnActTC.SetValue(str(self.worldObjects[self.activeWorldObject].healthChangeOnAct))
+        self.addsToCharacterInventoryOnActTC.SetValue(str(self.worldObjects[self.activeWorldObject].addsToCharacterInventoryOnAct))
+        self.DestroyOnActTC.SetValue(str(self.worldObjects[self.activeWorldObject].destroyOnAct))
+
+        self.changeToOnTouchTC.SetValue(str(self.worldObjects[self.activeWorldObject].changeToOnTouch))
+        self.changeToOnAttackTC.SetValue(str(self.worldObjects[self.activeWorldObject].changeToOnAttack))
+        self.changeToOnActTC.SetValue(str(self.worldObjects[self.activeWorldObject].changeToOnAct))
+        self.teleportToLevelOnTouchTC.SetValue(str(self.worldObjects[self.activeWorldObject].teleportToLevelOnTouch))
+        self.teleportToXOnTouchTC.SetValue(str(self.worldObjects[self.activeWorldObject].teleportToXOnTouch))
+        self.teleportToYOnTouchTC.SetValue(str(self.worldObjects[self.activeWorldObject].teleportToYOnTouch))
 
         self.IDTC.SetValue(str(self.worldObjects[self.activeWorldObject].ID))
         self.defaultSpeedTC.SetValue(str(self.worldObjects[self.activeWorldObject].defaultSpeed))
         self.isAnimatedTC.SetValue(str(self.worldObjects[self.activeWorldObject].isAnimated))
         self.animationFramesTC.SetValue(str(self.worldObjects[self.activeWorldObject].columns))
         self.maxColumnsTC.SetValue(str(self.worldObjects[self.activeWorldObject].maxColumns))
+        self.defaultDeltaXTC.SetValue(str(self.worldObjects[self.activeWorldObject].defaultDeltaX))
+        self.defaultDeltaYTC.SetValue(str(self.worldObjects[self.activeWorldObject].defaultDeltaY))
 
     def Prev(self, e):
         self.activeWorldObject = max(self.activeWorldObject - 1, 0)
@@ -2889,7 +3011,7 @@ class WorldObjectsTab(wx.Panel):
 
     def Add(self, e):
         add = copy.deepcopy(self.worldObjects[self.activeWorldObject])
-        add.PK = add.PK + 1
+        add.PK = int(add.PK) + 1
         self.worldObjects.append(add)
         self.Next(e)
 
@@ -2904,6 +3026,7 @@ class WorldObjectsTab(wx.Panel):
             self.worldObjects = self.context.LoadWorldObjects()
             self.gfx = GfxHandler()
             self.spritesheets = self.context.LoadSpritesheetSettings()
+            self.tempLoc = '..\Images\woldObjectTemp.bmp'
             try:
                 self.gfx.LoadGfxDictionary(file_name=str(self.spritesheets[2][1]), imageIndicator="World Objects", rows=8, columns=1, width=self.spritesheets[2][3], height=self.spritesheets[2][4], pictureXPadding=self.spritesheets[2][5], pictureYPadding=self.spritesheets[2][6])
             except:
@@ -2914,13 +3037,11 @@ class WorldObjectsTab(wx.Panel):
             self.activeWorldObject = activeWorldObject
             try:
                 surf = self.gfx.GetImage(self.gfx.GetCoords(self.worldObjects[self.activeWorldObject].activeImage, self.spritesheets[2][3], self.spritesheets[2][4], self.spritesheets[2][5], self.spritesheets[2][6], 8, 1), False)
-                data = pygame.image.tostring(surf, 'RGBA')
-
-                #png = self.gfx.GetImage(self.gfx.GetCoords(self.wallObjects[self.activeWallObject].activeImage, spritesheets[1][3], spritesheets[1][4], spritesheets[1][5], spritesheets[1][6], 8, 1), False)
-                wx.StaticBitmap(parent, -1, wx.Bitmap(wx.Image(self.spritesheets[2][3], self.spritesheets[2][4], data)), (650, 50))
-        
+                pygame.image.save(surf, self.tempLoc)
+                wx.StaticBitmap(parent, -1, wx.Bitmap(self.tempLoc), (711, 50))
             except:
                 pass
+
 class ParticlesTab(wx.Panel):
     def __init__(self, parent, context):
         wx.Panel.__init__(self, parent)
@@ -2939,6 +3060,21 @@ class ParticlesTab(wx.Panel):
         t = wx.StaticText(self, -1, "Affected By Gravity: ", (40,350))
         t = wx.StaticText(self, -1, "Gravity Coefficient: ", (40,380))
         t = wx.StaticText(self, -1, "Bound To Camera: ", (40,410))
+
+        self.indexTC = wx.TextCtrl(self, -1, pos=(260, 50), size=(320, 20))
+        self.nameTC = wx.TextCtrl(self, -1, pos=(260, 80), size=(320, 20))
+        self.weaponTC = wx.TextCtrl(self, -1, pos=(260, 110), size=(320, 20))
+        self.damageTC = wx.TextCtrl(self, -1, pos=(260, 140), size=(320, 20))
+        self.physicsIndicTC = wx.TextCtrl(self, -1, pos=(260, 170), size=(320, 20))
+        self.physicsCounterTC = wx.TextCtrl(self, -1, pos=(260, 200), size=(320, 20))
+        self.widthTC = wx.TextCtrl(self, -1, pos=(260, 230), size=(320, 20))
+        self.heightTC = wx.TextCtrl(self, -1, pos=(260, 260), size=(320, 20))
+        self.defaultSpeedTC = wx.TextCtrl(self, -1, pos=(260, 290), size=(320, 20))
+        self.imageTC = wx.TextCtrl(self, -1, pos=(260, 320), size=(320, 20))
+        self.affectedByGravityTC = wx.TextCtrl(self, -1, pos=(260, 350), size=(320, 20))
+        self.gravityCoefficientTC = wx.TextCtrl(self, -1, pos=(260, 380), size=(320, 20))
+        self.boundToCameraTC = wx.TextCtrl(self, -1, pos=(260, 410), size=(320, 20))
+        
 
 class CharactersTab(wx.Panel):
     def __init__(self, parent):
@@ -2965,6 +3101,26 @@ class CharactersTab(wx.Panel):
         t = wx.StaticText(self, -1, "Is User: ", (40,560))
         t = wx.StaticText(self, -1, "Default Aggression: ", (40,590))
 
+        self.indexTC = wx.TextCtrl(self, -1, pos=(260, 50), size=(320, 20))
+        self.nameTC = wx.TextCtrl(self, -1, pos=(260, 80), size=(320, 20))
+        self.spritesheetTC = wx.TextCtrl(self, -1, pos=(260, 110), size=(320, 20))
+        self.boundToCameraTC = wx.TextCtrl(self, -1, pos=(260, 140), size=(320, 20))
+        self.millisecondsOnEachLegTC = wx.TextCtrl(self, -1, pos=(260, 170), size=(320, 20))
+        self.animationFramesPerWalkTC = wx.TextCtrl(self, -1, pos=(260, 200), size=(320, 20))
+        self.defaultSpeedTC = wx.TextCtrl(self, -1, pos=(260, 230), size=(320, 20))
+        self.ammoTC = wx.TextCtrl(self, -1, pos=(260, 260), size=(320, 20))
+        self.activeWeaponTC = wx.TextCtrl(self, -1, pos=(260, 290), size=(320, 20))
+        self.scoreTC = wx.TextCtrl(self, -1, pos=(260, 320), size=(320, 20))
+        self.weaponsTC = wx.TextCtrl(self, -1, pos=(260, 350), size=(320, 20))
+        self.inventoryTC = wx.TextCtrl(self, -1, pos=(260, 380), size=(320, 20))
+        self.widthTC = wx.TextCtrl(self, -1, pos=(260, 410), size=(320, 20))
+        self.heightTC = wx.TextCtrl(self, -1, pos=(260, 440), size=(320, 20))
+        self.affectedByGravityTC = wx.TextCtrl(self, -1, pos=(260, 470), size=(320, 20))
+        self.gravityCoefficientTC = wx.TextCtrl(self, -1, pos=(260, 500), size=(320, 20))
+        self.IDTC = wx.TextCtrl(self, -1, pos=(260, 530), size=(320, 20))
+        self.isUserTC = wx.TextCtrl(self, -1, pos=(260, 560), size=(320, 20))
+        self.defaultAggressionTC = wx.TextCtrl(self, -1, pos=(260, 590), size=(320, 20))
+        
 class WorldTab(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -2991,6 +3147,25 @@ class LevelsTab(wx.Panel):
         t = wx.StaticText(self, -1, "Stick To Walls On Collision: ", (40,440))
         t = wx.StaticText(self, -1, "Width (Tiles): ", (40,470))
         t = wx.StaticText(self, -1, "Height (Tiles): ", (40,500))
+
+        self.IDTC = wx.TextCtrl(self, -1, pos=(260, 50), size=(320, 20))
+        self.indexTC = wx.TextCtrl(self, -1, pos=(260, 80), size=(320, 20))
+        self.nameTC = wx.TextCtrl(self, -1, pos=(260, 110), size=(320, 20))
+        self.descriptionTC = wx.TextCtrl(self, -1, pos=(260, 140), size=(320, 20))
+        self.weatherTC = wx.TextCtrl(self, -1, pos=(260, 170), size=(320, 20))
+        self.sidescrollerTC = wx.TextCtrl(self, -1, pos=(260, 200), size=(320, 20))
+        self.musicTC = wx.TextCtrl(self, -1, pos=(260, 230), size=(320, 20))
+        self.loopMusicTC = wx.TextCtrl(self, -1, pos=(260, 260), size=(320, 20))
+        self.startXTC = wx.TextCtrl(self, -1, pos=(260, 290), size=(320, 20))
+        self.startYTC = wx.TextCtrl(self, -1, pos=(260, 320), size=(320, 20))
+        self.facingXTC = wx.TextCtrl(self, -1, pos=(260, 350), size=(320, 20))
+        self.facingYTC = wx.TextCtrl(self, -1, pos=(260, 380), size=(320, 20))
+        self.gravityTC = wx.TextCtrl(self, -1, pos=(260, 410), size=(320, 20))
+        self.stickToWallsOnCollisionTC = wx.TextCtrl(self, -1, pos=(260, 440), size=(320, 20))
+        self.widthTC = wx.TextCtrl(self, -1, pos=(260, 470), size=(320, 20))
+        self.heightTC = wx.TextCtrl(self, -1, pos=(260, 500), size=(320, 20))
+
+        
         btn = wx.Button(self, -1, "Level Editor", (700, 20))
         btn.Bind(wx.EVT_BUTTON, self.OpenLevelEditor)
         self.caption = "Level Settings"
@@ -3133,5 +3308,5 @@ class SoundsTab(wx.Panel):
 
 if __name__ == "__main__":
     app = wx.App()
-    WorldEditorWindow("Game Studio", 1080, 852, World("", "world.db") ).Show()
+    WorldEditorWindow("Game Studio", 1080, 1080, World("", "world.db") ).Show()
     app.MainLoop()

@@ -118,7 +118,7 @@ class Game(object):
 
 
         self.particles = []
-        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", 8, 1, 64, 64, 0, 0)
+        self.gfx.LoadGfxDictionary("../Images/spritesheet.png", "World Tiles", 9, 1, 64, 64, 0, 0)
         #self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer TEST.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 41, height = 42, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
         self.userCharacter = Character(name = "User", imagesGFXName = "../Images/userPlayer 64.png", boundToCamera = True, xTile = self.world.activeLevel.startX, yTile = self.world.activeLevel.startY, deltaX = 0, deltaY = 0, width = 41, height = 42, pictureXPadding = 1, pictureYPadding = 1, gravity = True, gravityCoefficient = .0000005)
         self.camera = Camera(screenResSelection, fullScreen, 14, 0, self.userCharacter, 1/2.0, 1/2.0)
@@ -139,7 +139,7 @@ class Game(object):
         self.characterController = CharacterController(self.characters, self.camera, self.world.activeLevel)
         self.View = View(self.gfx, self.camera, self.world.activeLevel, self.gameDisplay)
         #self.levelController = LevelController()
-        self.FPSLimit = 120
+        self.FPSLimit = 240
         self.gameController = GameController()
         self.hardwareAccessLayer = Hardware()
         self.particleController = ParticleController(self.particles, self.characters, self.world.activeLevel, self.gfx)
@@ -162,13 +162,24 @@ class Game(object):
                 self.characterController.ApplyUserInputToCharacter(self.hardwareAccessLayer.characterEvents)
                 self.characterController.CalculateCharacterPlacement(timeElapsedSinceLastFrame/float(self.calculationsPerFrame))
                 self.cameraController.HandleWorldEdgeCollision()
-                self.characterController.MoveCharacters()
-                self.cameraController.MoveCamera()
+                levelChange = self.characterController.MoveCharacters()
                 self.particleController.CreateParticles()
                 self.particleController.CalculateParticlePlacement(timeElapsedSinceLastFrame/float(self.calculationsPerFrame))
                 self.particleController.MoveParticles()
                 self.particleController.HandleCollisions()
                 self.particleController.DeleteParticles()
+                self.characterController.DeleteCharacters()
+                if levelChange >= 0:
+                    self.world.LoadLevel(levelChange)
+                    self.gameController.SetActiveLevel(self.world.activeLevel)
+                    self.characterController.SetActiveLevel(self.world.activeLevel)
+                    self.cameraController.SetActiveLevel(self.world.activeLevel)
+                    self.particleController.SetActiveLevel(self.world.activeLevel)
+                    self.particleController.DeleteParticles(1)
+                    self.characterController.DeleteCharacters(1)
+                    self.camera.InitializeLocation(self.world.activeLevel.tileWidth, self.world.activeLevel.tileHeight, self.world.activeLevel.levelWidth, self.world.activeLevel.levelHeight)
+                    self.View = View(self.gfx, self.camera, self.world.activeLevel, self.gameDisplay)
+                self.cameraController.MoveCamera()
             self.View.RefreshScreen(timeElapsedSinceLastFrame, self.characters, self.particles)
             
             #DRAW GAME STATS
@@ -176,8 +187,8 @@ class Game(object):
             #self.gfx.DrawSmallMessage("Ammo: " + str(self.characters[0].ammo), 1, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Level: " + str(self.world.activeLevel.index), 2, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Score: " + str(self.characters[0].score), 3, self.gameDisplay, white, self.DisplayWidth)
-            self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocation()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
-            self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocation()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player wX: " + str(self.characters[0].GetLocation()[0]), 4, self.gameDisplay, white, self.camera.DisplayWidth)
+            #self.gfx.DrawSmallMessage("Player wY: " + str(self.characters[0].GetLocation()[1]), 5, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player sX: " + str(self.characters[0].GetLocationOnScreen()[0]), 6, self.gameDisplay, white, self.camera.DisplayWidth)
             #self.gfx.DrawSmallMessage("Player sY: " + str(self.characters[0].GetLocationOnScreen()[1]), 7, self.gameDisplay, white, self.camera.DisplayWidth)
 

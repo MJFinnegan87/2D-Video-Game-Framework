@@ -2,6 +2,7 @@ import math
 import pygame
 import DataAccessLayer
 import sys,os
+
 class Level(object):
     def __init__(self, dataAccessLayer, index = 0, name = "", description = "", weather = "", sideScroller = 0, wallMap = [], objectMap = [], music = "", loopMusic = False, startX = 0, startY = 0, startXFacing = 0, startYFacing = 0, gravity = False, stickToWallsOnCollision = False, tileSheetRows = 0, tileSheetColumns = 0, tileWidth = 0, tileHeight = 0, tileXPadding = 0, tileYPadding = 0):
         self.dataAccessLayer = dataAccessLayer
@@ -114,7 +115,11 @@ class GamePlayObject(object):
         pass
 
 class WorldObject(GamePlayObject):
-    def __init__(self, PK = 1, xTile = 0, yTile = 0, name = "", desc = "", columns = 0, activeImage = None,  walkThroughPossible = False, actionOnTouch = 0,  actionOnAttack = 0, timeBetweenAnimFrame = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0, addsToCharacterInventoryOnAttack = 0, destroyOnAttack = 0, ID = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack= 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, timeElapsedSinceLastFrame = 0, maxColumns = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 0, tileHeight = 0, isAnimated = True):
+    def __init__(self, PK = 1, xTile = 0, yTile = 0, name = '', desc = '', columns = 0, activeImage = 0, walkThroughPossible = False, actionOnTouch = '', actionOnAttack = '',
+             actionOnAct = '', changeToOnTouch = 0, changeToOnAttack = 0, changeToOnAct = 0, timeBetweenAnimFrame = 0, addsToCharacterInventoryOnTouch = 0, destroyOnTouch = 0,
+             addsToCharacterInventoryOnAttack = 0, addsToCharacterInventoryOnAct = 0, destroyOnAttack = 0, destroyOnAct = 0, ID = 0, scoreChangeOnTouch = 0, scoreChangeOnAttack = 0,
+             scoreChangeOnAct = 0, healthChangeOnTouch = 0, healthChangeOnAttack = 0, healthChangeOnAct = 0, teleportToLevelOnTouch = 0, teleportToXOnTouch = 0, teleportToYOnTouch = 0,
+             timeElapsedSinceLastFrame = 0, maxColumns = 0, isAnimated = False, defaultDeltaX = 0, defaultDeltaY = 0, speed = 0, defaultSpeed = 0, deltaX = 0, deltaY = 0, deltaXScreenOffset = 0, deltaYScreenOffset = 0, tileWidth = 64, tileHeight = 64):
         self.PK = PK
         self.deltaX = deltaX
         self.deltaY = deltaY
@@ -145,13 +150,28 @@ class WorldObject(GamePlayObject):
         self.deltaYScreenOffset = deltaYScreenOffset #THIS WILL ALWAYS BE CALCULATED BY THE GAME, ABSTRACTED AWAY
         self.isAnimated = isAnimated
         self.maxColumns = maxColumns
+        self.defaultDeltaX = defaultDeltaX
+        self.defaultDeltaY = defaultDeltaY
+
+        self.actionOnAct = actionOnAct
+        self.changeToOnAct = changeToOnAct
+        self.changeToOnTouch = changeToOnTouch
+        self.changeToOnAttack = changeToOnAttack
+        self.addsToCharacterInventoryOnAct = addsToCharacterInventoryOnAct
+        self.scoreChangeOnAct = scoreChangeOnAct
+        self.destroyOnAct = destroyOnAct
+        self.healthChangeOnAct = healthChangeOnAct
+        
+        self.teleportToLevelOnTouch = teleportToLevelOnTouch
+        self.teleportToXOnTouch = teleportToXOnTouch
+        self.teleportToYOnTouch = teleportToYOnTouch
 
     def FixDiagSpeed(self):
         #REDUCE PARTICLE SPEED SO IT DOESN'T TRAVEL FASTER WHEN DIAGONAL
         #  
         #      |\                                                                 |\
         #      | \                                                                | \
-        # Y=5  |  \ Z>5  -> solve for X and Y, while keeping x:y the same ratio: Y|  \ 5
+        # Y=5  |  \ Z>5  -> solve for X and Y, such that x:y the same ratio:     Y|  \ 5
         #      |_  \                                                              |_  \
         #      |_|__\                                                             |_|__\
         #       X=5                                                                  X 
@@ -273,7 +293,10 @@ class WorldObject(GamePlayObject):
             'addsToCharacterInventoryOnTouch' : 0,
             'destroyOnTouch' : 0,
             'addsToCharacterInventoryOnAttack' : 0,
-            'destroyOnAttack' : 0}
+            'destroyOnAttack' : 0,
+            'teleportToLevelOnTouch' : -1,
+            'teleportToXOnTouch': -1,
+            'teleportToYOnTouch': -1}
         #TODO: Apply object deletion on touch or attack.
 
         for thisMap in levelMap:
@@ -286,7 +309,7 @@ class WorldObject(GamePlayObject):
             
             try:
                 #COLLISION CHECK @ C or @ D or @ H or @ G
-                H, D, C, G, Hra, Dra, Cra, Gra = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                H, D, C, G, Hra, Dra, Cra, Gra = self.GetCollisions(wallMap, mapType, tileWidth, tileHeight)
                 self.objectCollisionEffectList['scoreChangeOnTouch'] = self.objectCollisionEffectList['scoreChangeOnTouch'] + Hra['scoreChangeOnTouch'] + Dra['scoreChangeOnTouch'] + Cra['scoreChangeOnTouch'] + Gra['scoreChangeOnTouch']
                 self.objectCollisionEffectList['scoreChangeOnAttack'] = self.objectCollisionEffectList['scoreChangeOnAttack'] + Hra['scoreChangeOnAttack'] + Dra['scoreChangeOnAttack'] + Cra['scoreChangeOnAttack'] + Gra['scoreChangeOnAttack']
                 self.objectCollisionEffectList['healthChangeOnTouch'] = self.objectCollisionEffectList['healthChangeOnTouch'] + Hra['healthChangeOnTouch'] + Dra['healthChangeOnTouch'] + Cra['healthChangeOnTouch'] + Gra['healthChangeOnTouch']
@@ -312,7 +335,7 @@ class WorldObject(GamePlayObject):
                 #COLLISION CHECK @ A or @ B or @ F or @ E REGARDLESS OF IF RESULTS ABOVE
                 #IF WE HANDLED A COLLISION @ C, D, H, OR G OR NO COLLISION @ C, D, H, OR G OCCURED,
                 #WOULD A COLLISION OCCUR @ A, B, F, OR E ??? (NOTE HOW THIS FORMULA IS DEPENDENT ON VARS ABOVE THAT WERE CHANGED!)
-                A, E, B, F, Ara, Era, Bra, Fra = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                A, E, B, F, Ara, Era, Bra, Fra = self.GetCollisions(wallMap, mapType, tileWidth, tileHeight)
                 self.objectCollisionEffectList['scoreChangeOnTouch'] = self.objectCollisionEffectList['scoreChangeOnTouch'] + Ara['scoreChangeOnTouch'] + Era['scoreChangeOnTouch'] + Bra['scoreChangeOnTouch'] + Fra['scoreChangeOnTouch']
                 self.objectCollisionEffectList['scoreChangeOnAttack'] = self.objectCollisionEffectList['scoreChangeOnAttack'] + Ara['scoreChangeOnAttack'] + Era['scoreChangeOnAttack'] + Bra['scoreChangeOnAttack'] + Fra['scoreChangeOnAttack']
                 self.objectCollisionEffectList['healthChangeOnTouch'] = self.objectCollisionEffectList['healthChangeOnTouch'] + Ara['healthChangeOnTouch'] + Era['healthChangeOnTouch'] + Bra['healthChangeOnTouch'] + Fra['healthChangeOnTouch']
@@ -347,18 +370,59 @@ class WorldObject(GamePlayObject):
                         self.deltaY = 0
 
                     #COLLISION CHECK @ C or @ D or @ H or @ G REGARDLESS OF RESULTS OF COLLISION CHECK @ A or @ B or @ F or @ E
-                    H, D, C, G, Hra, Dra, Cra, Gra = self.GetCollisions(wallMap, tileWidth, tileHeight)
+                    H, D, C, G, Hra, Dra, Cra, Gra = self.GetCollisions(wallMap, mapType, tileWidth, tileHeight)
                     if not((self.deltaX > 0 and (C == False or D == False)) or ((self.deltaX)< 0 and (H == False or G == False))):
                         if mapType == 'WallMap':
                             self.xCollidingWall = False
                         elif mapType == 'ObjectMap':
-                            self.xCollidingObject = False                        
+                            self.xCollidingObject = False
+
                     self.yok = tempyok
                     self.deltaYScreenOffset = tempdeltaYScreenOffset
                     self.deltaY = temppersonYDelta
-                    
 
-            except: #This will happen when character or particle comes in contact with a part of the world that the dev forgot to design
+                if Hra['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Hra['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Hra['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Hra['teleportToYOnTouch']
+
+                elif Dra['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Dra['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Dra['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Dra['teleportToYOnTouch']
+
+                elif Cra['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Cra['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Cra['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Cra['teleportToYOnTouch']
+
+                elif Gra['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Gra['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Gra['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Gra['teleportToYOnTouch']
+
+                elif Ara['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Ara['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Ara['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Ara['teleportToYOnTouch']
+
+                elif Era['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Era['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Era['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Era['teleportToYOnTouch']
+
+                elif Bra['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Bra['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Bra['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Bra['teleportToYOnTouch']
+
+                elif Fra['teleportToLevelOnTouch'] >= 0:
+                    self.objectCollisionEffectList['teleportToLevelOnTouch'] = Fra['teleportToLevelOnTouch']
+                    self.objectCollisionEffectList['teleportToXOnTouch'] = Fra['teleportToXOnTouch']
+                    self.objectCollisionEffectList['teleportToYOnTouch'] = Fra['teleportToYOnTouch']
+
+            except: #This will happen when character or particle comes in contact with a part of the world that the dev forgot to design,
+                #or if a property does not belong to the object in question
                 if needToRevertX == 1:
                     self.xok = tempxok
                     self.deltaXScreenOffset = tempdeltaXScreenOffset
@@ -369,7 +433,7 @@ class WorldObject(GamePlayObject):
                     self.deltaYScreenOffset = tempdeltaYScreenOffset
                     self.deltaY = temppersonYDelta
 
-    def GetCollisions(self, wallMap, tileWidth, tileHeight):
+    def GetCollisions(self, wallMap, mapType, tileWidth, tileHeight):
         NWreturnActions = {
             'scoreChangeOnTouch' : 0,
             'scoreChangeOnAttack' : 0,
@@ -378,7 +442,10 @@ class WorldObject(GamePlayObject):
             'addsToCharacterInventoryOnTouch' : 0,
             'destroyOnTouch' : 0,
             'addsToCharacterInventoryOnAttack' : 0,
-            'destroyOnAttack' : 0}
+            'destroyOnAttack' : 0,
+            'teleportToLevelOnTouch' : -1,
+            'teleportToXOnTouch': -1,
+            'teleportToYOnTouch': -1}
         NEreturnActions = {
             'scoreChangeOnTouch' : 0,
             'scoreChangeOnAttack' : 0,
@@ -387,7 +454,10 @@ class WorldObject(GamePlayObject):
             'addsToCharacterInventoryOnTouch' : 0,
             'destroyOnTouch' : 0,
             'addsToCharacterInventoryOnAttack' : 0,
-            'destroyOnAttack' : 0}
+            'destroyOnAttack' : 0,
+            'teleportToLevelOnTouch' : -1,
+            'teleportToXOnTouch': -1,
+            'teleportToYOnTouch': -1}
         SEreturnActions = {
             'scoreChangeOnTouch' : 0,
             'scoreChangeOnAttack' : 0,
@@ -396,7 +466,10 @@ class WorldObject(GamePlayObject):
             'addsToCharacterInventoryOnTouch' : 0,
             'destroyOnTouch' : 0,
             'addsToCharacterInventoryOnAttack' : 0,
-            'destroyOnAttack' : 0}
+            'destroyOnAttack' : 0,
+            'teleportToLevelOnTouch' : -1,
+            'teleportToXOnTouch': -1,
+            'teleportToYOnTouch': -1}
         SWreturnActions = {
             'scoreChangeOnTouch' : 0,
             'scoreChangeOnAttack' : 0,
@@ -405,13 +478,16 @@ class WorldObject(GamePlayObject):
             'addsToCharacterInventoryOnTouch' : 0,
             'destroyOnTouch' : 0,
             'addsToCharacterInventoryOnAttack' : 0,
-            'destroyOnAttack' : 0}
+            'destroyOnAttack' : 0,
+            'teleportToLevelOnTouch' : -1,
+            'teleportToXOnTouch': -1,
+            'teleportToYOnTouch': -1}
 
         NW = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int(self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         SE = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         NE = wallMap[int(self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int((self.width/float(tileWidth)) + self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
         SW = wallMap[int((self.height/float(tileHeight)) + self.yTile + ((self.yok * self.deltaY)/float(tileHeight)))][int(self.xTile + ((self.xok * self.deltaX)/float(tileWidth)))]
-        
+
         if NW == None:
             NW = True
         else:
@@ -423,6 +499,10 @@ class WorldObject(GamePlayObject):
             NWreturnActions['destroyOnTouch'] = NWreturnActions['destroyOnTouch'] + NW.destroyOnTouch
             NWreturnActions['addsToCharacterInventoryOnAttack'] = NWreturnActions['addsToCharacterInventoryOnAttack'] + NW.addsToCharacterInventoryOnAttack
             NWreturnActions['destroyOnAttack'] = NWreturnActions['destroyOnAttack'] + NW.destroyOnAttack
+            if mapType == 'ObjectMap':
+                NWreturnActions['teleportToLevelOnTouch'] = NW.teleportToLevelOnTouch
+                NWreturnActions['teleportToXOnTouch'] = NW.teleportToXOnTouch
+                NWreturnActions['teleportToYOnTouch'] = NW.teleportToYOnTouch
             NW = NW.walkThroughPossible
         if NE == None:
             NE = True
@@ -435,6 +515,10 @@ class WorldObject(GamePlayObject):
             NEreturnActions['destroyOnTouch'] = NEreturnActions['destroyOnTouch'] + NE.destroyOnTouch
             NEreturnActions['addsToCharacterInventoryOnAttack'] = NEreturnActions['addsToCharacterInventoryOnAttack'] + NE.addsToCharacterInventoryOnAttack
             NEreturnActions['destroyOnAttack'] = NEreturnActions['destroyOnAttack'] + NE.destroyOnAttack
+            if mapType == 'ObjectMap':
+                NEreturnActions['teleportToLevelOnTouch'] = NE.teleportToLevelOnTouch
+                NEreturnActions['teleportToXOnTouch'] = NE.teleportToXOnTouch
+                NEreturnActions['teleportToYOnTouch'] = NE.teleportToYOnTouch
             NE = NE.walkThroughPossible
         if SE == None:
             SE = True
@@ -447,6 +531,10 @@ class WorldObject(GamePlayObject):
             SEreturnActions['destroyOnTouch'] = SEreturnActions['destroyOnTouch'] + SE.destroyOnTouch
             SEreturnActions['addsToCharacterInventoryOnAttack'] = SEreturnActions['addsToCharacterInventoryOnAttack'] + SE.addsToCharacterInventoryOnAttack
             SEreturnActions['destroyOnAttack'] = SEreturnActions['destroyOnAttack'] + SE.destroyOnAttack
+            if mapType == 'ObjectMap':
+                SEreturnActions['teleportToLevelOnTouch'] = SE.teleportToLevelOnTouch
+                SEreturnActions['teleportToXOnTouch'] = SE.teleportToXOnTouch
+                SEreturnActions['teleportToYOnTouch'] = SE.teleportToYOnTouch
             SE = SE.walkThroughPossible
         if SW == None:
             SW = True
@@ -459,6 +547,10 @@ class WorldObject(GamePlayObject):
             SWreturnActions['destroyOnTouch'] = SWreturnActions['destroyOnTouch'] + SW.destroyOnTouch
             SWreturnActions['addsToCharacterInventoryOnAttack'] = SWreturnActions['addsToCharacterInventoryOnAttack'] + SW.addsToCharacterInventoryOnAttack
             SWreturnActions['destroyOnAttack'] = SWreturnActions['destroyOnAttack'] + SW.destroyOnAttack
+            if mapType == 'ObjectMap':
+                SWreturnActions['teleportToLevelOnTouch'] = SW.teleportToLevelOnTouch
+                SWreturnActions['teleportToXOnTouch'] = SW.teleportToXOnTouch
+                SWreturnActions['teleportToYOnTouch'] = SW.teleportToYOnTouch
             SW = SW.walkThroughPossible
         return NW, SE, NE, SW, NWreturnActions, NEreturnActions, SEreturnActions, SWreturnActions
 
@@ -555,7 +647,6 @@ class Bullet(WorldObject):
             if self.physicsIndicator == "Pass Through":
                 pass
 
-    #Overrides inherited method
     def ApplyCollisionEffects(self):
         self.cameFromCharacter.score += self.objectCollisionEffectList['scoreChangeOnAttack']
         self.cameFromCharacter.health += self.objectCollisionEffectList['healthChangeOnAttack']
@@ -645,7 +736,7 @@ class Character(WorldObject):
             self.fireAngle = self.angle
 
     def GetLocation(self):
-        return [self.xTile + 1, self.yTile + 1] #UNITS IN WORLD TILES
+        return [self.xTile, self.yTile] #UNITS IN WORLD TILES
 
     def GetLocationOnScreen(self):
         return [self.x, self.y] #UNITS IN SCREEN PIXELS
@@ -653,7 +744,6 @@ class Character(WorldObject):
     def TestIfLocationVisibleOnScreen(self):
         pass
 
-    #Overrides parent method
     def HandleWorldObjectOrEdgeCollision(self, stickToWallsOnCollision, gravity):
         self.xok = 1
         self.yok = 1
@@ -676,7 +766,6 @@ class Character(WorldObject):
                 tempDeltaX = 0
         self.SetDeltaXDeltaY(tempDeltaX, tempDeltaY)
 
-    #Overrides inherited method
     def ApplyCollisionEffects(self):
         self.score += self.objectCollisionEffectList['scoreChangeOnTouch']
         self.health += self.objectCollisionEffectList['healthChangeOnTouch']

@@ -64,7 +64,7 @@ class DataAccessLayer(object):
         Marshaller = self.JSONConverter()
         wallMapJSON = copy.deepcopy(Marshaller.fromJSON(JSONWallData, "WallData"))
         objectMapJSON = copy.deepcopy(Marshaller.fromJSON(JSONObjectData, "ObjectData"))
-        
+
         for i in range(len(wallMapJSON)):
             for j in range(len(wallMapJSON[0])):
                 wallMapJSON[i][j] = Marshaller.fromJSON(str(wallMapJSON[i][j]), "WallData")
@@ -107,7 +107,7 @@ class DataAccessLayer(object):
         c = connection.cursor()
         c.execute('SELECT * FROM WorldObjects')
         for obj in c:
-            WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16], obj[17], obj[18], obj[19]))
+            WorldObjectData.append(WorldObject(obj[0], None, None, obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7], obj[8], obj[9], obj[10], obj[11], obj[12], obj[13], obj[14], obj[15], obj[16], obj[17], obj[18], obj[19], obj[20], obj[21], obj[22], obj[23], obj[24], obj[25], obj[26], obj[27], obj[28], obj[29], obj[30], obj[31], obj[32], obj[33]))
         connection.close()
         return WorldObjectData
 
